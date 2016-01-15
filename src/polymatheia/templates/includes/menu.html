@@ -1,0 +1,9 @@
+<nav class='row orange darken-2'>
+<a class='col s1' href='/'>Home</a>
+{% if user.is_authenticated %}
+<a class='col s1' href='/submit.html'>Submit Assignment</a>
+<a class='col s1' href='/logout.html'>Logout</a>
+{% else %}
+<a class='col s1' href='https://login.oregonstate.edu/cas/login?service=http://oursite.edu/'>Login</a
+{% endif %}
+</nav>
