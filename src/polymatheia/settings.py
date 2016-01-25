@@ -36,6 +36,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'polymatheia.components',
+    'polymatheia.components.views'
 ]
 
 MIDDLEWARE_CLASSES = [
