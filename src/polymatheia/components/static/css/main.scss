@@ -1,0 +1,9 @@
+@import 'materialize';
+
+$link-color: #fff;
+
+a {
+	&:hover {
+		color: rgba($link-color, .7);
+	}
+}

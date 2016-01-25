@@ -14,8 +14,11 @@ Including another URLconf
     2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
 """
 from django.conf.urls import url
-from django.contrib import admin
+from polymatheia import views
+from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
 urlpatterns = [
-    url(r'^admin/', admin.site.urls),
-]
+        url(r'^$', views.index, name=''),
+        url(r'^$', views.about, name='about'),
+        ]
+urlpatterns += staticfiles_urlpatterns()
