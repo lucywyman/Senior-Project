@@ -1,0 +1,30 @@
+midterm report:
+- don't just plop our original proposal into the recap; write it from scratch
+- interface design user study:
+- what have people said about the interface
+- if he sees a spelling mistake on the first page, we instantly fail this paper!
+- font: times new roman or something else with serifs
+- no length requirements, but he says he will be impressed if we get everything at the appropriate level of detail within 5 pages.
+- so probably do at least 5 pages
+
+video:
+- 20-30 minutes in length
+- shows off all interface elements (even if they don't do anything, e.g. buttons cause popups that say "feature not implemented")
+- he doesn't care how he records it
+- single cut recording of presentation at a whiteboard is valid
+- clarity of audio/video counts
+- don't show code if it's not legible in the final render of the video
+- don't show text either unless it's a minor part of the GUI (e.g. "save" text on the save button if there is an icon there)
+- if there's a "user instructions" page or something though, kevin should be able to read it
+- might be a good idea to say what the button says/does while clicking it
+- probably overthinking if we do too much editing
+- don't need fancy transitions or anything, just clarity in terms of concepts and audio/video
+- turn in on project site and also engineering webspace and send kevin a link via email
+- put the report up there too and send a link with that as well
+- ~/public_html on the engr servers
+- only one member of the team has to submit it, i.e. it only goes on one person's engr webspace
+- if we use kaltura tools, don't link to the shitty web player; kevin wants the actual .mp4
+- we don't all have to speak equally, but we should make it clear that we all did about equal amounts of work
+- everyone should work on the report and everyone should work on the video; don't delegate entirely
+
+
