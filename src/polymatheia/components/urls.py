@@ -19,6 +19,9 @@ from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
 urlpatterns = [
         url(r'', 'polymatheia.components.views.pages.index', name='index'),
-        url(r'^about$', 'polymatheia.components.views.pages.about', name='about'),
+        url(r'^about$', 'polymatheia.components.views.pages.about', 
+            name='about'),
+        url(r'^login/$', 'polymatheia.components.views.login.login_user',
+            name='login')
         ]
 urlpatterns += staticfiles_urlpatterns()

@@ -3,15 +3,33 @@ import os
 
 class Department(models.Model):
     """
+    The Department model holds information about each relevant department 
+    that has classes at Oregon state. For example, the Computer Science 
+    department has 'CS' prefixed to their classes, which is relevant to 
+    determining the class id.
     """
+
+    name = models.TextField()
 
 class Teacher(models.Model):
     """
     """
+    first_name = models.TextField()
+    last_name = models.TextField()
+    onid = models.TextField()
+    department = models.ForeignKey('Department', null=False, blank=True)
+    # TODO make this correct
+    classes = models.ManyToManyField('Course')
 
 class TA(models.Model):
     """
     """
+    first_name = models.TextField()
+    last_name = models.TextField()
+    onid = models.TextField()
+    departement = models.ForeignKey('Department')
+    # TODO
+    classes = models.ManyToManyField('Course')
 
 class Student(models.Model):
     """
@@ -19,10 +37,18 @@ class Student(models.Model):
 
 class Course(models.Model):
     """
-    This is a comment
+    The course model describes a course at Oregon state.
+
+    This includes the course number (ie. 312 for CS312)
+    the name (ie. Linux System Administration)
+    the crn (ie. 98765)
+    the term (ie. Winter)
+    the year (ie. 2016)
+    the department (ie. CS)
     """
     course_num = models.PositiveIntegerField()
     name = models.TextField()
+    crn = models.PositiveIntegerField()
     term = models.TextField()
     year = models.DateField()
     dept = models.ForeignKey('Department', null=False, blank=False)
