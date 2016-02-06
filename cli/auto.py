@@ -7,7 +7,7 @@
 # Resourses:
 #   http://stackoverflow.com/questions/9973990/python-cmd-dynamic-docstrings-for-do-help-function
 #   http://stackoverflow.com/questions/16826172/filename-tab-completion-in-cmd-cmd-of-python
-# http://stackoverflow.com/questions/23749097/override-undocumented-help-area-in-pythons-cmd-module
+#   http://stackoverflow.com/questions/23749097/override-undocumented-help-area-in-pythons-cmd-module
 
 import cmd, getpass, glob, json, os, requests, sys
 
@@ -22,7 +22,7 @@ def _append_slash_if_dir(p):
         return p
 
 
-    
+
 
 
 class AutoShell(cmd.Cmd):
@@ -51,39 +51,69 @@ class AutoShell(cmd.Cmd):
     def do_course(self, args):
         'Add, View, Update, Delete Courses'
         print("Not implemented")
-        
+
     def help_course(self):
-        self.help_print("course")
+        self.print_help("course")
     #----------------------------------------
-        
+
     def do_assignment(self, args):
         'Add, View, Update, Delete Assignments'
         print("Not implemented")
+
+    def help_assignment(self):
+        self.print_help("assignment")
+
+
+    #----------------------------------------
 
     def do_tag(self, args):
         'Tag assignments with keywords'
         print("Not implemented")
 
+    def help_tag(self):
+        self.print_help("tag")
+
+    #----------------------------------------
+
     def do_test(self, args):
         'Add, View, Update, Delete Tests'
         print("Not implemented")
 
-    def do_students(self, args):
+    def help_test(self):
+        self.print_help("test")
+
+    #----------------------------------------
+
+    def do_student(self, args):
         'Add, View, Delete Students'
         print("Not implemented")
 
+    def help_student(self):
+        self.print_help("student")
+
+    #----------------------------------------
+
     def do_ta(self, args):
-        'Add, View, Delete TAs'
+
         print("Not implemented")
+
+    def help_ta(self):
+        self.print_help("ta")
+
+
+    #----------------------------------------
 
     def do_group(self, args):
-        'Add, View, Delete groups'
         print("Not implemented")
+        
+    def help_group(self):
+        self.print_help("")
+     
+    #----------------------------------------
 
     def do_submission(self, args):
-        'Add, View, Update Submissions'
         args = args.split()
-        if args[0]=="add":
+        if args and args[0]=="add":
             try:
                 int(args[1])
             except ValueError:
@@ -95,12 +125,18 @@ class AutoShell(cmd.Cmd):
 					 }
             files = { "file": open(args[2]) }
             r = requests.post(url, files=files, data=data)
-            
+
             # TODO more robust error reporting
             if r.status_code==200:
                 print("Submission succeeded!")
             else:
                 print("Failed")
+        else:
+            print("\nError: Arguments not valid.\n")
+            self.onecmd("help submission")
+                
+    def help_submission(self):
+        self.print_help("submission")
 
     def complete_submission(self, text, line, begidx, endidx):
         before_arg = line.rfind(" ", 0, begidx)
@@ -117,14 +153,27 @@ class AutoShell(cmd.Cmd):
             completions.append(path.replace(fixed, "", 1))
         return completions
 
+    #----------------------------------------
+
     def do_grade(self, args):
         'Alias of submission update'
         print("Not implemented")
+        
+    def help_grade(self):
+        self.print_help("grade")
+        
+    #----------------------------------------
 
     def do_ce(self, args):
         'Add, View, Update, Delete Common Errors'
         print("Not implemented")
+
+    def help_ce(self):
+        self.print_help("ce")
         
+    #----------------------------------------
+
+    # TODO Delete or Comment out for final version
     def do_level(self, args):
         args = args.lower()
         if args=="teacher":
@@ -138,19 +187,18 @@ class AutoShell(cmd.Cmd):
             print("Now a student!")
         else:
             print("You could be anything! Even a boat!")
-    
-    
+
     # aliases for EOF
     def do_exit(self, args):
-        self.do_EOF(args)
+        self.onecmd("EOF")
         return True
-        
+
     def do_quit(self, args):
-        self.do_EOF(args)
+        self.onecmd("EOF")
         return True
 
     # Helper function for printing help messages
-    def help_print(self, help_target):
+    def print_help(self, help_target):
         if self.user=="teacher":
                 print(help_strings.teacher[help_target])
         elif self.user=="ta":
