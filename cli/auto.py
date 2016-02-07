@@ -175,9 +175,9 @@ class AutoShell(cmd.Cmd):
                         print("\nError: 'course update' requires at least one key-value pair\n")
                         self.onecmd("help course")
                     else:
-                        self.logger.debug("PUTting submission")
+                        self.logger.debug("POSTting submission")
                         # TODO gracefully handle failure
-                        r = requests.put(url, json=data)
+                        r = requests.post(url, json=data)
 
                         # TODO more robust error reporting
                         if r.status_code==201:
@@ -263,9 +263,101 @@ class AutoShell(cmd.Cmd):
     #----------------------------------------
 
     def do_ta(self, args):
+        self.logger.debug("START. Args='{0}'".format(args))
+        args = parse(args)
+        self.logger.debug("Args split. Args='{0}'".format(args))
+        self.logger.debug("Verifying access level for add, update, and delete")
+        if self.user!="teacher":
+            print("\nError: Arguments not valid\n")
+            self.onecmd("help ta")
+        
+        elif args:
+            # ta view
+            if args[0]=="view":
+                self.logger.debug("Entering VIEW mode")
+                url = self.server + '/ta/view/'
+                self.logger.debug("url is '{0}'".format(url))
 
-        print("Not implemented")
+                validkeys = ["course-id","ta-onid","onid"]
+                self.logger.debug("Entering argument processing")
+                # args[1:] skips first entry (which will be view)
+                data = parsekv(validkeys, args[1:])
+                data["teacher-onid"] = self.username
+                self.logger.debug("data is '{0}'".format(data))
 
+                self.logger.debug("GETting submission")
+                # TODO gracefully handle failure
+                r = requests.get(url, json=data)
+
+                # TODO more robust error reporting
+                if r.status_code==200:
+                    print("Request succeeded!")
+                else:
+                    self.logger.error("Failed")
+            
+            # ta add/delete
+            if (args[0]=="add" or args[0]=="delete") and len(args)>=2:
+                # track if altering TA table or add/removeing TAs to/from courses
+                course = None
+                self.logger.debug("Entering {0} mode".format(args[0].upper()))
+                try:
+                    int(args[1])
+                    self.logger.debug("course-id is {0}".format(args[1]))
+                    course = True
+                except ValueError:
+                    self.logger.debug("first ta-onid is '{0}'".format(args[1]))
+                    course = False
+                    
+                if course:
+                    url = self.server + '/ta/course/' + args[1] + '/'
+                    self.logger.debug("url is '{0}'".format(url))
+                    
+                    onids = args[2:]
+                    data = { "ta-onid": onids }
+                    
+                else:
+                    url = self.server + '/ta/course/'
+                    self.logger.debug("url is '{0}'".format(url))
+                    
+                    onids = args[1:]
+                    data = { "ta-onid": onids }
+     
+                self.logger.debug("data is '{0}'".format(data))
+
+                # add TAs
+                if args[0]=="add":
+                    self.logger.debug("POSTting submission")
+                    # TODO gracefully handle failure
+                    r = requests.post(url, json=data)
+
+                    # TODO more robust error reporting
+                    if r.status_code==200:
+                        print("Addition succeeded!")
+                    else:
+                        self.logger.error("Failed")
+                
+                # remove TAs
+                elif args[0]=="delete":
+                    self.logger.debug("DELETEing submission")
+                    # TODO gracefully handle failure
+                    r = requests.post(url, json=data)
+
+                    # TODO more robust error reporting
+                    if r.status_code==200:
+                        print("Addition succeeded!")
+                    else:
+                        self.logger.error("Failed")
+                    
+
+            else:
+                print("\nError: Arguments not valid\n")
+                self.onecmd("help course")
+        else:
+            print("\nError: Arguments not valid\n")
+            self.onecmd("help course")
+        self.logger.debug("END")
+            
+            
     def help_ta(self):
         self.print_help("ta")
 
