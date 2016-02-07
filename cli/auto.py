@@ -8,6 +8,7 @@
 #   http://stackoverflow.com/questions/9973990/python-cmd-dynamic-docstrings-for-do-help-function
 #   http://stackoverflow.com/questions/16826172/filename-tab-completion-in-cmd-cmd-of-python
 #   http://stackoverflow.com/questions/23749097/override-undocumented-help-area-in-pythons-cmd-module
+# http://stackoverflow.com/questions/3041986/python-command-line-yes-no-input
 
 import cmd, getpass, glob, json, logging, os, requests, shlex, sys
 
@@ -115,11 +116,12 @@ class AutoShell(cmd.Cmd):
 
                 # TODO more robust error reporting
                 if r.status_code==200:
-                    print("Submission succeeded!")
+                    print("Request succeeded!")
                 else:
                     self.logger.error("Failed")
                     
             elif args[0] in ["add", "update", "delete"]:
+                self.logger.debug("Verifying access level for add, update, and delete")
                 if self.user!="teacher":
                     print("\nError: Arguments not valid\n")
                     self.onecmd("help course")
@@ -132,7 +134,7 @@ class AutoShell(cmd.Cmd):
                     
                     validkeys = ["dept","course-number","num","course-name","name","term","year"]
                     self.logger.debug("Entering argument processing")
-                    # args[1:] skips first entry (which will be view)
+                    # args[1:] skips first entry (which will be add)
                     data = parsekv(validkeys, args[1:])
                     self.logger.debug("data is '{0}'".format(data))
                     
@@ -146,9 +148,73 @@ class AutoShell(cmd.Cmd):
 
                         # TODO more robust error reporting
                         if r.status_code==201:
-                            print("Submission succeeded!")
+                            print("Addition succeeded!")
                         else:
                             self.logger.error("Failed")
+                            
+                # course update
+                elif args[0]=="update" and len(args)>=2:
+                    self.logger.debug("Entering UPDATE mode")
+                    try:
+                        int(args[1])
+                        self.logger.debug("course-id is {0}".format(args[1]))
+                    except ValueError:
+                        print("Error: course-id must be an integer value.")
+                        return
+                    url = self.server + '/course/' + args[1] + '/'
+                    self.logger.debug("url is '{0}'".format(url))
+                    
+                    validkeys = ["dept","course-number","num","course-name","name","term","year"]
+                    self.logger.debug("Entering argument processing")
+                    # args[2:] skips first entry (which will be update
+                    # <course-id>)
+                    data = parsekv(validkeys, args[2:])
+                    self.logger.debug("data is '{0}'".format(data))
+                    
+                    if len(data)<1:
+                        print("\nError: 'course update' requires at least one key-value pair\n")
+                        self.onecmd("help course")
+                    else:
+                        self.logger.debug("PUTting submission")
+                        # TODO gracefully handle failure
+                        r = requests.put(url, json=data)
+
+                        # TODO more robust error reporting
+                        if r.status_code==201:
+                            print("Update succeeded!")
+                        else:
+                            self.logger.error("Failed")
+                
+                # course delete
+                elif args[0]=="delete" and len(args)==2:
+                    self.logger.debug("Entering DELETE mode")
+                    try:
+                        int(args[1])
+                        self.logger.debug("course-id is {0}".format(args[1]))
+                    except ValueError:
+                        print("Error: course-id must be an integer value.")
+                        return
+                    url = self.server + '/course/' + args[1] + '/'
+                    self.logger.debug("url is '{0}'".format(url))
+                    
+                    question = "\nThis action is irreverible. All assignments and submissions\nlinked to this course will be removed. Continue?"
+                    if query_yes_no(question):
+                        self.logger.debug("DELETEing submission")
+                        # TODO gracefully handle failure
+                        r = requests.delete(url)
+
+                        # TODO more robust error reporting
+                        if r.status_code==201:
+                            print("Deletion succeeded!")
+                        else:
+                            self.logger.error("Failed")
+                            
+                    else:
+                        print("Deletion aborted!")
+                            
+                else:
+                    print("\nError: Arguments not valid\n")
+                    self.onecmd("help course")
             else:
                 print("\nError: Arguments not valid\n")
                 self.onecmd("help course")
@@ -357,6 +423,38 @@ def parsekv(validkeys, args):
 
         data[key] = value
     return data
+ 
+def query_yes_no(question, default="no"):
+    """Ask a yes/no question via raw_input() and return their answer.
+
+    "question" is a string that is presented to the user.
+    "default" is the presumed answer if the user just hits <Enter>.
+        It must be "yes" (the default), "no" or None (meaning
+        an answer is required of the user).
+
+    The "answer" return value is True for "yes" or False for "no".
+    """
+    valid = {"yes": True, "y": True, "ye": True,
+             "no": False, "n": False}
+    if default is None:
+        prompt = " [y/n] "
+    elif default == "yes":
+        prompt = " [Y/n] "
+    elif default == "no":
+        prompt = " [y/N] "
+    else:
+        raise ValueError("invalid default answer: '%s'" % default)
+
+    while True:
+        sys.stdout.write(question + prompt)
+        choice = raw_input().lower()
+        if default is not None and choice == '':
+            return valid[default]
+        elif choice in valid:
+            return valid[choice]
+        else:
+            sys.stdout.write("Please respond with 'yes' or 'no' "
+                             "(or 'y' or 'n').\n")
 
 if __name__ == '__main__':
     auto = AutoShell()
