@@ -9,7 +9,7 @@
 #   http://stackoverflow.com/questions/16826172/filename-tab-completion-in-cmd-cmd-of-python
 #   http://stackoverflow.com/questions/23749097/override-undocumented-help-area-in-pythons-cmd-module
 
-import cmd, getpass, glob, json, os, requests, sys
+import cmd, getpass, glob, json, logging, os, requests, sys
 
 import help_strings
 
@@ -21,7 +21,19 @@ def _append_slash_if_dir(p):
     else:
         return p
 
+# Enabling debugging at http.client level (requests->urllib3->http.client)
+# you will see the REQUEST, including HEADERS and DATA, and RESPONSE with HEADERS but without DATA.
+# the only thing missing will be the response.body which is not logged.
+try: # for Python 3
+    from http.client import HTTPConnection
+except ImportError:
+    from httplib import HTTPConnection
+HTTPConnection.debuglevel = 1
 
+
+requests_log = logging.getLogger("requests.packages.urllib3")
+requests_log.setLevel(logging.DEBUG)
+requests_log.propagate = True
 
 
 
@@ -31,7 +43,7 @@ class AutoShell(cmd.Cmd):
     # or teacher.
     user = "student"
     username = getpass.getuser()
-    server = "http://127.0.0.1:8000/"
+    server = "http://127.0.0.1:8000"
 
     intro = 'Welcome to the AUTO Universal Testing Organizer (AUTO) shell.\n   Type help or ? to list commands'
     prompt = '>> '
@@ -43,14 +55,85 @@ class AutoShell(cmd.Cmd):
         if header is not None:
             cmd.Cmd.print_topics(self, header, cmds, cmdlen, maxcol)
 
-    def do_EOF(self, args):
-        print("Thanks for using AUTO!\n")
-        return True
+
+    def preloop(self):
+        # create logger for AUTO
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.DEBUG)
+
+        # create console handler
+        self.ch = logging.StreamHandler()
+        self.ch.setLevel(logging.WARNING)
+
+        # create formatter
+        self.formatter = logging.Formatter("%(asctime)s - %(funcName)s - %(levelname)s: %(message)s")
+
+        # add formatter to console handler
+        self.ch.setFormatter(self.formatter)
+
+        # add console handler to logger
+        self.logger.addHandler(self.ch)
+
+
+        
+    def do_verbose(self, args):
+        args = args.split()
+        if args:
+            if args[0]=="on":
+                self.ch.setLevel(logging.DEBUG)
+                print("Verbose: ON")
+            elif args[0]=="off":
+                self.ch.setLevel(logging.WARNING)
+                print("Verbose: OFF")
 
     #----------------------------------------
     def do_course(self, args):
-        'Add, View, Update, Delete Courses'
-        print("Not implemented")
+        self.logger.debug("START. Args='{0}'".format(args))
+        args = parse(args)
+        self.logger.debug("Args split. Args='{0}'".format(args))
+        if args:
+            if args[0]=="view":
+                self.logger.debug("Entering VIEW mode")
+                url = self.server + '/course/view/'
+                self.logger.debug("url is '{0}'".format(url))
+
+                data = {}
+                self.logger.debug("Entering argument processing")
+                # args[1:] skips first entry (which will be view)
+                for arg in args[1:]:
+                    arg = arg.split('=')
+
+                    if len(arg)!=2:
+                        self.logger.warning("'{0}' is not a valid key-value pair".format(arg))
+                        continue
+
+                    key, value = arg[0], arg[1]
+
+                    validkeys = ["course-id","dept","course-number","course-name","term","year"]
+
+                    if key not in validkeys:
+                        self.logger.warning("'{0}' is not a valid key".format(arg))
+                        continue
+
+                    data[key] = value
+
+                self.logger.debug("data is '{0}'".format(data))
+
+
+                self.logger.debug("GETting submission")
+                # TODO gracefully handle failure
+                r = requests.get(url, json=data)
+
+                # TODO more robust error reporting
+                if r.status_code==200:
+                    print("Submission succeeded!")
+                else:
+                    self.logger.error("Failed")
+            else:
+                print("\nError: Arguments not valid\n")
+                self.onecmd("help course")
+        self.logger.debug("END")
+
 
     def help_course(self):
         self.print_help("course")
@@ -105,36 +188,52 @@ class AutoShell(cmd.Cmd):
 
     def do_group(self, args):
         print("Not implemented")
-        
+
     def help_group(self):
         self.print_help("")
-     
+
     #----------------------------------------
 
     def do_submission(self, args):
-        args = args.split()
-        if args and args[0]=="add":
-            try:
-                int(args[1])
-            except ValueError:
-                print("Error: assignment-id must be an integer value.")
-                return
-            url = self.server + 'submission/'
-            data = { "assignment-id": args[1],
-                     "onid": self.username
-					 }
-            files = { "file": open(args[2]) }
-            r = requests.post(url, files=files, data=data)
+        self.logger.debug("START. Args='{0}'".format(args))
+        args = parse(args)
+        self.logger.debug("Args split. Args='{0}'".format(args))
+        if args:
+            if args[0]=="add" and len(args)>=3:
+                self.logger.debug("Entering ADD mode")
+                try:
+                    # TODO (if time available) - verify that assignment can be
+                    # submitted before sending file.
+                    int(args[1])
+                    self.logger.debug("assignment-id is {0}".format(args[1]))
+                except ValueError:
+                    print("Error: assignment-id must be an integer value.")
+                    return
+                url = self.server + '/submission/'
+                self.logger.debug("url is '{0}'".format(url))
+                data = { "assignment-id": args[1],
+                         "onid": self.username
+                         }
+                self.logger.debug("data is '{0}'".format(data))
 
-            # TODO more robust error reporting
-            if r.status_code==200:
-                print("Submission succeeded!")
+                # TODO verify filepath - handle open failure gracefully
+                files = { "file": open(args[2], 'rb') }
+                self.logger.debug("file is '{0}'".format(args[2]))
+
+                self.logger.debug("POSTing submission")
+                # TODO gracefully handle failure
+                r = requests.post(url, files=files, data=data)
+
+                # TODO more robust error reporting
+                if r.status_code==200:
+                    print("Submission succeeded!")
+                else:
+                    self.logger.error("Failed")
             else:
-                print("Failed")
-        else:
-            print("\nError: Arguments not valid.\n")
-            self.onecmd("help submission")
-                
+                print("\nError: Arguments not valid\n")
+                self.onecmd("help submission")
+        self.logger.debug("END")
+
     def help_submission(self):
         self.print_help("submission")
 
@@ -158,10 +257,10 @@ class AutoShell(cmd.Cmd):
     def do_grade(self, args):
         'Alias of submission update'
         print("Not implemented")
-        
+
     def help_grade(self):
         self.print_help("grade")
-        
+
     #----------------------------------------
 
     def do_ce(self, args):
@@ -170,23 +269,32 @@ class AutoShell(cmd.Cmd):
 
     def help_ce(self):
         self.print_help("ce")
-        
+
     #----------------------------------------
 
     # TODO Delete or Comment out for final version
     def do_level(self, args):
-        args = args.lower()
-        if args=="teacher":
-            self.user="teacher"
-            print("Now a teacher!")
-        elif args=="ta":
-            self.user="ta"
-            print("Now a ta!")
-        elif args=="student":
-            self.user="student"
-            print("Now a student!")
+        args = parse(args)
+        if args:
+            if args[0]=="teacher":
+                self.user="teacher"
+                print("Now a teacher!")
+            elif args[0]=="ta":
+                self.user="ta"
+                print("Now a ta!")
+            elif args[0]=="student":
+                self.user="student"
+                print("Now a student!")
+            else:
+                print("You could be anything! Even a boat!")
         else:
-            print("You could be anything! Even a boat!")
+            print("You are a {0}!".format(self.user))
+
+    #----------------------------------------
+
+    def do_EOF(self, args):
+        print("Thanks for using AUTO!\n")
+        return True
 
     # aliases for EOF
     def do_exit(self, args):
@@ -196,6 +304,7 @@ class AutoShell(cmd.Cmd):
     def do_quit(self, args):
         self.onecmd("EOF")
         return True
+
 
     # Helper function for printing help messages
     def print_help(self, help_target):
@@ -207,6 +316,10 @@ class AutoShell(cmd.Cmd):
                 print(help_strings.student[help_target])
         else:
                 print("Are you a boat? I don't know how to help" + self.user + "s... :(")
+
+# TODO make this regex or something to allow multiword values for key-value pairs
+def parse(arg):
+    return arg.lower().split()
 
 if __name__ == '__main__':
     AutoShell().cmdloop()
