@@ -9,7 +9,7 @@
 #   http://stackoverflow.com/questions/16826172/filename-tab-completion-in-cmd-cmd-of-python
 #   http://stackoverflow.com/questions/23749097/override-undocumented-help-area-in-pythons-cmd-module
 
-import cmd, getpass, glob, json, logging, os, requests, sys
+import cmd, getpass, glob, json, logging, os, requests, shlex, sys
 
 import help_strings
 
@@ -21,6 +21,10 @@ def _append_slash_if_dir(p):
     else:
         return p
 
+
+# TODO remove this whole section when testing is done, or figure out
+# how to bind it into the other logger properly so verbose works
+#----------------------------------------------------------------------
 # Enabling debugging at http.client level (requests->urllib3->http.client)
 # you will see the REQUEST, including HEADERS and DATA, and RESPONSE with HEADERS but without DATA.
 # the only thing missing will be the response.body which is not logged.
@@ -29,12 +33,10 @@ try: # for Python 3
 except ImportError:
     from httplib import HTTPConnection
 HTTPConnection.debuglevel = 1
-
-
 requests_log = logging.getLogger("requests.packages.urllib3")
 requests_log.setLevel(logging.DEBUG)
 requests_log.propagate = True
-
+#----------------------------------------------------------------------
 
 
 class AutoShell(cmd.Cmd):
@@ -46,7 +48,7 @@ class AutoShell(cmd.Cmd):
     server = "http://127.0.0.1:8000"
 
     intro = 'Welcome to the AUTO Universal Testing Organizer (AUTO) shell.\n   Type help or ? to list commands'
-    prompt = '>> '
+    prompt = '>>> '
 
     # Override print_topics to prevent undocumented commands from showing up
     # in help.
@@ -73,9 +75,12 @@ class AutoShell(cmd.Cmd):
 
         # add console handler to logger
         self.logger.addHandler(self.ch)
-
-
         
+        
+    def emptyline(self):
+        pass
+
+
     def do_verbose(self, args):
         args = args.split()
         if args:
@@ -92,33 +97,17 @@ class AutoShell(cmd.Cmd):
         args = parse(args)
         self.logger.debug("Args split. Args='{0}'".format(args))
         if args:
+            # course view
             if args[0]=="view":
                 self.logger.debug("Entering VIEW mode")
                 url = self.server + '/course/view/'
                 self.logger.debug("url is '{0}'".format(url))
 
-                data = {}
+                validkeys = ["course-id","dept","course-number","num","course-name","name","term","year"]
                 self.logger.debug("Entering argument processing")
                 # args[1:] skips first entry (which will be view)
-                for arg in args[1:]:
-                    arg = arg.split('=')
-
-                    if len(arg)!=2:
-                        self.logger.warning("'{0}' is not a valid key-value pair".format(arg))
-                        continue
-
-                    key, value = arg[0], arg[1]
-
-                    validkeys = ["course-id","dept","course-number","course-name","term","year"]
-
-                    if key not in validkeys:
-                        self.logger.warning("'{0}' is not a valid key".format(arg))
-                        continue
-
-                    data[key] = value
-
+                data = parsekv(validkeys, args[1:])
                 self.logger.debug("data is '{0}'".format(data))
-
 
                 self.logger.debug("GETting submission")
                 # TODO gracefully handle failure
@@ -129,6 +118,37 @@ class AutoShell(cmd.Cmd):
                     print("Submission succeeded!")
                 else:
                     self.logger.error("Failed")
+                    
+            elif args[0] in ["add", "update", "delete"]:
+                if self.user!="teacher":
+                    print("\nError: Arguments not valid\n")
+                    self.onecmd("help course")
+                
+                # course add
+                elif args[0]=="add":
+                    self.logger.debug("Entering ADD mode")
+                    url = self.server + '/course/add/'
+                    self.logger.debug("url is '{0}'".format(url))
+                    
+                    validkeys = ["dept","course-number","num","course-name","name","term","year"]
+                    self.logger.debug("Entering argument processing")
+                    # args[1:] skips first entry (which will be view)
+                    data = parsekv(validkeys, args[1:])
+                    self.logger.debug("data is '{0}'".format(data))
+                    
+                    if len(data)<1:
+                        print("\nError: 'course add' requires at least one key-value pair\n")
+                        self.onecmd("help course")
+                    else:
+                        self.logger.debug("POSTing submission")
+                        # TODO gracefully handle failure
+                        r = requests.post(url, json=data)
+
+                        # TODO more robust error reporting
+                        if r.status_code==201:
+                            print("Submission succeeded!")
+                        else:
+                            self.logger.error("Failed")
             else:
                 print("\nError: Arguments not valid\n")
                 self.onecmd("help course")
@@ -317,9 +337,27 @@ class AutoShell(cmd.Cmd):
         else:
                 print("Are you a boat? I don't know how to help" + self.user + "s... :(")
 
-# TODO make this regex or something to allow multiword values for key-value pairs
 def parse(arg):
-    return arg.lower().split()
+    return shlex.split(arg)
+
+def parsekv(validkeys, args):
+    data = {}
+    for arg in args:
+        arg = arg.split('=')
+
+        if len(arg)!=2:
+            auto.logger.warning("'{0}' is not a valid key-value pair".format(arg))
+            continue
+
+        key, value = arg[0], arg[1]
+
+        if key not in validkeys:
+            auto.logger.warning("'{0}' is not a valid key".format(arg))
+            continue
+
+        data[key] = value
+    return data
 
 if __name__ == '__main__':
-    AutoShell().cmdloop()
+    auto = AutoShell()
+    auto.cmdloop()
