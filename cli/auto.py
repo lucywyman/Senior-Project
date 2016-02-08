@@ -100,7 +100,7 @@ class AutoShell(cmd.Cmd):
         if args:
             # course view
             if args[0]=="view":
-                self.logger.debug("Entering VIEW mode")
+                self.logger.debug("Entering {0} mode".format(args[0].upper()))
                 url = self.server + '/course/view/'
                 self.logger.debug("url is '{0}'".format(url))
 
@@ -128,7 +128,7 @@ class AutoShell(cmd.Cmd):
                 
                 # course add
                 elif args[0]=="add":
-                    self.logger.debug("Entering ADD mode")
+                    self.logger.debug("Entering {0} mode".format(args[0].upper()))
                     url = self.server + '/course/add/'
                     self.logger.debug("url is '{0}'".format(url))
                     
@@ -154,7 +154,7 @@ class AutoShell(cmd.Cmd):
                             
                 # course update
                 elif args[0]=="update" and len(args)>=2:
-                    self.logger.debug("Entering UPDATE mode")
+                    self.logger.debug("Entering {0} mode".format(args[0].upper()))
                     try:
                         int(args[1])
                         self.logger.debug("course-id is {0}".format(args[1]))
@@ -187,7 +187,7 @@ class AutoShell(cmd.Cmd):
                 
                 # course delete
                 elif args[0]=="delete" and len(args)==2:
-                    self.logger.debug("Entering DELETE mode")
+                    self.logger.debug("Entering {0} mode".format(args[0].upper()))
                     try:
                         int(args[1])
                         self.logger.debug("course-id is {0}".format(args[1]))
@@ -254,8 +254,93 @@ class AutoShell(cmd.Cmd):
     #----------------------------------------
 
     def do_student(self, args):
-        'Add, View, Delete Students'
-        print("Not implemented")
+        self.logger.debug("START. Args='{0}'".format(args))
+        args = parse(args)
+        self.logger.debug("Args split. Args='{0}'".format(args))
+        if args:
+            # student view
+            if args[0]=="view":
+                self.logger.debug("Entering {0} mode".format(args[0].upper()))
+                url = self.server + '/student/view/'
+                self.logger.debug("url is '{0}'".format(url))
+
+                validkeys = ["course-id", "dept","course-number","num","course-name","name","term","year","student-onid","onid"]
+                self.logger.debug("Entering argument processing")
+                # args[1:] skips first entry (which will be view)
+                data = parsekv(validkeys, args[1:])
+             
+                data["user-onid"] = self.username
+                self.logger.debug("data is '{0}'".format(data))
+
+                self.logger.debug("GETting students")
+                # TODO gracefully handle failure
+                r = requests.get(url, json=data)
+
+                # TODO more robust error reporting
+                if r.status_code==200:
+                    print("Request succeeded!")
+                else:
+                    self.logger.error("Failed")
+            
+            
+                
+            # student add/delete
+            elif args[0] in ["add","delete"] and len(args)>=3:
+                self.logger.debug("Verifying access level for add, view, and delete")
+                if self.user!="teacher":
+                    print("\nError: Arguments not valid\n")
+                    self.onecmd("help course")
+                
+                else:
+                    
+                    self.logger.debug("Entering {0} mode".format(args[0].upper()))
+                    try:
+                        int(args[1])
+                        self.logger.debug("course-id is {0}".format(args[1]))
+                    except ValueError:
+                        print("Error: course-id must be an integer value.")
+                        self.logger.debug("END")
+                        return
+                        
+                    url = self.server + '/student/course/'
+                    self.logger.debug("url is '{0}'".format(url))
+                    
+                    onids = args[2:]
+                    data = { "course-id": args[1],"student-onid": onids }
+                    self.logger.debug("data is '{0}'".format(data))
+                    
+                    # add students
+                    if args[0]=="add":
+                        self.logger.debug("POSTting submission")
+                        # TODO gracefully handle failure
+                        r = requests.post(url, json=data)
+
+                        # TODO more robust error reporting
+                        if r.status_code==200:
+                            print("Addition succeeded!")
+                        else:
+                            self.logger.error("Failed")
+                    
+                    # remove students
+                    elif args[0]=="delete":
+                        self.logger.debug("DELETEing submission")
+                        # TODO gracefully handle failure
+                        r = requests.delete(url, json=data)
+
+                        # TODO more robust error reporting
+                        if r.status_code==200:
+                            print("Addition succeeded!")
+                        else:
+                            self.logger.error("Failed")
+                    
+
+            else:
+                print("\nError: Arguments not valid\n")
+                self.onecmd("help student")
+        else:
+            print("\nError: Arguments not valid\n")
+            self.onecmd("help student")
+        self.logger.debug("END")
 
     def help_student(self):
         self.print_help("student")
@@ -266,7 +351,7 @@ class AutoShell(cmd.Cmd):
         self.logger.debug("START. Args='{0}'".format(args))
         args = parse(args)
         self.logger.debug("Args split. Args='{0}'".format(args))
-        self.logger.debug("Verifying access level for add, update, and delete")
+        self.logger.debug("Verifying access level for add, view, and delete")
         if self.user!="teacher":
             print("\nError: Arguments not valid\n")
             self.onecmd("help ta")
@@ -274,7 +359,7 @@ class AutoShell(cmd.Cmd):
         elif args:
             # ta view
             if args[0]=="view":
-                self.logger.debug("Entering VIEW mode")
+                self.logger.debug("Entering {0} mode".format(args[0].upper()))
                 url = self.server + '/ta/view/'
                 self.logger.debug("url is '{0}'".format(url))
 
@@ -296,7 +381,7 @@ class AutoShell(cmd.Cmd):
                     self.logger.error("Failed")
             
             # ta add/delete
-            if (args[0]=="add" or args[0]=="delete") and len(args)>=2:
+            elif (args[0]=="add" or args[0]=="delete") and len(args)>=2:
                 # track if altering TA table or add/removeing TAs to/from courses
                 course = None
                 self.logger.debug("Entering {0} mode".format(args[0].upper()))
@@ -340,7 +425,7 @@ class AutoShell(cmd.Cmd):
                 elif args[0]=="delete":
                     self.logger.debug("DELETEing submission")
                     # TODO gracefully handle failure
-                    r = requests.post(url, json=data)
+                    r = requests.delete(url, json=data)
 
                     # TODO more robust error reporting
                     if r.status_code==200:
@@ -378,7 +463,7 @@ class AutoShell(cmd.Cmd):
         self.logger.debug("Args split. Args='{0}'".format(args))
         if args:
             if args[0]=="add" and len(args)>=3:
-                self.logger.debug("Entering ADD mode")
+                self.logger.debug("Entering {0} mode".format(args[0].upper()))
                 try:
                     # TODO (if time available) - verify that assignment can be
                     # submitted before sending file.
@@ -386,6 +471,7 @@ class AutoShell(cmd.Cmd):
                     self.logger.debug("assignment-id is {0}".format(args[1]))
                 except ValueError:
                     print("Error: assignment-id must be an integer value.")
+                    self.logger.debug("END")
                     return
                 url = self.server + '/submission/'
                 self.logger.debug("url is '{0}'".format(url))

@@ -10,7 +10,7 @@ teacher = {
         show all assignments [for selected course], or show specific
         assignment [with selected version number]. Optionally filter by tags.
 			
-    assignment update <assignment-id> [<key>=<value>]...
+    assignment update <assignment-id> (<key>=<value>)...
         update selected assignment
 		   
     assignment delete <assignment-id>
@@ -20,11 +20,11 @@ teacher = {
         deleted as well.""",
     
     "ce": """    ce add (<key>=<value>)...
-        add common error with given key-value pairs
+        add common error with given key-value pairs:
         [name] [text]
 		
     ces view [<key>=<value>]...
-        view all your entered common errors [optionally filtered by key-value pairs]
+        view all your entered common errors [optionally filtered by key-value pairs:]
         [course-id] [course-name] [course-num] [name] [assignment-id] [test-id]
 			
     ce update <ce-id> (<key>=<value>)...
@@ -37,26 +37,26 @@ teacher = {
     ce link test <test-id>... to <ce-id>...
         link common error(s) to test(s).""",
 
-    "course": """    usage: course add [<key>=<value>]...
+    "course": """    course add (<key>=<value>)...
 
         Adds a course with given values. If specified values result in
         non-unique course, prompt for confirmation.
     
-            keys: [dept] [course-num | num] [term] [year] [course-name | name]
+            [dept] [course-num | num] [term] [year] [course-name | name]
 	
-    usage: course view [<key>=<value>]...
+    course view [<key>=<value>]...
 
         List all courses being taught by current user showing:
             [course-id] [dept] [course-number] [course-name] [teacher-onid]
         optionally filtered by key-value pairs:
-            keys: [course-id] [dept] [course-number] [course-name] [term] [year]
+            [course-id] [dept] [course-number] [course-name] [term] [year]
                 
-    usage: course update <course-id> [<key>=<value>]...
+    course update <course-id> [<key>=<value>]...
 
         Update course by changing selected (key, value) pairs.
-            keys: [dept] [course-number] [course-name] [term] [year]
+            [dept] [course-number] [course-name] [term] [year]
                 
-    usage: course delete <course-id>
+    course delete <course-id>
 
         Delete selected course.
         Brings up prompt asking for confirmation that action cannot be reversed
@@ -87,7 +87,7 @@ teacher = {
         are given.""",
     
     "student": """    student view [<key>=<value>]...
-        view all students taught by user. Filter by key-value pairs.
+        view all students taught by user. Filter by key-value pairs:.
             [course-id] [onid] [first] [last]
 	
     student add <course-id> <student-onid>...
@@ -161,18 +161,18 @@ teacher = {
 ta = {
 
     "assignment": """    assignment view [<key>=<value>]...
-        show all assignments optionally filtered by key-value pairs
+        show all assignments optionally filtered by key-value pairs:
             [course-id] [dept] [course-num | num]""",
     
     "ce": """Instructor only command.""",
 
-    "course": """    usage: course view [<key>=<value>]...
+    "course": """    course view [<key>=<value>]...
     
         list all courses being TAed by current user, showing:
             [course-id] [dept] [course-number] [course-name] [teacher-id]
         
-        optionally filtered by key-value pairs
-            keys: [course-id] [dept] [course-number] [course-name] [term] [year]""",
+        optionally filtered by key-value pairs:
+            [course-id] [dept] [course-number] [course-name] [term] [year]""",
     
     "grade": """    grade (<submission-id> | (<assignment-id> <student-id>)) <grade>
         grade is an alias of "submission update".
@@ -208,18 +208,18 @@ ta = {
 student = {
     
     "assignment": """    assignment view [<key>=<value>]...
-        show all assignments optionally filtered by key-value pairs
+        show all assignments optionally filtered by key-value pairs:
             [course-id] [dept] [course-num | num]""",
     
     "ce": """Instructor only command.""",
 
-    "course": """    usage: course view [<key>=<value>]...
+    "course": """    course view [<key>=<value>]...
     
         list all courses being taken by current user, showing:
             [course-id] [dept] [course-number] [course-name] [teacher-id]
             
-        optionally filtered by key-value pairs
-            keys: [course-id] [dept] [course-number] [course-name] [term] [year]""",
+        optionally filtered by key-value pairs:
+            [course-id] [dept] [course-number] [course-name] [term] [year]""",
             
     "grade": """Instructor only command.""",
         
