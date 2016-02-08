@@ -169,9 +169,10 @@ class AutoShell(cmd.Cmd):
                     # args[2:] skips first entry (which will be update
                     # <course-id>)
                     data = parsekv(validkeys, args[2:])
+                    data["course-id"] = args[1]
                     self.logger.debug("data is '{0}'".format(data))
                     
-                    if len(data)<1:
+                    if len(data)<2:
                         print("\nError: 'course update' requires at least one key-value pair\n")
                         self.onecmd("help course")
                     else:
@@ -245,8 +246,171 @@ class AutoShell(cmd.Cmd):
     #----------------------------------------
 
     def do_test(self, args):
-        'Add, View, Update, Delete Tests'
-        print("Not implemented")
+        self.logger.debug("START. Args='{0}'".format(args))
+        args = parse(args)
+        self.logger.debug("Args split. Args='{0}'".format(args))
+        self.logger.debug("Verifying access level for add, update, and delete")
+        if self.user!="teacher":
+            print("\nError: Instructor only command\n")
+            self.onecmd("help course")
+        elif args:
+            # test add
+            if args[0]=="add":
+                self.logger.debug("Entering {0} mode".format(args[0].upper()))
+                url = self.server + '/test/'
+                self.logger.debug("url is '{0}'".format(url))
+
+                validkeys = ["name","file","points","time-limit","time"]
+                self.logger.debug("Entering argument processing")
+                # args[1:] skips first entry (which will be view)
+                data = parsekv(validkeys, args[1:])
+                self.logger.debug("data is '{0}'".format(data))
+                
+                files = {}
+                # TODO verify filepath - handle open failure gracefully
+                if data.has_key("file"):
+                    files = { "file": open(data["file"], 'rb') }
+                    self.logger.debug("file is '{0}'".format(data["file"]))
+
+                self.logger.debug("POSTing submission")
+                # TODO gracefully handle failure
+                r = requests.post(url, files=files, data=data)
+
+                # TODO more robust error reporting
+                if r.status_code==200:
+                    print("Request succeeded!")
+                else:
+                    self.logger.error("Failed")
+                    
+                
+            # test view
+            elif args[0]=="view":
+                self.logger.debug("Entering {0} mode".format(args[0].upper()))
+                url = self.server + '/test/'
+                self.logger.debug("url is '{0}'".format(url))
+                
+                data = {}
+                if len(args)>=2:
+                    try:
+                        int(args[1])
+                        self.logger.debug("assignment-id is {0}".format(args[1]))
+                        data["assignment-id"] = args[1]
+                    except ValueError:
+                        print("Error: assignment-id must be an integer value.")
+                        self.logger.debug("END")
+                        return
+                        
+                if len(args)>=3:
+                    try:
+                        int(args[2])
+                        self.logger.debug("version-number is {0}".format(args[1]))
+                        data["version-number"] = args[2]
+                    except ValueError:
+                        print("Error: version-id must be an integer value.")
+                        self.logger.debug("END")
+                        return
+                        
+                self.logger.debug("data is '{0}'".format(data))
+                
+                self.logger.debug("GETting submission")
+                # TODO gracefully handle failure
+                r = requests.get(url, json=data)
+
+                # TODO more robust error reporting
+                if r.status_code==201:
+                    print("Addition succeeded!")
+                else:
+                    self.logger.error("Failed")
+                            
+            # test update
+            elif args[0]=="update" and len(args)>=2:
+                self.logger.debug("Entering {0} mode".format(args[0].upper()))
+                try:
+                    int(args[1])
+                    self.logger.debug("test-id is {0}".format(args[1]))
+                except ValueError:
+                    print("Error: test-id must be an integer value.")
+                    return
+                url = self.server + '/test/'
+                self.logger.debug("url is '{0}'".format(url))
+                
+                validkeys = ["name","file","points","time-limit","time"]
+                self.logger.debug("Entering argument processing")
+                # args[2:] skips first entry (which will be update
+                # <test-id>)
+                data = parsekv(validkeys, args[2:])
+                data["test-id"] = args[1]
+                self.logger.debug("data is '{0}'".format(data))
+                
+                files = {}
+                # TODO verify filepath - handle open failure gracefully
+                if data.has_key("file"):
+                    files = { "file": open(data["file"], 'rb') }
+                    self.logger.debug("file is '{0}'".format(data["file"]))
+                
+                if len(data)<2:
+                    print("\nError: 'test update' requires at least one key-value pair\n")
+                    self.onecmd("help course")
+                else:
+                    self.logger.debug("POSTting submission")
+                    # TODO gracefully handle failure
+                    r = requests.post(url, files=files, data=data)
+
+                    # TODO more robust error reporting
+                    if r.status_code==201:
+                        print("Update succeeded!")
+                    else:
+                        self.logger.error("Failed")
+            
+            # test delete
+            elif args[0]=="delete" and len(args)==2:
+                self.logger.debug("Entering {0} mode".format(args[0].upper()))
+                try:
+                    int(args[1])
+                    self.logger.debug("test-id is {0}".format(args[1]))
+                except ValueError:
+                    print("Error: test-id must be an integer value.")
+                    return
+                url = self.server + '/test/' + args[1] + '/'
+                self.logger.debug("url is '{0}'".format(url))
+                
+                question = "\nThis action is irreverible. All assignment versions and submissions\nlinked to this test will be removed. Continue?"
+                if query_yes_no(question):
+                    self.logger.debug("DELETEing submission")
+                    # TODO gracefully handle failure
+                    r = requests.delete(url)
+
+                    # TODO more robust error reporting
+                    if r.status_code==201:
+                        print("Deletion succeeded!")
+                    else:
+                        self.logger.error("Failed")
+                        
+                else:
+                    print("Deletion aborted!")
+                            
+            else:
+                print("\nError: Arguments not valid\n")
+                self.onecmd("help course")
+        else:
+            print("\nError: Arguments not valid\n")
+            self.onecmd("help course")
+        self.logger.debug("END")
+        
+    def complete_test(self, text, line, begidx, endidx):
+        before_arg = line.rfind(" ", 0, begidx)
+        if before_arg == -1:
+            return # arg not found
+
+        fixed = line[before_arg+1:begidx]  # fixed portion of the arg
+        arg = line[before_arg+1:endidx]
+        pattern = arg + '*'
+
+        completions = []
+        for path in glob.glob(pattern):
+            path = _append_slash_if_dir(path)
+            completions.append(path.replace(fixed, "", 1))
+        return completions
 
     def help_test(self):
         self.print_help("test")
