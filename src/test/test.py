@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/local/bin/python3.2
 from py_test_osu import test_suite
 import dummy
 

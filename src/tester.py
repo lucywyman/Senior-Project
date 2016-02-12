@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/local/bin/python3.2
 import socket
 import select
 import sys
@@ -23,15 +23,13 @@ def runProtected(files,sub_ID):
     os.chmod(files['subFile'].split('/')[-1],0o0550)
     os.chmod(files['testFile'].split('/')[-1],0o6550)
     os.chmod('py_test_osu.py',0o0440)
-    print('perms set')
-    subprocess.call('test.py',stdout=open('tapresult - ' + sub_ID + '.txt','w'),shell=True)
-    shutil.copy('tapresult.txt','../results')
+    subprocess.call('./test.py',stdout=open('tapresult - ' + str(sub_ID) + '.txt','w'),shell=True)
+    shutil.copy('tapresult - ' + str(sub_ID) + '.txt','../results')
     os.unlink(files['subFile'].split('/')[-1])
     os.unlink(files['testFile'].split('/')[-1])
     os.unlink('py_test_osu.py')
-    os.unlink('tapresult.txt')
+    os.unlink('tapresult - ' + str(sub_ID) + '.txt')
     os.chdir('..')
-
 id = sys.argv[1]
 c = socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);
 k = socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);
@@ -55,12 +53,12 @@ while 1:
             
             runProtected(files,sub_ID)
             o = socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);
-            o.connect('\0rePort' + id)
+            o.connect('\0rePort')
             o.send(msg)
             o.close()
         #kill branch
         elif avail is k:
-            print("Recieved kill signal")
+            print("Tester" + id + " recieved kill signal")
             remv = k.accept()[0]
             k.close()
             exit()
