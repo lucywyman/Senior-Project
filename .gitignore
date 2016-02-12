@@ -3,3 +3,4 @@
 *.swp
 v/
 src/interfaces/__pycache__/
+src/results/
