@@ -1,22 +1,30 @@
+import operator
+
 class test_suite:
     def __init__(self):
-        self.testcount = 1
+        self.testcount = 0
         self.testsremain = 0
+        
+    #Helper functions
     def ok(self,message):
+        self.testcount += 1
+        self.testsremain -= 1
+        if(self.testsremain < 0): print('# Exceeded declared test count for this "describe"!')
         print('ok ' + str(self.testcount) + ' ' + message)
-        self.testcount += 1
-        self.testcount -= 1
     def notok(self,message):
-        print('not ok ' + str(self.testcount) + ' ' + message)
         self.testcount += 1
-        self.testcount -= 1
+        self.testsremain -= 1
+        if(self.testsremain < 0): print('# Exceeded declared test count for this "describe"!')
+        print('not ok ' + str(self.testcount) + ' ' + message)
+        
+    #Testing functions
     def assert_equals(self,actual,expected,message):
-        if(self == actual):
+        if(operator.eq(actual,expected)):
             self.ok(message)
         else:
             self.notok(message)
     def assert_not_equals(self,actual,unexpected,message):
-        if(self != actual):
+        if(operator.ne(actual,unexpected)):
             self.ok(message)
         else:
             self.notok(message)
@@ -31,8 +39,10 @@ class test_suite:
             self.ok(message)
         else:
             self.notok(message)
+            
+    #Grouping functions
     def describe(self,message,tests):
-        print(str(self.testcount) + '..' + str(self.testcount + tests - 1))
+        print(str(self.testcount + 1) + '..' + str(self.testcount + tests))
         print('# ' + message)
         self.testsremain = tests
     def it(self,message):

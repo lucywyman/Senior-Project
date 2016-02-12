@@ -2,3 +2,4 @@
 *.log
 *.swp
 v/
+src/interfaces/__pycache__/
