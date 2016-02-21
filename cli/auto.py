@@ -8,11 +8,11 @@
 #   http://stackoverflow.com/questions/9973990/python-cmd-dynamic-docstrings-for-do-help-function
 #   http://stackoverflow.com/questions/16826172/filename-tab-completion-in-cmd-cmd-of-python
 #   http://stackoverflow.com/questions/23749097/override-undocumented-help-area-in-pythons-cmd-module
-# http://stackoverflow.com/questions/3041986/python-command-line-yes-no-input
+#   http://stackoverflow.com/questions/3041986/python-command-line-yes-no-input
 
 import cmd, getpass, glob, json, logging, os, requests, shlex, sys
 
-import help_strings
+import help_strings, command_dict
 
 
 # Helper function for Linux Filepath completion
@@ -92,576 +92,189 @@ class AutoShell(cmd.Cmd):
                 self.ch.setLevel(logging.WARNING)
                 print("Verbose: OFF")
 
-    #----------------------------------------
-    def do_course(self, args):
+                
+    def command_exec(self, command, args):
         self.logger.debug("START. Args='{0}'".format(args))
         args = parse(args)
         self.logger.debug("Args split. Args='{0}'".format(args))
-        if args:
-            # course view
-            if args[0]=="view":
-                self.logger.debug("Entering {0} mode".format(args[0].upper()))
-                url = self.server + '/course/view/'
-                self.logger.debug("url is '{0}'".format(url))
+        
+        if not args:
+            print("\nError: Arguments not valid\n")
+            self.onecmd("help " + command)
+            self.logger.debug("END")
+            return
+            
+        if not self.command_access(self.user, command, args[0]):
+            print("\nError: Arguments not valid\n")
+            self.logger.debug("END")
+            return
+            
+        self.logger.debug("Entering {0} mode".format(args[0].upper()))
+        
+        #TODO - Add support for multiple values per key (ie student=hennign,luxylu,grepa)
+        data = self.command_data(command, args)
+        
+        if not data:
+            print("\nError: Arguments not valid\n")
+            self.onecmd("help " + command)
+            self.logger.debug("END")
+            return
+        
+        response = self.command_request(command, args[0], data)
 
-                validkeys = ["course-id","dept","course-number","num","course-name","name","term","year"]
-                self.logger.debug("Entering argument processing")
-                # args[1:] skips first entry (which will be view)
-                data = parsekv(validkeys, args[1:])
-                self.logger.debug("data is '{0}'".format(data))
+        if response == False:
+            self.logger.debug("END")
+            return
+        
+        self.command_response(response)
+        
+        self.logger.debug("END")
+        return
+        
+    
+    def command_access(self, user, command, subcommand):
+        self.logger.debug("Checking access levels.")
+        self.logger.debug("User level is {0}.".format(user))
+        self.logger.debug("Access for {0} is {1}".format(user, command_dict.commands[command][subcommand]["access"][user]))
+        
+        if not command_dict.commands[command][subcommand]["access"][user]:
+            self.logger.debug("Access denied.")
+            return False
+        
+        self.logger.debug("Access granted.")
+        return True
+        
+    
+    def command_data(self, command, args):
+        self.logger.debug("Entering argument processing.")
+        com = command_dict.commands[command][args[0]]
+        
+        self.logger.debug("Valid keys include {0}, {1}, {2}.".format(com["required"], com["required2"], com["optional"]))
+        validkeys = com["required"] + com["required2"] + com["optional"]
+        
+        # args[1:] skips first entry (which will be a subcommand)
+        data = parsekv(validkeys, args[1:])
+        self.logger.debug("data is '{0}'".format(data))
+        
+        self.logger.debug("Verifying that required options are present.")
+        keys = data.keys()
+        required = set(com["required"]).issubset(keys) or set(com["required2"]).issubset(keys)
+        
+        if not required:
+            self.logger.debug("Not all required arguments given.")
+            return False
+            
+        #TODO - Verify value types
+            
+        return data
+        
+        
+    def command_request(self, command, subcommand, data):
+        url = self.server + '/' + command + '/' + subcommand + '/'
+        self.logger.debug("url is '{0}'".format(url))
+        
+        r = None
+        files = {}
+        
+        if data.has_key("file"):
+            # TODO verify filepath - handle open failure gracefully
+            files = { "file": open(data["file"], 'rb') }
+            self.logger.debug("file is '{0}'".format(data["file"]))
+        
+            if subcommand in ['add', 'update']:
+                self.logger.debug("POSTing")
+                # TODO gracefully handle failure
+                r = requests.post(url, files=files, data=data)
+             
+        else:                
+            if subcommand in ['add', 'update', 'link']:
+                self.logger.debug("POSTing")
+                # TODO gracefully handle failure
+                r = requests.post(url, json=data)
 
-                self.logger.debug("GETting submission")
+            elif subcommand == 'view':
+                self.logger.debug("GETting")
                 # TODO gracefully handle failure
                 r = requests.get(url, json=data)
-
-                # TODO more robust error reporting
-                if r.status_code==200:
-                    print("Request succeeded!")
-                else:
-                    self.logger.error("Failed")
-                    
-            elif args[0] in ["add", "update", "delete"]:
-                self.logger.debug("Verifying access level for add, update, and delete")
-                if self.user!="teacher":
-                    print("\nError: Arguments not valid\n")
-                    self.onecmd("help course")
                 
-                # course add
-                elif args[0]=="add":
-                    self.logger.debug("Entering {0} mode".format(args[0].upper()))
-                    url = self.server + '/course/add/'
-                    self.logger.debug("url is '{0}'".format(url))
-                    
-                    validkeys = ["dept","course-number","num","course-name","name","term","year"]
-                    self.logger.debug("Entering argument processing")
-                    # args[1:] skips first entry (which will be add)
-                    data = parsekv(validkeys, args[1:])
-                    self.logger.debug("data is '{0}'".format(data))
-                    
-                    if len(data)<1:
-                        print("\nError: 'course add' requires at least one key-value pair\n")
-                        self.onecmd("help course")
-                    else:
-                        self.logger.debug("POSTing submission")
-                        # TODO gracefully handle failure
-                        r = requests.post(url, json=data)
-
-                        # TODO more robust error reporting
-                        if r.status_code==201:
-                            print("Addition succeeded!")
-                        else:
-                            self.logger.error("Failed")
-                            
-                # course update
-                elif args[0]=="update" and len(args)>=2:
-                    self.logger.debug("Entering {0} mode".format(args[0].upper()))
-                    try:
-                        int(args[1])
-                        self.logger.debug("course-id is {0}".format(args[1]))
-                    except ValueError:
-                        print("Error: course-id must be an integer value.")
-                        return
-                    url = self.server + '/course/' + args[1] + '/'
-                    self.logger.debug("url is '{0}'".format(url))
-                    
-                    validkeys = ["dept","course-number","num","course-name","name","term","year"]
-                    self.logger.debug("Entering argument processing")
-                    # args[2:] skips first entry (which will be update
-                    # <course-id>)
-                    data = parsekv(validkeys, args[2:])
-                    data["course-id"] = args[1]
-                    self.logger.debug("data is '{0}'".format(data))
-                    
-                    if len(data)<2:
-                        print("\nError: 'course update' requires at least one key-value pair\n")
-                        self.onecmd("help course")
-                    else:
-                        self.logger.debug("POSTting submission")
-                        # TODO gracefully handle failure
-                        r = requests.post(url, json=data)
-
-                        # TODO more robust error reporting
-                        if r.status_code==201:
-                            print("Update succeeded!")
-                        else:
-                            self.logger.error("Failed")
+            elif subcommand == 'delete':
+                com = command_dict.commands[command][subcommand]
+                question = None
                 
-                # course delete
-                elif args[0]=="delete" and len(args)==2:
-                    self.logger.debug("Entering {0} mode".format(args[0].upper()))
-                    try:
-                        int(args[1])
-                        self.logger.debug("course-id is {0}".format(args[1]))
-                    except ValueError:
-                        print("Error: course-id must be an integer value.")
-                        return
-                    url = self.server + '/course/' + args[1] + '/'
-                    self.logger.debug("url is '{0}'".format(url))
-                    
-                    question = "\nThis action is irreverible. All assignments and submissions\nlinked to this course will be removed. Continue?"
-                    if query_yes_no(question):
-                        self.logger.debug("DELETEing submission")
-                        # TODO gracefully handle failure
-                        r = requests.delete(url)
+                if com["confirmation"]:
+                    question = com["confirmation"] + ' Proceed? '
+                
+                if question and not query_yes_no(question):
+                    self.logger.debug("Operation aborted.")
+                    return False
+               
+                self.logger.debug("DELETEing")
+                # TODO gracefully handle failure
+                r = requests.delete(url)
+        
+        return r
+            
+            
+    def command_response(self, response):
+        # TODO more robust error reporting
+        if response.status_code==200:
+            print("Request succeeded!")
+        else:
+            self.logger.error("Failed")
 
-                        # TODO more robust error reporting
-                        if r.status_code==201:
-                            print("Deletion succeeded!")
-                        else:
-                            self.logger.error("Failed")
-                            
-                    else:
-                        print("Deletion aborted!")
-                            
-                else:
-                    print("\nError: Arguments not valid\n")
-                    self.onecmd("help course")
-            else:
-                print("\nError: Arguments not valid\n")
-                self.onecmd("help course")
-        self.logger.debug("END")
+    #----------------------------------------
+    
+    def do_assignment(self, args):
+        self.command_exec("assignment", args)
+
+    def help_assignment(self):
+        self.print_help("assignment")
+
+    #----------------------------------------
+    
+    def do_ce(self, args):
+        self.command_exec("ce", args)
+
+    def help_ce(self):
+        self.print_help("ce")
+
+    #----------------------------------------
+    
+    def do_course(self, args):
+        self.command_exec("course", args)
 
 
     def help_course(self):
         self.print_help("course")
     #----------------------------------------
+    
+    def do_grade(self, args):
+        self.command_exec("grade", args)
 
-    def do_assignment(self, args):
-        'Add, View, Update, Delete Assignments'
-        print("Not implemented")
-
-    def help_assignment(self):
-        self.print_help("assignment")
-
+    def help_grade(self):
+        self.print_help("grade")
 
     #----------------------------------------
+    
+    def do_group(self, args):
+        self.command_exec("group", args)
 
-    def do_tag(self, args):
-        'Tag assignments with keywords'
-        print("Not implemented")
-
-    def help_tag(self):
-        self.print_help("tag")
-
-    #----------------------------------------
-
-    def do_test(self, args):
-        self.logger.debug("START. Args='{0}'".format(args))
-        args = parse(args)
-        self.logger.debug("Args split. Args='{0}'".format(args))
-        self.logger.debug("Verifying access level for add, update, and delete")
-        if self.user!="teacher":
-            print("\nError: Instructor only command\n")
-            self.onecmd("help course")
-        elif args:
-            # test add
-            if args[0]=="add":
-                self.logger.debug("Entering {0} mode".format(args[0].upper()))
-                url = self.server + '/test/'
-                self.logger.debug("url is '{0}'".format(url))
-
-                validkeys = ["name","file","points","time-limit","time"]
-                self.logger.debug("Entering argument processing")
-                # args[1:] skips first entry (which will be view)
-                data = parsekv(validkeys, args[1:])
-                self.logger.debug("data is '{0}'".format(data))
-                
-                files = {}
-                # TODO verify filepath - handle open failure gracefully
-                if data.has_key("file"):
-                    files = { "file": open(data["file"], 'rb') }
-                    self.logger.debug("file is '{0}'".format(data["file"]))
-
-                self.logger.debug("POSTing submission")
-                # TODO gracefully handle failure
-                r = requests.post(url, files=files, data=data)
-
-                # TODO more robust error reporting
-                if r.status_code==200:
-                    print("Request succeeded!")
-                else:
-                    self.logger.error("Failed")
-                    
-                
-            # test view
-            elif args[0]=="view":
-                self.logger.debug("Entering {0} mode".format(args[0].upper()))
-                url = self.server + '/test/'
-                self.logger.debug("url is '{0}'".format(url))
-                
-                data = {}
-                if len(args)>=2:
-                    try:
-                        int(args[1])
-                        self.logger.debug("assignment-id is {0}".format(args[1]))
-                        data["assignment-id"] = args[1]
-                    except ValueError:
-                        print("Error: assignment-id must be an integer value.")
-                        self.logger.debug("END")
-                        return
-                        
-                if len(args)>=3:
-                    try:
-                        int(args[2])
-                        self.logger.debug("version-number is {0}".format(args[1]))
-                        data["version-number"] = args[2]
-                    except ValueError:
-                        print("Error: version-id must be an integer value.")
-                        self.logger.debug("END")
-                        return
-                        
-                self.logger.debug("data is '{0}'".format(data))
-                
-                self.logger.debug("GETting submission")
-                # TODO gracefully handle failure
-                r = requests.get(url, json=data)
-
-                # TODO more robust error reporting
-                if r.status_code==201:
-                    print("Addition succeeded!")
-                else:
-                    self.logger.error("Failed")
-                            
-            # test update
-            elif args[0]=="update" and len(args)>=2:
-                self.logger.debug("Entering {0} mode".format(args[0].upper()))
-                try:
-                    int(args[1])
-                    self.logger.debug("test-id is {0}".format(args[1]))
-                except ValueError:
-                    print("Error: test-id must be an integer value.")
-                    return
-                url = self.server + '/test/'
-                self.logger.debug("url is '{0}'".format(url))
-                
-                validkeys = ["name","file","points","time-limit","time"]
-                self.logger.debug("Entering argument processing")
-                # args[2:] skips first entry (which will be update
-                # <test-id>)
-                data = parsekv(validkeys, args[2:])
-                data["test-id"] = args[1]
-                self.logger.debug("data is '{0}'".format(data))
-                
-                files = {}
-                # TODO verify filepath - handle open failure gracefully
-                if data.has_key("file"):
-                    files = { "file": open(data["file"], 'rb') }
-                    self.logger.debug("file is '{0}'".format(data["file"]))
-                
-                if len(data)<2:
-                    print("\nError: 'test update' requires at least one key-value pair\n")
-                    self.onecmd("help course")
-                else:
-                    self.logger.debug("POSTting submission")
-                    # TODO gracefully handle failure
-                    r = requests.post(url, files=files, data=data)
-
-                    # TODO more robust error reporting
-                    if r.status_code==201:
-                        print("Update succeeded!")
-                    else:
-                        self.logger.error("Failed")
-            
-            # test delete
-            elif args[0]=="delete" and len(args)==2:
-                self.logger.debug("Entering {0} mode".format(args[0].upper()))
-                try:
-                    int(args[1])
-                    self.logger.debug("test-id is {0}".format(args[1]))
-                except ValueError:
-                    print("Error: test-id must be an integer value.")
-                    return
-                url = self.server + '/test/' + args[1] + '/'
-                self.logger.debug("url is '{0}'".format(url))
-                
-                question = "\nThis action is irreverible. All assignment versions and submissions\nlinked to this test will be removed. Continue?"
-                if query_yes_no(question):
-                    self.logger.debug("DELETEing submission")
-                    # TODO gracefully handle failure
-                    r = requests.delete(url)
-
-                    # TODO more robust error reporting
-                    if r.status_code==201:
-                        print("Deletion succeeded!")
-                    else:
-                        self.logger.error("Failed")
-                        
-                else:
-                    print("Deletion aborted!")
-                            
-            else:
-                print("\nError: Arguments not valid\n")
-                self.onecmd("help course")
-        else:
-            print("\nError: Arguments not valid\n")
-            self.onecmd("help course")
-        self.logger.debug("END")
-        
-    def complete_test(self, text, line, begidx, endidx):
-        before_arg = line.rfind(" ", 0, begidx)
-        if before_arg == -1:
-            return # arg not found
-
-        fixed = line[before_arg+1:begidx]  # fixed portion of the arg
-        arg = line[before_arg+1:endidx]
-        pattern = arg + '*'
-
-        completions = []
-        for path in glob.glob(pattern):
-            path = _append_slash_if_dir(path)
-            completions.append(path.replace(fixed, "", 1))
-        return completions
-
-    def help_test(self):
-        self.print_help("test")
+    def help_group(self):
+        self.print_help("group")
 
     #----------------------------------------
-
+    
     def do_student(self, args):
-        self.logger.debug("START. Args='{0}'".format(args))
-        args = parse(args)
-        self.logger.debug("Args split. Args='{0}'".format(args))
-        if args:
-            # student view
-            if args[0]=="view":
-                self.logger.debug("Entering {0} mode".format(args[0].upper()))
-                url = self.server + '/student/view/'
-                self.logger.debug("url is '{0}'".format(url))
-
-                validkeys = ["course-id", "dept","course-number","num","course-name","name","term","year","student-onid","onid"]
-                self.logger.debug("Entering argument processing")
-                # args[1:] skips first entry (which will be view)
-                data = parsekv(validkeys, args[1:])
-             
-                data["user-onid"] = self.username
-                self.logger.debug("data is '{0}'".format(data))
-
-                self.logger.debug("GETting students")
-                # TODO gracefully handle failure
-                r = requests.get(url, json=data)
-
-                # TODO more robust error reporting
-                if r.status_code==200:
-                    print("Request succeeded!")
-                else:
-                    self.logger.error("Failed")
-            
-            
-                
-            # student add/delete
-            elif args[0] in ["add","delete"] and len(args)>=3:
-                self.logger.debug("Verifying access level for add, view, and delete")
-                if self.user!="teacher":
-                    print("\nError: Arguments not valid\n")
-                    self.onecmd("help course")
-                
-                else:
-                    
-                    self.logger.debug("Entering {0} mode".format(args[0].upper()))
-                    try:
-                        int(args[1])
-                        self.logger.debug("course-id is {0}".format(args[1]))
-                    except ValueError:
-                        print("Error: course-id must be an integer value.")
-                        self.logger.debug("END")
-                        return
-                        
-                    url = self.server + '/student/course/'
-                    self.logger.debug("url is '{0}'".format(url))
-                    
-                    onids = args[2:]
-                    data = { "course-id": args[1],"student-onid": onids }
-                    self.logger.debug("data is '{0}'".format(data))
-                    
-                    # add students
-                    if args[0]=="add":
-                        self.logger.debug("POSTting submission")
-                        # TODO gracefully handle failure
-                        r = requests.post(url, json=data)
-
-                        # TODO more robust error reporting
-                        if r.status_code==200:
-                            print("Addition succeeded!")
-                        else:
-                            self.logger.error("Failed")
-                    
-                    # remove students
-                    elif args[0]=="delete":
-                        self.logger.debug("DELETEing submission")
-                        # TODO gracefully handle failure
-                        r = requests.delete(url, json=data)
-
-                        # TODO more robust error reporting
-                        if r.status_code==200:
-                            print("Addition succeeded!")
-                        else:
-                            self.logger.error("Failed")
-                    
-
-            else:
-                print("\nError: Arguments not valid\n")
-                self.onecmd("help student")
-        else:
-            print("\nError: Arguments not valid\n")
-            self.onecmd("help student")
-        self.logger.debug("END")
-
+        self.command_exec("student", args)
+        
     def help_student(self):
         self.print_help("student")
 
     #----------------------------------------
-
-    def do_ta(self, args):
-        self.logger.debug("START. Args='{0}'".format(args))
-        args = parse(args)
-        self.logger.debug("Args split. Args='{0}'".format(args))
-        self.logger.debug("Verifying access level for add, view, and delete")
-        if self.user!="teacher":
-            print("\nError: Arguments not valid\n")
-            self.onecmd("help ta")
-        
-        elif args:
-            # ta view
-            if args[0]=="view":
-                self.logger.debug("Entering {0} mode".format(args[0].upper()))
-                url = self.server + '/ta/view/'
-                self.logger.debug("url is '{0}'".format(url))
-
-                validkeys = ["course-id","ta-onid","onid"]
-                self.logger.debug("Entering argument processing")
-                # args[1:] skips first entry (which will be view)
-                data = parsekv(validkeys, args[1:])
-                data["teacher-onid"] = self.username
-                self.logger.debug("data is '{0}'".format(data))
-
-                self.logger.debug("GETting submission")
-                # TODO gracefully handle failure
-                r = requests.get(url, json=data)
-
-                # TODO more robust error reporting
-                if r.status_code==200:
-                    print("Request succeeded!")
-                else:
-                    self.logger.error("Failed")
-            
-            # ta add/delete
-            elif (args[0]=="add" or args[0]=="delete") and len(args)>=2:
-                # track if altering TA table or add/removeing TAs to/from courses
-                course = None
-                self.logger.debug("Entering {0} mode".format(args[0].upper()))
-                try:
-                    int(args[1])
-                    self.logger.debug("course-id is {0}".format(args[1]))
-                    course = True
-                except ValueError:
-                    self.logger.debug("first ta-onid is '{0}'".format(args[1]))
-                    course = False
-                    
-                if course:
-                    url = self.server + '/ta/course/' + args[1] + '/'
-                    self.logger.debug("url is '{0}'".format(url))
-                    
-                    onids = args[2:]
-                    data = { "ta-onid": onids }
-                    
-                else:
-                    url = self.server + '/ta/course/'
-                    self.logger.debug("url is '{0}'".format(url))
-                    
-                    onids = args[1:]
-                    data = { "ta-onid": onids }
-     
-                self.logger.debug("data is '{0}'".format(data))
-
-                # add TAs
-                if args[0]=="add":
-                    self.logger.debug("POSTting submission")
-                    # TODO gracefully handle failure
-                    r = requests.post(url, json=data)
-
-                    # TODO more robust error reporting
-                    if r.status_code==200:
-                        print("Addition succeeded!")
-                    else:
-                        self.logger.error("Failed")
-                
-                # remove TAs
-                elif args[0]=="delete":
-                    self.logger.debug("DELETEing submission")
-                    # TODO gracefully handle failure
-                    r = requests.delete(url, json=data)
-
-                    # TODO more robust error reporting
-                    if r.status_code==200:
-                        print("Addition succeeded!")
-                    else:
-                        self.logger.error("Failed")
-                    
-
-            else:
-                print("\nError: Arguments not valid\n")
-                self.onecmd("help course")
-        else:
-            print("\nError: Arguments not valid\n")
-            self.onecmd("help course")
-        self.logger.debug("END")
-            
-            
-    def help_ta(self):
-        self.print_help("ta")
-
-
-    #----------------------------------------
-
-    def do_group(self, args):
-        print("Not implemented")
-
-    def help_group(self):
-        self.print_help("")
-
-    #----------------------------------------
-
+    
     def do_submission(self, args):
-        self.logger.debug("START. Args='{0}'".format(args))
-        args = parse(args)
-        self.logger.debug("Args split. Args='{0}'".format(args))
-        if args:
-            if args[0]=="add" and len(args)>=3:
-                self.logger.debug("Entering {0} mode".format(args[0].upper()))
-                try:
-                    # TODO (if time available) - verify that assignment can be
-                    # submitted before sending file.
-                    int(args[1])
-                    self.logger.debug("assignment-id is {0}".format(args[1]))
-                except ValueError:
-                    print("Error: assignment-id must be an integer value.")
-                    self.logger.debug("END")
-                    return
-                url = self.server + '/submission/'
-                self.logger.debug("url is '{0}'".format(url))
-                data = { "assignment-id": args[1],
-                         "onid": self.username
-                         }
-                self.logger.debug("data is '{0}'".format(data))
-
-                # TODO verify filepath - handle open failure gracefully
-                files = { "file": open(args[2], 'rb') }
-                self.logger.debug("file is '{0}'".format(args[2]))
-
-                self.logger.debug("POSTing submission")
-                # TODO gracefully handle failure
-                r = requests.post(url, files=files, data=data)
-
-                # TODO more robust error reporting
-                if r.status_code==200:
-                    print("Submission succeeded!")
-                else:
-                    self.logger.error("Failed")
-            else:
-                print("\nError: Arguments not valid\n")
-                self.onecmd("help submission")
-        self.logger.debug("END")
-
+        self.command_exec("submission", args)
+        
     def help_submission(self):
         self.print_help("submission")
 
@@ -681,22 +294,43 @@ class AutoShell(cmd.Cmd):
         return completions
 
     #----------------------------------------
+    
+    def do_ta(self, args):
+        self.command_exec("ta", args)
+            
+    def help_ta(self):
+        self.print_help("ta")
 
-    def do_grade(self, args):
-        'Alias of submission update'
-        print("Not implemented")
+    #----------------------------------------
+    
+    def do_tag(self, args):
+        self.command_exec("tag", args)
 
-    def help_grade(self):
-        self.print_help("grade")
+    def help_tag(self):
+        self.print_help("tag")
 
     #----------------------------------------
 
-    def do_ce(self, args):
-        'Add, View, Update, Delete Common Errors'
-        print("Not implemented")
+    def do_test(self, args):
+        self.command_exec("test", args)
+        
+    def complete_test(self, text, line, begidx, endidx):
+        before_arg = line.rfind(" ", 0, begidx)
+        if before_arg == -1:
+            return # arg not found
 
-    def help_ce(self):
-        self.print_help("ce")
+        fixed = line[before_arg+1:begidx]  # fixed portion of the arg
+        arg = line[before_arg+1:endidx]
+        pattern = arg + '*'
+
+        completions = []
+        for path in glob.glob(pattern):
+            path = _append_slash_if_dir(path)
+            completions.append(path.replace(fixed, "", 1))
+        return completions
+
+    def help_test(self):
+        self.print_help("test")
 
     #----------------------------------------
 
