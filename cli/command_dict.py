@@ -11,7 +11,7 @@ commands = {
             
             "required2": [],
 
-            "optional": ['begin', 'end', 'late', 'level', 'limit', 'name', 'tags', 'visible'],
+            "optional": ['begin', 'end', 'late', 'level', 'limit', 'name', 'tags'],
 
             "help":     "Adds assignment to selected course with given values.",
 
@@ -45,7 +45,7 @@ commands = {
             
             "required2": [],
 
-            "optional": ['begin', 'ce-id', 'course-id', 'end', 'late', 'level', 'limit', 'name', 'tags', 'visible'],
+            "optional": ['begin', 'ce-id', 'course-id', 'end', 'late', 'level', 'limit', 'name', 'tags'],
 
             "help":     "Update selected assignment with chosen values.",
 
@@ -747,11 +747,11 @@ commands = {
                 # "student":  False,
                 # },
 
-            # "required": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'file', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'visible', 'year'],
+            # "required": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'file', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
             
             # "required2": [],
 
-            # "optional": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'file', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'visible', 'year'],
+            # "optional": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'file', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
 
             # "help":     "",
 
@@ -764,11 +764,11 @@ commands = {
                 # "student":  False,
                 # },
 
-            # "required": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'file', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'visible', 'year'],
+            # "required": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'file', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
             
             # "required2": [],
 
-            # "optional": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'file', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'visible', 'year'],
+            # "optional": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'file', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
 
             # "help":     "",
 
@@ -781,11 +781,11 @@ commands = {
                 # "student":  False,
                 # },
 
-            # "required": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'file', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'visible', 'year'],
+            # "required": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'file', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
             
             # "required2": [],
 
-            # "optional": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'file', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'visible', 'year'],
+            # "optional": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'file', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
 
             # "help":     "",
 
@@ -798,11 +798,11 @@ commands = {
                 # "student":  False,
                 # },
 
-            # "required": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'file', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'visible', 'year'],
+            # "required": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'file', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
             
             # "required2": [],
 
-            # "optional": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'file', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'visible', 'year'],
+            # "optional": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'file', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
 
             # "help":     "",
             
@@ -817,28 +817,46 @@ options = {
     "assignment-id":     {
             "type":     "int",
             "help":     "Number that identifies a particular assignment. Displayed using assignment view.",
+            "table":    "assignments",
+            "join":     [],
+            "key":      "assignment_id",
             },
     "begin":     {
-            "type":     "date",
+            "type":     "timestamp",
             "help":     "Date assignment opens. Defaults to current date at 11:59 PM.",
             "example":  "Format is mm/dd/yyyy hh:mm (AM|PM). I.e. begin=\"9/24/2010 5:03 PM\".",
+            "table":    "assignments",
+            "join":     [],
+            "key":      "begin_date",
             },
     "ce-id":     {
             "type":     "int",
             "help":     "Integer number that identifies a common error. Displayed using ce view.",
+            "table":    "common_errors",
+            "join":     [],
+            "key":      "ce_id",
             },
     "course-id":     {
             "type":     "int",
             "help":     "Integer number that identifies a course. Displayed using course view.",
+            "table":    "courses",
+            "join":     [],
+            "key":      "course_id",
             },
     "dept":     {
             "type":     "str",
             "help":     "Abbreviation for department (i.e. CS or ECE).",
+            "table":    "dept",
+            "join":     ["dept.dept_id", "courses.dept_id"],
+            "key":      "dept_name",
             },
     "end":     {
-            "type":     "date",
+            "type":     "timestamp",
             "help":     "Date assignment closes. Defaults to two weeks from current date at 11:59 PM.",
             "example":  "Format is mm/dd/yyyy hh:mm (AM|PM). I.e. end=\"9/24/2010 5:03 PM\".",
+            "table":    "assignments",
+            "join":     [],
+            "key":      "end_date",
             },
     "file":     {
             "type":     "file",
@@ -847,18 +865,30 @@ options = {
     "first":     {
             "type":     "str",
             "help":     "First name.",
+            "table":    "users",
+            "join":     [],
+            "key":      "firstname",
             },
     "grade":     {
             "type":     "int",
             "help":     "Grade as a simple point value",
+            "table":    "submissions",
+            "join":     [],
+            "key":      "grade",
             },
     "last":     {
             "type":     "str",
             "help":     "Last name.",
+            "table":    "users",
+            "join":     [],
+            "key":      "lastname",
             },
     "late":     {
             "type":     "int",
             "help":     "Number of days late an assignment can be turned in. Defaults to 0.",
+            "table":    "assignments",
+            "join":     [],
+            "key":      "late_submission",
             },
     "level":     {
             "type":     "int",
@@ -867,10 +897,16 @@ options = {
             1:          "Above levels plus grade.",
             2:          "Above levels plus lists of tests passed or failed, with error messages.",
             3:          "Above levels plus identifying information for tests.",
+            "table":    "assignments",
+            "join":     [],
+            "key":      "feedback_level",
             },
     "limit":     {
             "type":     "int",
             "help":     "Number of submissions allowed. 0 or below allows infinite submissions. Defaults to 1.",
+            "table":    "assignments",
+            "join":     [],
+            "key":      "submission_limit",
             },
     "name":     {
             "type":     "str",
@@ -879,6 +915,9 @@ options = {
     "num":     {
             "type":     "int",
             "help":     "Course number. For example, the num for 'CS 444' is '444'.",
+            "table":    "courses",
+            "join":     [],
+            "key":      "course_num",
             },
     "points":     {
             "type":     "int",
@@ -888,53 +927,79 @@ options = {
             "type":     "str",
             "help":     "Oregon State Netword ID for student(s).",
             "example":  "Accepts single ONID, i.e. student=hennign, or multiple onids concatenated with ',', i.e. student=hennign,wymanl,gassa).",
+            "table":    "users",
+            "join":     ["users.user_id", "students.student_id"],
+            "key":      "username",
             },
     "submission":     {
             "type":     "int",
             "help":     "Number that identifies a given assignment submission. Displayed using submission view.",
+            "table":    "submissions",
+            "join":     [],
+            "key":      "submission_id",
             },
     "ta":     {
             "type":     "str",
             "help":     "Oregon State Netword ID for teacher assitant(s).",
             "example":  "Accepts single ONID, i.e. ta=hennign, or multiple onids concatenated with ',', i.e. ta=hennign,wymanl,gassa).",
+            "table":    "users",
+            "join":     ["users.user_id", "tas.ta_id"],
+            "key":      "username",
             },
     "tags":     {
             "type":     "str",
             "help":     "Keywords for assignment.",
             "example":   "For example, an assignment using Python for loops might have tags=python,\'control loops\'.",
+            "table":    "tags",
+            "join":     [],
+            "key":      "text",
             },
     "teacher":     {
             "type":     "str",
             "help":     "Oregon State Netword ID for teacher(s).",
             "example":  "Accepts single ONID, i.e. teacher=hennign, or multiple onids concatenated with ',', i.e. teacher=hennign,wymanl,gassa).",
+            "table":    "users",
+            "join":     ["users.user_id", "teachers.teacher_id"],
+            "key":      "username",
             },
     "term":     {
             "type":     "str",
             "help":     "Can be fall, winter, spring, or summer.",
+            "table":    "courses",
+            "join":     [],
+            "key":      "term",
             },
     "test-id":     {
             "type":     "int",
             "help":     "Number that identifies a particular test. Displayed using test view.",
+            "table":    "tests",
+            "join":     [],
+            "key":      "test_id",
             },
     "text":     {
             "type":     "str",
             "help":     "Filepath to file, or a string of text, explaining the error.",
+            "table":    "tests",
+            "join":     [],
+            "key":      "text",
             },
     "time":     {
             "type":     "int",
             "help":     "Number of minutes a test is allowed to run before being aborted. Defaults to 1.",
+            "table":    "tests",
+            "join":     [],
+            "key":      "time_limit",
             },
     "year":     {
             "type":     "int",
             "help":     "Year the course takes place in.",
+            "table":    "courses",
+            "join":     [],
+            "key":      "year",
             },
     "version":     {
             "type":     "int",
             "help":     "Version number for assignment. Defaults to highest (most recent) available.",
-            },
-    "visible":     {
-            "type":     "str",
-            "help":     "Assignment is visible to non-teacher users. Accepts 'yes' and 'no'.",
             },
     }
 

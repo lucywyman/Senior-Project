@@ -114,7 +114,7 @@ class AutoShell(cmd.Cmd):
         #TODO - Add support for multiple values per key (ie student=hennign,luxylu,grepa)
         data = self.command_data(command, args)
         
-        if not data:
+        if data == False:
             print("\nError: Arguments not valid\n")
             self.onecmd("help " + command)
             self.logger.debug("END")
@@ -176,7 +176,7 @@ class AutoShell(cmd.Cmd):
         r = None
         files = {}
         
-        if data.has_key("file"):
+        if "file" in data:
             # TODO verify filepath - handle open failure gracefully
             files = { "file": open(data["file"], 'rb') }
             self.logger.debug("file is '{0}'".format(data["file"]))
@@ -218,7 +218,8 @@ class AutoShell(cmd.Cmd):
     def command_response(self, response):
         # TODO more robust error reporting
         if response.status_code==200:
-            print("Request succeeded!")
+            print("\nRequest succeeded!")
+            print(json.dumps(response.json(), indent=2))
         else:
             self.logger.error("Failed")
 
@@ -369,6 +370,7 @@ class AutoShell(cmd.Cmd):
 
 
     # Helper function for printing help messages
+    # TODO - Rewrite help to procedurally generate usage information from command_dict.py
     def print_help(self, help_target):
         if self.user=="teacher":
                 print(help_strings.teacher[help_target])
@@ -396,7 +398,9 @@ def parsekv(validkeys, args):
         if key not in validkeys:
             auto.logger.warning("'{0}' is not a valid key".format(arg))
             continue
-
+        
+        value = value.split(',')
+        
         data[key] = value
     return data
  
