@@ -28,7 +28,7 @@ commands = {
             
             "required2": [],
 
-            "optional": ['assignment-id', 'course-id', 'dept',  'num', 'teacher', 'term', 'version', 'year'],
+            "optional": ['assignment-id', 'course-id', 'dept',  'num', 'tags', 'teacher', 'term', 'version', 'year'],
 
             "help":     "Show all assignments, optionally filtered by optional values.",
 
@@ -45,7 +45,7 @@ commands = {
             
             "required2": [],
 
-            "optional": ['begin', 'ce-id', 'course-id', 'end', 'late', 'level', 'limit', 'name', 'tags'],
+            "optional": ['begin', 'course-id', 'end', 'late', 'level', 'limit', 'name', 'tags'],
 
             "help":     "Update selected assignment with chosen values.",
 
@@ -818,44 +818,41 @@ options = {
             "type":     "int",
             "help":     "Number that identifies a particular assignment. Displayed using assignment view.",
             "table":    "assignments",
-            "join":     [],
             "key":      "assignment_id",
+            "grade":    ["versions", "version_id", "assignments", "assignment_id"],
+            "submission":    ["versions", "version_id", "assignments", "assignment_id"],
             },
     "begin":     {
             "type":     "timestamp",
             "help":     "Date assignment opens. Defaults to current date at 11:59 PM.",
             "example":  "Format is mm/dd/yyyy hh:mm (AM|PM). I.e. begin=\"9/24/2010 5:03 PM\".",
             "table":    "assignments",
-            "join":     [],
             "key":      "begin_date",
             },
     "ce-id":     {
             "type":     "int",
             "help":     "Integer number that identifies a common error. Displayed using ce view.",
             "table":    "common_errors",
-            "join":     [],
             "key":      "ce_id",
             },
     "course-id":     {
             "type":     "int",
             "help":     "Integer number that identifies a course. Displayed using course view.",
             "table":    "courses",
-            "join":     [],
             "key":      "course_id",
             },
     "dept":     {
             "type":     "str",
             "help":     "Abbreviation for department (i.e. CS or ECE).",
-            "table":    "dept",
-            "join":     ["depts.dept_id", "courses.dept_id"],
-            "key":      "dept_name",
+            "table":    "depts",
+            "key":      "dept_id",
+            "course":   ["depts", "dept_id"],
             },
     "end":     {
             "type":     "timestamp",
             "help":     "Date assignment closes. Defaults to two weeks from current date at 11:59 PM.",
             "example":  "Format is mm/dd/yyyy hh:mm (AM|PM). I.e. end=\"9/24/2010 5:03 PM\".",
             "table":    "assignments",
-            "join":     [],
             "key":      "end_date",
             },
     "file":     {
@@ -866,28 +863,24 @@ options = {
             "type":     "str",
             "help":     "First name.",
             "table":    "users",
-            "join":     [],
             "key":      "firstname",
             },
     "grade":     {
             "type":     "int",
             "help":     "Grade as a simple point value",
             "table":    "submissions",
-            "join":     [],
             "key":      "grade",
             },
     "last":     {
             "type":     "str",
             "help":     "Last name.",
             "table":    "users",
-            "join":     [],
             "key":      "lastname",
             },
     "late":     {
             "type":     "int",
             "help":     "Number of days late an assignment can be turned in. Defaults to 0.",
             "table":    "assignments",
-            "join":     [],
             "key":      "late_submission",
             },
     "level":     {
@@ -898,30 +891,29 @@ options = {
             2:          "Above levels plus lists of tests passed or failed, with error messages.",
             3:          "Above levels plus identifying information for tests.",
             "table":    "assignments",
-            "join":     [],
             "key":      "feedback_level",
             },
     "limit":     {
             "type":     "int",
             "help":     "Number of submissions allowed. 0 or below allows infinite submissions. Defaults to 1.",
             "table":    "assignments",
-            "join":     [],
             "key":      "submission_limit",
             },
     "name":     {
             "type":     "str",
             "help":     "Can be any quoted string",
+            "key":      "name"
             },
     "num":     {
             "type":     "int",
             "help":     "Course number. For example, the num for 'CS 444' is '444'.",
             "table":    "courses",
-            "join":     [],
             "key":      "course_num",
             },
     "points":     {
             "type":     "int",
             "help":     "Amount of points a given item is worth.",
+            "key":      "points"
             },
     "student":     {
             "type":     "str",
@@ -935,7 +927,6 @@ options = {
             "type":     "int",
             "help":     "Number that identifies a given assignment submission. Displayed using submission view.",
             "table":    "submissions",
-            "join":     [],
             "key":      "submission_id",
             },
     "ta":     {
@@ -951,7 +942,6 @@ options = {
             "help":     "Keywords for assignment.",
             "example":   "For example, an assignment using Python for loops might have tags=python,\'control loops\'.",
             "table":    "tags",
-            "join":     [],
             "key":      "text",
             },
     "teacher":     {
@@ -959,42 +949,38 @@ options = {
             "help":     "Oregon State Netword ID for teacher(s).",
             "example":  "Accepts single ONID, i.e. teacher=hennign, or multiple onids concatenated with ',', i.e. teacher=hennign,wymanl,gassa).",
             "table":    "users",
-            "join":     ["users.user_id", "teachers.teacher_id"],
             "key":      "username",
+            "course":   ["teachers_teach_courses", "course_id", "users", "user_id"],
+            "assignment": ["users", "user_id"],
             },
     "term":     {
             "type":     "str",
             "help":     "Can be fall, winter, spring, or summer.",
             "table":    "courses",
-            "join":     [],
             "key":      "term",
             },
     "test-id":     {
             "type":     "int",
             "help":     "Number that identifies a particular test. Displayed using test view.",
             "table":    "tests",
-            "join":     [],
             "key":      "test_id",
             },
     "text":     {
             "type":     "str",
             "help":     "Filepath to file, or a string of text, explaining the error.",
             "table":    "tests",
-            "join":     [],
             "key":      "text",
             },
     "time":     {
             "type":     "int",
             "help":     "Number of minutes a test is allowed to run before being aborted. Defaults to 1.",
             "table":    "tests",
-            "join":     [],
             "key":      "time_limit",
             },
     "year":     {
             "type":     "int",
             "help":     "Year the course takes place in.",
             "table":    "courses",
-            "join":     [],
             "key":      "year",
             },
     "version":     {

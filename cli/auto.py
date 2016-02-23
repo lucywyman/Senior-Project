@@ -158,7 +158,12 @@ class AutoShell(cmd.Cmd):
         
         self.logger.debug("Verifying that required options are present.")
         keys = data.keys()
-        required = set(com["required"]).issubset(keys) or set(com["required2"]).issubset(keys)
+        
+        required = False
+        if set(com["required"]).issubset(keys):
+            required = True
+        elif com["required2"] and set(com["required2"]).issubset(keys):
+            required = True
         
         if not required:
             self.logger.debug("Not all required arguments given.")
@@ -219,7 +224,10 @@ class AutoShell(cmd.Cmd):
         # TODO more robust error reporting
         if response.status_code==200:
             print("\nRequest succeeded!")
-            print(json.dumps(response.json(), indent=2))
+            try:
+                print(json.dumps(response.json(), indent=2))
+            except:
+                print("No response")
         else:
             self.logger.error("Failed")
 

@@ -10,6 +10,7 @@ import command_dict
 
 # Connect to an existing database
 conn = psycopg2.connect("dbname=postgres user=postgres password=killerkat5", cursor_factory= psycopg2.extras.RealDictCursor)
+conn.autocommit = True
 
 
 
@@ -68,8 +69,8 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     
                 # TODO - Quick workaround for data being in arrays
                 # How to deal with when multiple values available?
-                for key in data:
-                    data[key] = data[key][0]
+                for k in data:
+                    data[k] = data[k][0]
                     
                 print(query)
                 print(data)
@@ -96,6 +97,133 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         result = json.dumps(result)
 
         self.wfile.write(bytes(result, 'UTF-8'))
+        
+        
+    def do_POST(self):
+        """Serve a POST request"""
+        
+        # split path into components
+        # path will always begin and end with '/', creating empty
+        # entry at beginning and end of list, removed by path[1:-1] slice
+        path = self.path.split('/')
+        path = path[1:-1]
+        
+        # create cursor for querying db
+        cur = conn.cursor()
+        
+        command = path[0]
+        subcommand = path[1]
+        
+        data = self.rfile.read(int(self.headers['Content-Length'])).decode("UTF-8")
+        data = json.loads(data)
+        
+        if subcommand == 'add':
+            table = None
+            
+            if command == 'assignment':
+                table = 'assignments'
+            elif command == 'ce':
+                table = 'common_errors'
+            elif command == 'course':
+                table = 'courses'
+                if 'dept' in data:
+                    cur.execute("SELECT depts.dept_id FROM depts INNER JOIN courses ON courses.dept_id=depts.dept_id WHERE depts.dept_name=%s", (data['dept'][0],))
+                    data['dept'][0] = cur.fetchone()['dept_id']
+            elif command == 'group':
+                table = 'tas_assigned_students'
+                # convert onids to user_ids
+                # TODO - This doesn't support multiples as it should
+                cur.execute("SELECT users.user_id FROM users INNER JOIN students ON users.user_id=students.student_id WHERE users.username=%s", (data['student'][0],))
+                data['student'][0] = cur.fetchone()['user_id']
+                cur.execute("SELECT users.user_id FROM users INNER JOIN tas ON users.user_id=tas.ta_id WHERE users.username=%s", (data['ta'][0],))
+                data['ta'][0] = cur.fetchone()['user_id']
+            elif command == 'student':
+                table = 'students_take_courses'
+                # convert onids to user_ids
+                # TODO - This doesn't support multiples as it should
+                cur.execute("SELECT users.user_id FROM users INNER JOIN students ON users.user_id=students.student_id WHERE users.username=%s", (data['student'][0],))
+                data['student'][0] = cur.fetchone()['user_id']
+            elif command == 'submission':
+                table = 'submissions'
+                #TODO - How to deal with file?
+            elif command == 'ta':
+                if 'course-id' in data:
+                    table = 'tas_assist_in_courses'
+                else:
+                    table = 'tas'
+                cur.execute("SELECT users.user_id FROM users WHERE users.username=%s", (data['ta'][0],))
+                data['ta'][0] = cur.fetchone()['user_id']
+            elif command == 'tag':
+                table = 'assignments_have_tags'
+                # TODO - insert ignore tags before getting tag_id (make sure they exist)
+                cur.execute("SELECT tags.tag_id FROM tags WHERE tags.text=%s", (data['tags'][0],))
+                # TODO - only want to show teacher's own assignments
+                # join to assignments to teachers and filter by name
+                data['tags'][0] = cur.fetchone()['text']
+            elif command == 'test':
+                table = 'tests'
+                # TODO - how to deal with file?
+                # Use cgi
+                 
+            length = len(data)
+            keys = data.keys()
+            
+            query = "INSERT INTO " + table + " ("
+            for opt in keys:
+                query += command_dict.options[opt]['key']
+                length -= 1
+                if length > 0:
+                    query += ", "
+            query += ") VALUES ("
+            
+            length = len(data)
+            for opt in keys:
+                query += "%(" + opt + ")s"
+                length -= 1
+                if length > 0:
+                    query += ", "
+            query += ")"
+            
+            # TODO - Quick workaround for data being in arrays
+            # How to deal with when multiple values available?
+            for k in data:
+                data[k] = data[k][0]
+                
+            print(query)
+            print(data)
+            cur.execute(query, data)
+            
+            
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+        
+        # TODO - Add better confirmation message
+        # result = cur.fetchall()
+        # print(json.dumps(result, indent=2))
+        # result = json.dumps(result)
+
+        # self.wfile.write(bytes(result, 'UTF-8'))
+        
+        
+    def do_DELETE(self):
+        """Serve a DELETE request"""
+        
+        # split path into components
+        # path will always begin and end with '/', creating empty
+        # entry at beginning and end of list, removed by path[1:-1] slice
+        path = self.path.split('/')
+        path = path[1:-1]
+        
+        # create cursor for querying db
+        cur = conn.cursor()
+        
+        command = path[0]
+        subcommand = path[1]
+        
+        data = self.rfile.read(int(self.headers['Content-Length'])).decode("UTF-8")
+        data = json.loads(data)
+    
         
     def send_head(self):
         """Common code for GET and HEAD commands.
