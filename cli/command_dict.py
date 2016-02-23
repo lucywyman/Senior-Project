@@ -847,7 +847,7 @@ options = {
             "type":     "str",
             "help":     "Abbreviation for department (i.e. CS or ECE).",
             "table":    "dept",
-            "join":     ["dept.dept_id", "courses.dept_id"],
+            "join":     ["depts.dept_id", "courses.dept_id"],
             "key":      "dept_name",
             },
     "end":     {

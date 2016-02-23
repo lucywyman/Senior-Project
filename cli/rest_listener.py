@@ -6,6 +6,7 @@ import argparse
 import json
 import psycopg2
 import psycopg2.extras
+import command_dict
 
 # Connect to an existing database
 conn = psycopg2.connect("dbname=postgres user=postgres password=killerkat5", cursor_factory= psycopg2.extras.RealDictCursor)
@@ -18,30 +19,82 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self):
         """Serve a GET request."""
-        print(self.requestline)
-        print(self.headers)
-        response = self.rfile.read(int(self.headers['Content-Length'])).decode("UTF-8")
-        print(response)
         
-        data = json.loads(response)
-        print("Data is:")
-        print(data)
+        # split path into components
+        # path will always begin and end with '/', creating empty
+        # entry at beginning and end of list, removed by path[1:-1] slice
+        path = self.path.split('/')
+        path = path[1:-1]
+        
+        # create cursor for querying db
+        cur = conn.cursor()
+        
+        command = path[0]
+        subcommand = path[1]
+        
+        data = self.rfile.read(int(self.headers['Content-Length'])).decode("UTF-8")
+        data = json.loads(data)
+        
+        if command == 'course':
+            if subcommand == 'view':
+                
+                #check data to build where clause
+                condition = None
+                length = len(data)
+                
+                if length > 0:
+                    condition = "WHERE "
+                    for opt in data:
+                        print(data)
+                        print(opt)
+                        condition += command_dict.options[opt]['key'] + "=%(" + opt + ")s"
+                        length -= 1
+                        if length > 0:
+                            condition += " AND "
+                            
+                query = """
+                    SELECT courses.course_id, dept_name, course_num, courses.name, username, term, year
+                    FROM courses
+                    INNER JOIN depts
+                    ON depts.dept_id=courses.dept_id
+                    INNER JOIN teachers_teach_courses
+                    ON teachers_teach_courses.course_id=courses.course_id
+                    INNER JOIN users
+                    ON users.user_id=teachers_teach_courses.teacher_id
+                    """
+                    
+                if condition != None:
+                    query += condition
+                    
+                # TODO - Quick workaround for data being in arrays
+                # How to deal with when multiple values available?
+                for key in data:
+                    data[key] = data[key][0]
+                    
+                print(query)
+                print(data)
+                cur.execute(query, data)
+        
+        
+        # print(vars(self))
+        # print(self.requestline)
+        # print(self.headers)
+        # response = self.rfile.read(int(self.headers['Content-Length'])).decode("UTF-8")
+        # print(response)
+        
+        # data = json.loads(response)
+        # print("Data is:")
+        # print(data)
         
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
         self.end_headers()
         
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT *
-            FROM courses
-            """)
         
         result = cur.fetchall()
         print(json.dumps(result, indent=2))
         result = json.dumps(result)
-        print(result)
-        print(bytes(result, 'UTF-8'))
+
         self.wfile.write(bytes(result, 'UTF-8'))
         
     def send_head(self):
