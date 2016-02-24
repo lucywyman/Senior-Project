@@ -7,6 +7,7 @@ import json
 import psycopg2
 import psycopg2.extras
 import command_dict
+from datetime import datetime
 
 # Connect to an existing database
 conn = psycopg2.connect("dbname=postgres user=postgres password=killerkat5", cursor_factory= psycopg2.extras.RealDictCursor)
@@ -122,7 +123,14 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             
             if command == 'assignment':
                 table = 'assignments'
+                #TODO implement tags
+                #TODO add teacher_id behind the scenes
+                if 'begin' in data:
+                    data['begin'][0] = datetime.strptime(data['begin'][0], '%x %X')
+                if 'end' in data:
+                    data['end'][0] = datetime.strptime(data['end'][0], '%x %X')                   
             elif command == 'ce':
+                #TODO add teacher_id behind the scenes
                 table = 'common_errors'
             elif command == 'course':
                 table = 'courses'
@@ -159,7 +167,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 cur.execute("SELECT tags.tag_id FROM tags WHERE tags.text=%s", (data['tags'][0],))
                 # TODO - only want to show teacher's own assignments
                 # join to assignments to teachers and filter by name
-                data['tags'][0] = cur.fetchone()['text']
+                data['tags'][0] = cur.fetchone()['tag_id']
             elif command == 'test':
                 table = 'tests'
                 # TODO - how to deal with file?
