@@ -89,10 +89,6 @@ while running:
       h.close()
       dmsg = msg.decode()
       sub_ID = json.loads(dmsg)["sub_ID"]
-      
-      #TESTING LINE
-      sub_ID = 83
-      
       qlock.acquire()
       testQ.append(sub_ID)
       qlock.notify()
