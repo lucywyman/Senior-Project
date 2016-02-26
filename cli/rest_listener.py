@@ -163,7 +163,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 data['ta'][0] = cur.fetchone()['user_id']
             elif command == 'tag':
                 table = 'assignments_have_tags'
-                # TODO - insert ignore tags before getting tag_id (make sure they exist)
+                # TODO - insert ignore tags before getting tag_id (make sure they exist) (this may require delete then insert for postgre?)
                 cur.execute("SELECT tags.tag_id FROM tags WHERE tags.text=%s", (data['tags'][0],))
                 # TODO - only want to show teacher's own assignments
                 # join to assignments to teachers and filter by name
@@ -200,7 +200,79 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             print(query)
             print(data)
             cur.execute(query, data)
+        
+        idkey = None
+        if subcommand == 'update':
+            if command == 'assignment':
+                idkey = 'assignment-id'
+                table = 'assignments'
+                #TODO implement tags
+                #TODO add teacher_id behind the scenes
+                if 'begin' in data:
+                    data['begin'][0] = datetime.strptime(data['begin'][0], '%x %X')
+                if 'end' in data:
+                    data['end'][0] = datetime.strptime(data['end'][0], '%x %X')                   
+            elif command == 'ce':
+                idkey = 'ce-id'
+                table = 'common_errors'
+            elif command == 'course':
+                idkey = 'course-id'
+                table = 'courses'
+                if 'dept' in data:
+                    cur.execute("SELECT depts.dept_id FROM depts INNER JOIN courses ON courses.dept_id=depts.dept_id WHERE depts.dept_name=%s", (data['dept'][0],))
+                    data['dept'][0] = cur.fetchone()['dept_id']
+            elif command == 'grade' or command == 'submission':
+                #TODO - how is this affected by edge case where multiple students create one submission? Also students submission add needs to support students keyword
+                idkey = 'submission'
+                if 'assignment-id' in data:
+                    # get student id from onid
+                    cur.execute("SELECT users.user_id FROM users INNER JOIN students ON users.user_id=students.student_id WHERE users.username=%s", (data['student'][0],))
+                    data['student'][0] = cur.fetchone()['user_id']
+                    # use assignment-id and student-id to select correct submission-id
+                    
+                    
+                    cur.execute(""" SELECT MAX(S.submission_id)
+                        FROM submissions AS S
+                        INNER JOIN students_create_submissions AS C
+                        ON S.submission_id=C.submission_id
+                        INNER JOIN versions AS V
+                        ON S.version_id=V.version_id
+                        WHERE 
+                            V.assignment_id=%s
+                            AND C.student_id=%s """, (data['assignment-id'][0], data['student'][0],))
+                    data['submission'] = []
+                    data['submission'].append(cur.fetchone()['max'])
+                    # remove unused keys
+                    data.pop('assignment-id')
+                    data.pop('student')
+                table = 'submissions'
+            elif command == 'test':
+                idkey = 'test-id'
+                table = 'tests'
+                
+            # -1 is because an update command must include an idkey
+            length = len(data) - 1
+            keys = data.keys()
             
+            query = "UPDATE " + table + " SET "
+            for opt in keys:
+                if opt != idkey:
+                    query += command_dict.options[opt]['key'] + "=%(" + opt + ")s"
+                    length -= 1
+                    if length > 0:
+                        query += ", "
+            query += " WHERE " + command_dict.options[idkey]['key'] + "=%(" + idkey + ")s"
+            
+            
+            
+            # TODO - Quick workaround for data being in arrays
+            # How to deal with when multiple values available?
+            for k in data:
+                data[k] = data[k][0]
+                
+            print(query)
+            print(data)
+            cur.execute(query, data)
             
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
