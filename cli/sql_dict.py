@@ -217,27 +217,23 @@ sql = {
     "test": {
         "view": {
         
-            "table":    'assignments',
+            "table":    'versions_have_tests',
         
             "required": [
+                ['tests', 'test_id', 'test_id'],
+                ['tests', 'name', 'test_name'],
+                ['versions', 'version_id', 'version_id'],
                 ['assignments', 'assignment_id', 'assignment_id'],
                 ['assignments', 'course_id', 'course_id'],
-                ['assignments', 'begin_date', 'begin_date'],
-                ['assignments', 'end_date', 'end_date'],
-                ['assignments', 'submission_limit', 'submission_limit'],
-                ['assignments', 'feedback_level', 'feedback_level'],
-                ['assignments', 'late_submission', 'late_submission'],
                 ['assignments', 'name', 'name'],
                 ['depts', 'dept_name', 'dept_name'],
                 ['courses', 'course_num', 'course_num'],
                 ['courses', 'name', 'course_name'],
-                ['users', 'username', 'teacher'],
             ],
                 
             "optional": {},
             
             "allowed": [
-                ['users', 'teachers', 'tu'],
             ],
             
         },
