@@ -624,9 +624,9 @@ commands = {
             
             "required2": [],
 
-            "optional": ['assignment-id'],
+            "optional": ['assignment-id', 'tags'],
 
-            "help":     "Shows all tags for all assignments, or if a specific assignment is selected, all tags for that assignment.",
+            "help":     "Shows all tags for all assignments, all tags for a selected assignment, or all assignments with selected tags.",
 
             },
 
@@ -942,7 +942,7 @@ options = {
             "help":     "Keywords for assignment.",
             "example":   "For example, an assignment using Python for loops might have tags=python,\'control loops\'.",
             "table":    "tags",
-            "key":      "tag_id",
+            "key":      "text",
             },
     "teacher":     {
             "type":     "str",

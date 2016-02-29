@@ -189,7 +189,32 @@ sql = {
         },
     },
     
-    "assignment": {
+    "tag": {
+        "view": {
+        
+            "table":    'assignments_have_tags',
+        
+            "required": [
+                ['assignments', 'assignment_id', 'assignment_id'],
+                ['assignments', 'name', 'assignment_name'],
+                ['assignments', 'course_id', 'course_id'],
+                ['depts', 'dept_name', 'dept_name'],
+                ['courses', 'course_num', 'course_num'],
+                ['courses', 'name', 'course_name'],
+                ['tags', 'tag_id', 'tag_id'],
+                ['tags', 'text', 'text'],
+
+            ],
+                
+            "optional": {},
+            
+            "allowed": [
+            ],
+            
+        },
+    },
+    
+    "test": {
         "view": {
         
             "table":    'assignments',
@@ -218,121 +243,7 @@ sql = {
         },
     },
     
-    "assignment": {
-        "view": {
-        
-            "table":    'assignments',
-        
-            "required": [
-                ['assignments', 'assignment_id', 'assignment_id'],
-                ['assignments', 'course_id', 'course_id'],
-                ['assignments', 'begin_date', 'begin_date'],
-                ['assignments', 'end_date', 'end_date'],
-                ['assignments', 'submission_limit', 'submission_limit'],
-                ['assignments', 'feedback_level', 'feedback_level'],
-                ['assignments', 'late_submission', 'late_submission'],
-                ['assignments', 'name', 'name'],
-                ['depts', 'dept_name', 'dept_name'],
-                ['courses', 'course_num', 'course_num'],
-                ['courses', 'name', 'course_name'],
-                ['users', 'username', 'teacher'],
-            ],
-                
-            "optional": {},
-            
-            "allowed": [
-                ['users', 'teachers', 'tu'],
-            ],
-            
-        },
-    },
     
-    "assignment": {
-        "view": {
-        
-            "table":    'assignments',
-        
-            "required": [
-                ['assignments', 'assignment_id', 'assignment_id'],
-                ['assignments', 'course_id', 'course_id'],
-                ['assignments', 'begin_date', 'begin_date'],
-                ['assignments', 'end_date', 'end_date'],
-                ['assignments', 'submission_limit', 'submission_limit'],
-                ['assignments', 'feedback_level', 'feedback_level'],
-                ['assignments', 'late_submission', 'late_submission'],
-                ['assignments', 'name', 'name'],
-                ['depts', 'dept_name', 'dept_name'],
-                ['courses', 'course_num', 'course_num'],
-                ['courses', 'name', 'course_name'],
-                ['users', 'username', 'teacher'],
-            ],
-                
-            "optional": {},
-            
-            "allowed": [
-                ['users', 'teachers', 'tu'],
-            ],
-            
-        },
-    },
-    
-    "assignment": {
-        "view": {
-        
-            "table":    'assignments',
-        
-            "required": [
-                ['assignments', 'assignment_id', 'assignment_id'],
-                ['assignments', 'course_id', 'course_id'],
-                ['assignments', 'begin_date', 'begin_date'],
-                ['assignments', 'end_date', 'end_date'],
-                ['assignments', 'submission_limit', 'submission_limit'],
-                ['assignments', 'feedback_level', 'feedback_level'],
-                ['assignments', 'late_submission', 'late_submission'],
-                ['assignments', 'name', 'name'],
-                ['depts', 'dept_name', 'dept_name'],
-                ['courses', 'course_num', 'course_num'],
-                ['courses', 'name', 'course_name'],
-                ['users', 'username', 'teacher'],
-            ],
-                
-            "optional": {},
-            
-            "allowed": [
-                ['users', 'teachers', 'tu'],
-            ],
-            
-        },
-    },
-    
-    "assignment": {
-        "view": {
-        
-            "table":    'assignments',
-        
-            "required": [
-                ['assignments', 'assignment_id', 'assignment_id'],
-                ['assignments', 'course_id', 'course_id'],
-                ['assignments', 'begin_date', 'begin_date'],
-                ['assignments', 'end_date', 'end_date'],
-                ['assignments', 'submission_limit', 'submission_limit'],
-                ['assignments', 'feedback_level', 'feedback_level'],
-                ['assignments', 'late_submission', 'late_submission'],
-                ['assignments', 'name', 'name'],
-                ['depts', 'dept_name', 'dept_name'],
-                ['courses', 'course_num', 'course_num'],
-                ['courses', 'name', 'course_name'],
-                ['users', 'username', 'teacher'],
-            ],
-                
-            "optional": {},
-            
-            "allowed": [
-                ['users', 'teachers', 'tu'],
-            ],
-            
-        },
-    },
     
     
     

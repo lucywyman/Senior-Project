@@ -199,7 +199,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             if 'ta_id' in data:
                 cur.execute("SELECT users.user_id FROM users INNER JOIN tas ON users.user_id=tas.ta_id WHERE users.username=%s", (data['ta_id'][0],))
                 data['ta_id'][0] = cur.fetchone()['user_id']
-        
+                
         #check data to build where clause
         print(select)
         print("-----")
