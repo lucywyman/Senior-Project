@@ -101,7 +101,7 @@ commands = {
             
             "required2": [],
 
-            "optional": ['assignment-id', 'course-id', 'name', 'num', 'test-id', 'version'],
+            "optional": ['assignment-id', 'ce-id', 'course-id', 'name', 'test-id', 'version'],
 
             "help":     "View all common errors [optionally filtered by key-value pairs].",
 
@@ -334,9 +334,9 @@ commands = {
 
             "required": ['ta'],
             
-            "required2": [],
+            "required2": ['course-id'],
 
-            "optional": ['course-id'],
+            "optional": ['ta','course-id'],
 
             "help":     "View students assigned to selected TA",
 
@@ -372,7 +372,7 @@ commands = {
 
             "optional": ['student'],
 
-            "help":     "Dis-associate student(s) with selected TA for selected course. Removes all students from selected TA if no students are listed.",
+            "help":     "Dis-associate student(s) with selected TA for selected course. Removes all students from selected TA for selected course if no students are listed.",
             
             "confirmation": None,
 
@@ -986,6 +986,8 @@ options = {
     "version":     {
             "type":     "int",
             "help":     "Version number for assignment. Defaults to highest (most recent) available.",
+            "table":    "versions",
+            "key":      "version_id",
             },
     }
 

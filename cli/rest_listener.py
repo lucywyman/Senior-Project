@@ -9,6 +9,7 @@ import psycopg2.extras
 import command_dict
 from datetime import datetime
 import db_graph
+from sql_dict import sql
 
 # Connect to an existing database
 conn = psycopg2.connect("dbname=postgres user=postgres password=killerkat5", cursor_factory= psycopg2.extras.RealDictCursor)
@@ -41,232 +42,197 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         condition = None
         length = len(data)
         
-        # # Replace version with actual version_id number
-        # if 'version' in data and 'assignment-id' in data:
-            # cur.execute("SELECT ROW_NUMBER() OVER (PARTITION BY assignment_id) AS c_no, version_id, assignment_id FROM versions WHERE c_no=%(version)s AND assignment_id=%(assignment-id)s", data)
-            # result = cur.fetchone()
-            # data['version'][0] = result['version_id']
-            
-        if 'begin' in data:
-            data['begin'][0] = datetime.strptime(data['begin'][0], '%x %X')
-        if 'end' in data:
-            data['end'][0] = datetime.strptime(data['end'][0], '%x %X')
-        
-        if command == 'assignment':
-        
-            #check data to build where clause
-            
-            if length > 0:
-                condition = "WHERE "
-                for opt in data:
-                    print(data)
-                    print(opt)
-                    condition += command_dict.options[opt]['key'] + "=%(" + opt + ")s"
-                    length -= 1
-                    if length > 0:
-                        condition += " AND "
-                        
-            query = """
-                SELECT assignments.assignment_id, assignments.course_id, assignments.name, begin_date, end_date, submission_limit, feedback_level, late_submission, dept_name, course_num, courses.name, username 
-                FROM assignments
-                INNER JOIN courses
-                ON courses.course_id=assignments.course_id
-                INNER JOIN depts
-                ON depts.dept_id=courses.dept_id
-                INNER JOIN teachers_teach_courses
-                ON teachers_teach_courses.course_id=assignments.course_id
-                INNER JOIN users
-                ON users.user_id=teachers_teach_courses.teacher_id
-                """
-                
-            if condition != None:
-                query += condition
-                
-            # TODO - Quick workaround for data being in arrays
-            # How to deal with when multiple values available?
-            for k in data:
-                data[k] = data[k][0]
-                
-            print(query)
-            print(data)
-            cur.execute(query, data)
-            
-        if command == 'ce':
+    
+        select = []
+        tables = []
+        for row in sql[command][subcommand]['required']: 
+            if row[0] not in tables:
+                tables += [row[0]]
+            select.append(row)
         
 
-            query = """
-                SELECT DISTINCT common_errors.ce_id, """
+        # translate keys to db keys
+        tmp = {}
+        for key in data:
+            tmp[command_dict.options[key]['key']] = data[key]
 
-            if ('assignment-id' in data) or ('course-id' in data) or ('version' in data):
-                query += """assignments.assignment_id, assignments.name AS assignment_name, courses.course_id, courses.name AS course_name, versions.version_id, tests.test_id, tests.name AS test_name, """
-            elif 'test-id' in data:
-                query += """tests.test_id, tests.name AS test_name, """
-                
-            query += """common_errors.name, common_errors.text FROM common_errors"""
-            
-            joins = {
-                "assignment-id": [
-                    ['tests_have_common_errors', 'common_errors', 'ce_id'],
-                    ['tests', 'tests_have_common_errors', 'test_id'],
-                    ['versions_have_tests', 'tests', 'test_id'],
-                    ['versions', 'versions_have_tests', 'version_id'],
-                    ['assignments', 'versions', 'assignment_id'],
-                    ['courses', 'assignments', 'course_id']
-                    ],
-                
-                "course-id":    [
-                    ['tests_have_common_errors', 'common_errors', 'ce_id'],
-                    ['tests', 'tests_have_common_errors', 'test_id'],
-                    ['versions_have_tests', 'tests', 'test_id'],
-                    ['versions', 'versions_have_tests', 'version_id'],
-                    ['assignments', 'versions', 'assignment_id'],
-                    ['courses', 'assignments', 'course_id']
-                    ],
-                    
-                'version':  [
-                    ['tests_have_common_errors', 'common_errors', 'ce_id'],
-                    ['tests', 'tests_have_common_errors', 'test_id'],
-                    ['versions_have_tests', 'tests', 'test_id'],
-                    ['versions', 'versions_have_tests', 'version_id'],
-                    ['assignments', 'versions', 'assignment_id'],
-                    ['courses', 'assignments', 'course_id']
-                    ],
-                
-                'test-id': [
-                    ['tests_have_common_errors', 'common_errors', 'ce_id'],
-                    ['tests', 'tests_have_common_errors', 'test_id'],
-                    ['versions_have_tests', 'tests', 'test_id'],
-                    ],
-                    
-                }
-                
-            join_set = []
-            for key in ['assignment-id', 'course-id', 'version', 'test-id']:
-                if key in data:
-                    join_set += joins[key]
-                    print("Join set is:")
-                    print(join_set)
-            
-            used_tables = ['common_errors']
-            join_size_old = 0
-            join_size_new = 1
-            
-            # This algorithm is designed to keep going over possible
-            # joins until a pass is made where no joins are used.
-            # This allows us to assume that list of joins is unordered
-            # and as long as one new join is made each pass, that
-            # opens the oppurtunity for new joins to be made in the
-            # following pass
-            while join_size_new != join_size_old:
-                join_size_old = len(used_tables)
-                for join in join_set:
-                    print(join)
-                    # we only want to do a join if one table is
-                    # already used and one table isn't. If neither
-                    # are used, we aren't joining to the query, which
-                    # is an error. If both are used, they are already
-                    # part of the query and cannot be added again
-                    print("0:")
-                    print(used_tables)
-                    print(join[0] in used_tables)
-                    print(join[1] in used_tables)
-                    print((join[0] in used_tables) != (join[1] in used_tables))
-                    if (join[0] in used_tables) != (join[1] in used_tables):
-                        if join[0] in used_tables:
-                            print(query)
-                            query += " INNER JOIN " + join[1] + " ON " + join[0] + "." + join[2] + "=" + join[1] + "." + join[2] + " "
-                            used_tables.append(join[1])
-                        elif join[1] in used_tables:
-                            print(query)
-                            query += " INNER JOIN " + join[0] + " ON " + join[0] + "." + join[2] + "=" + join[1] + "." + join[2] + " "
-                            used_tables.append(join[0])
-                    print(query)
-                    print("1:")
-                    print(used_tables)
-                join_size_new = len(used_tables)
-                
-                
-            #check data to build where clause
-            
-            if length > 0:
-                condition = " WHERE "
-                for opt in data:
-                    print(data)
-                    print(opt)
-                    if opt != 'name':
-                        condition += command_dict.options[opt]['table'] + "." + command_dict.options[opt]['key'] + "=%(" + opt + ")s"
-                    else:
-                        condition += 'common_errors.' + command_dict.options[opt]['key'] + "=%(" + opt + ")s"
-                    length -= 1
-                    if length > 0:
-                        condition += " AND "
-            
-            
-                
-            if condition != None:
-                query += condition
-            
-            
-                
-            # TODO - Quick workaround for data being in arrays
-            # How to deal with when multiple values available?
-            for k in data:
-                data[k] = data[k][0]
-                
-            print(query)
-            print(data)
-            cur.execute(query, data)
         
+        data = {}
+        for key in tmp:
+            data[key] = tmp[key]
+
         
+        tmp = data.keys()
+        for key, value in sql[command][subcommand]['optional'].items(): 
+            if any(i in key for i in tmp):
+                for row in value: 
+                    if row[0] not in tables:
+                        tables += [row[0]]
+                    select.append(row)
+                    
+
+        # This list comphresion filters out any joins involving user
+        # that do not join to the allowed table
+        if 'allowed' in sql[command][subcommand]:
+            for row in sql[command][subcommand]['allowed']:
+                if row[1] not in tables:
+                    tables += [row[1]]
+        print(tables)
+        print("-----")            
+        
+        tmp = db_graph.generate_joins(db_graph.graph, sql[command][subcommand]['table'], tables)
+        print(tmp)
+        print("-----")
+        # remove assignments join path and manually add
+        # teachers_teach_courses join path
+        # both paths have cost of two, but assignments path hides courses
+        # with no associated assignments
         if command == 'course':
+            not_allowed = ['assignments', 'tas', 'tas_assist_in_courses', 'tas_assigned_students']
+            tmp = [x for x in tmp if (x[0] not in not_allowed) and (x[1] not in not_allowed)]
+            tmp.insert(0,['courses', 'teachers_teach_courses', 'course_id', 'course_id'])
+            tmp.insert(0,['teachers_teach_courses', 'teachers', 'teacher_id', 'teacher_id'])
+            tmp.insert(0,['teachers', 'users', 'teacher_id', 'user_id'])
+            
+        join_set = ([x for x in tmp
+            if (any(y[0] for y in tmp if (y[0]=='users' or y[1]=='users')))
+               and (
+                (
+                    (x[0]=='users') and 
+                    (x[1] in [z[1] for z in sql[command][subcommand]['allowed']])
+                    )
+               or
+               (
+                    (x[1]=='users') and 
+                    (x[0] in [z[1] for z in sql[command][subcommand]['allowed']])
+                    )
+               )
+               or ((x[0]!='users') and (x[1]!='users'))
+            ])
+
+
+        query = """SELECT DISTINCT """
+
+        # generate list of keys to select
+        if sql[command][subcommand]['allowed'] and len(sql[command][subcommand]['allowed'])>1:
+            tmp = sql[command][subcommand]['allowed']
+            query += ", ".join(
+                ["{0}.{1} AS {2}".format(a[2], b[1], b[2])
+                    for a in tmp for b in select
+                    if (a[0]==b[0]) and (a[1]==b[3]) and (b[1]!=b[2])
+                    ]
+                + ["{0}.{1} AS {2}".format(x[0], x[1], x[2]) for x
+                    in select if (x[1] != x[2]) and (x[0]!='users')]
+                + ["{0}.{1}".format(x[0], x[1]) for x
+                    in select if (x[1] == x[2])]
+                )
+
+        else:
+            query += ", ".join(
+                ["{0}.{1} AS {2}".format(x[0], x[1], x[2]) for x
+                    in select if x[1] != x[2]]
+                + ["{0}.{1}".format(x[0], x[1]) for x
+                    in select if x[1] == x[2]]
+                )
         
+        query += " FROM " + sql[command][subcommand]['table']
             
-            #check data to build where clause
+        used_tables = [sql[command][subcommand]['table']]
+        used_users = []
+        join_size_old = 0
+        join_size_new = 1
+        
+
+        
+        print(join_set)
+        print("-----")
+        # This algorithm is designed to keep going over possible
+        # joins until a pass is made where no joins are used.
+        # This allows us to assume that list of joins is unordered
+        # and as long as one new join is made each pass, that
+        # opens the oppurtunity for new joins to be made in the
+        # following pass
+        while join_size_new != join_size_old:
+            join_size_old = len(used_tables) + len(used_users)
+            for join in join_set:
+                print("join, used tables, len(allowed), used users:")
+                print(join)
+                print(used_tables)
+                print(len(sql[command][subcommand]['allowed']))
+                print(used_users)
+                print("--------")
+                if (join[0] in used_tables) != (join[1] in used_tables):
+                    if (join[0] == 'users' and len(sql[command][subcommand]['allowed']) > 1):
+                        print("entered join[0]=='users' branch:")
+                        tmp = [x[2] for x in sql[command][subcommand]['allowed'] if x[1]==join[1]]
+                        print(tmp)
+                        print("--------")
+                        if tmp and tmp[0] not in used_users:
+                            query += (" INNER JOIN " + join[0] + " AS "
+                                + tmp[0] + " ON " + tmp[0] + "." + join[2] + "=" + join[1] + "." + join[3] + " ")
+                            used_users.append(tmp[0])
+                    elif (join[1] == 'users' and len(sql[command][subcommand]['allowed']) > 1):
+                        tmp = [x[2] for x in sql[command][subcommand]['allowed'] if x[1]==join[0]]
+                        if tmp and tmp[0] not in used_users:
+                            query += (" INNER JOIN " + join[1] + " AS "
+                                + tmp[0] + " ON " + tmp[0] + "." + join[3] + "=" + join[0] + "." + join[2] + " ")
+                            used_users.append(tmp[0])
+                    elif join[0] in used_tables and join[0]!='users':
+                        # print(query)
+                        query += " INNER JOIN " + join[1] + " ON " + join[0] + "." + join[2] + "=" + join[1] + "." + join[3] + " "
+                        used_tables.append(join[1])
+                    elif join[1] in used_tables and join[1]!='users':
+                        # print(query)
+                        query += " INNER JOIN " + join[0] + " ON " + join[0] + "." + join[2] + "=" + join[1] + "." + join[3] + " "
+                        used_tables.append(join[0])
+            join_size_new = len(used_tables) + len(used_users)
             
-            
+        # if allowed table exists and is longer than one, we need to use
+        # id numbers instead of onids
+        if sql[command][subcommand]['allowed'] and len(sql[command][subcommand]['allowed']) > 1:
+            if 'teacher_id' in data:
+                cur.execute("SELECT users.user_id FROM users INNER JOIN teachers ON users.user_id=teachers.teacher_id WHERE users.username=%s", (data['teacher_id'][0],))
+                data['teacher_id'][0] = cur.fetchone()['user_id']
+            if 'student_id' in data:
+                cur.execute("SELECT users.user_id FROM users INNER JOIN students ON users.user_id=students.student_id WHERE users.username=%s", (data['student_id'][0],))
+                data['student_id'][0] = cur.fetchone()['user_id']
+            if 'ta_id' in data:
+                cur.execute("SELECT users.user_id FROM users INNER JOIN tas ON users.user_id=tas.ta_id WHERE users.username=%s", (data['ta_id'][0],))
+                data['ta_id'][0] = cur.fetchone()['user_id']
+        
+        #check data to build where clause
+        print(select)
+        
+        # if allowed table exists and is longer than one, we need to use
+        # id numbers instead of onids
+        if sql[command][subcommand]['allowed'] and len(sql[command][subcommand]['allowed']) > 1:
             if length > 0:
-                condition = "WHERE "
-                for opt in data:
-                    print(data)
-                    print(opt)
-                    condition += command_dict.options[opt]['key'] + "=%(" + opt + ")s"
-                    length -= 1
-                    if length > 0:
-                        condition += " AND "
-                        
-            query = """
-                SELECT courses.course_id, dept_name, course_num, courses.name, username, term, year
-                FROM courses
-                INNER JOIN depts
-                ON depts.dept_id=courses.dept_id
-                INNER JOIN teachers_teach_courses
-                ON teachers_teach_courses.course_id=courses.course_id
-                INNER JOIN users
-                ON users.user_id=teachers_teach_courses.teacher_id
-                """
-                
-            if condition != None:
-                query += condition
-                
-            # TODO - Quick workaround for data being in arrays
-            # How to deal with when multiple values available?
-            for k in data:
-                data[k] = data[k][0]
-                
-            print(query)
-            print(data)
-            cur.execute(query, data)
-   
-        # print(vars(self))
-        # print(self.requestline)
-        # print(self.headers)
-        # response = self.rfile.read(int(self.headers['Content-Length'])).decode("UTF-8")
-        # print(response)
+                condition = " WHERE " + " AND ".join(
+                    ["{0}.{1}=%({2})s".format(x[0], x[1], x[1]) for x
+                    in select if (x[1] in data) and (x[1] == x[2])]
+                    )
+        else:
+            if length > 0:
+                condition = " WHERE " + " AND ".join(
+                    ["{0}.{1}=%({2})s".format(x[0], x[1], x[1]) for x
+                    in select if (x[1] in data) and (x[1] == x[2])]
+                    +
+                    ["{0}.{1}=%({2})s".format(x[0], x[1], x[2]) for x
+                    in select if (x[2] in data) and (x[1]=='username') and (x[1] != x[2])]
+                    )
+
+        if condition != None:
+            query += condition
         
-        # data = json.loads(response)
-        # print("Data is:")
-        # print(data)
-        
+        # TODO - Quick workaround for data being in arrays
+        # How to deal with when multiple values available?
+        for k in data:
+            data[k] = data[k][0]
+            
+        print(query)
+        print(data)
+        cur.execute(query, data)
+            
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
         self.end_headers()
