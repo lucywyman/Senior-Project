@@ -110,29 +110,27 @@ sql = {
         }, 
     },
     
-    "assignment": {
+    "student": {
         "view": {
         
-            "table":    'assignments',
+            "table":    'students_take_courses',
         
             "required": [
-                ['assignments', 'assignment_id', 'assignment_id'],
-                ['assignments', 'course_id', 'course_id'],
-                ['assignments', 'begin_date', 'begin_date'],
-                ['assignments', 'end_date', 'end_date'],
-                ['assignments', 'submission_limit', 'submission_limit'],
-                ['assignments', 'feedback_level', 'feedback_level'],
-                ['assignments', 'late_submission', 'late_submission'],
-                ['assignments', 'name', 'name'],
-                ['depts', 'dept_name', 'dept_name'],
                 ['courses', 'course_num', 'course_num'],
                 ['courses', 'name', 'course_name'],
-                ['users', 'username', 'teacher'],
+                ['depts', 'dept_name', 'dept_name'],
+                ['students_take_courses', 'course_id', 'course_id'],
+                ['students_take_courses', 'student_id', 'student_id'],
+                ['users', 'firstname', 'first', 'students'],
+                ['users', 'lastname', 'last', 'students'],
+                ['users', 'username', 'student', 'students'],
             ],
                 
             "optional": {},
             
-            "allowed": ['users', 'teachers'],
+            "allowed": [
+                ['users', 'students', 'su'],
+            ],
             
         },
     },

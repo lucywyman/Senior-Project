@@ -114,7 +114,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         query = """SELECT DISTINCT """
 
         # generate list of keys to select
-        if sql[command][subcommand]['allowed'] and len(sql[command][subcommand]['allowed'])>1:
+        if sql[command][subcommand]['allowed'] and len(sql[command][subcommand]['allowed'])>0:
             tmp = sql[command][subcommand]['allowed']
             query += ", ".join(
                 ["{0}.{1} AS {2}".format(a[2], b[1], b[2])
@@ -162,7 +162,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 print(used_users)
                 print("--------")
                 if (join[0] in used_tables) != (join[1] in used_tables):
-                    if (join[0] == 'users' and len(sql[command][subcommand]['allowed']) > 1):
+                    if (join[0] == 'users' and len(sql[command][subcommand]['allowed']) > 0):
                         print("entered join[0]=='users' branch:")
                         tmp = [x[2] for x in sql[command][subcommand]['allowed'] if x[1]==join[1]]
                         print(tmp)
@@ -171,7 +171,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                             query += (" INNER JOIN " + join[0] + " AS "
                                 + tmp[0] + " ON " + tmp[0] + "." + join[2] + "=" + join[1] + "." + join[3] + " ")
                             used_users.append(tmp[0])
-                    elif (join[1] == 'users' and len(sql[command][subcommand]['allowed']) > 1):
+                    elif (join[1] == 'users' and len(sql[command][subcommand]['allowed']) > 0):
                         tmp = [x[2] for x in sql[command][subcommand]['allowed'] if x[1]==join[0]]
                         if tmp and tmp[0] not in used_users:
                             query += (" INNER JOIN " + join[1] + " AS "
@@ -189,7 +189,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             
         # if allowed table exists and is longer than one, we need to use
         # id numbers instead of onids
-        if sql[command][subcommand]['allowed'] and len(sql[command][subcommand]['allowed']) > 1:
+        if sql[command][subcommand]['allowed'] and len(sql[command][subcommand]['allowed']) > 0:
             if 'teacher_id' in data:
                 cur.execute("SELECT users.user_id FROM users INNER JOIN teachers ON users.user_id=teachers.teacher_id WHERE users.username=%s", (data['teacher_id'][0],))
                 data['teacher_id'][0] = cur.fetchone()['user_id']
@@ -202,12 +202,20 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         
         #check data to build where clause
         print(select)
+        print("-----")
+        print('data')
+        print(data)
         
         # if allowed table exists and is longer than one, we need to use
         # id numbers instead of onids
-        if sql[command][subcommand]['allowed'] and len(sql[command][subcommand]['allowed']) > 1:
+        if sql[command][subcommand]['allowed'] and len(sql[command][subcommand]['allowed']) > 0:
+            tmp = sql[command][subcommand]['allowed']
             if length > 0:
                 condition = " WHERE " + " AND ".join(
+                    ["{0}.{1}=%({2})s".format(a[2], b[1], b[1])
+                    for a in tmp for b in select
+                    if (a[0]==b[0]) and (a[1]==b[3]) and (b[1]!=b[2]) and (b[1] in data)]
+                    +                
                     ["{0}.{1}=%({2})s".format(x[0], x[1], x[1]) for x
                     in select if (x[1] in data) and (x[1] == x[2])]
                     )
