@@ -166,30 +166,24 @@ sql = {
         },
     },
     
-    "assignment": {
+    "ta": {
         "view": {
         
-            "table":    'assignments',
+            "table":    'tas_assist_in_courses',
         
             "required": [
-                ['assignments', 'assignment_id', 'assignment_id'],
-                ['assignments', 'course_id', 'course_id'],
-                ['assignments', 'begin_date', 'begin_date'],
-                ['assignments', 'end_date', 'end_date'],
-                ['assignments', 'submission_limit', 'submission_limit'],
-                ['assignments', 'feedback_level', 'feedback_level'],
-                ['assignments', 'late_submission', 'late_submission'],
-                ['assignments', 'name', 'name'],
-                ['depts', 'dept_name', 'dept_name'],
+                ['tas', 'ta_id', 'ta_id'],
+                ['users', 'username', 'ta', 'tas'],
+                ['courses', 'course_id', 'course_id'],
                 ['courses', 'course_num', 'course_num'],
                 ['courses', 'name', 'course_name'],
-                ['users', 'username', 'teacher'],
+                ['depts', 'dept_name', 'dept_name'],                
             ],
                 
             "optional": {},
             
             "allowed": [
-                ['users', 'teachers', 'tu'],
+                ['users', 'tas', 'tau'],
             ],
             
         },
