@@ -249,6 +249,8 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         print(result)
         
         for entry in result:
+            if 'submission_date' in entry:
+                entry['submission_date'] = entry['submission_date'].strftime('%x %X')
             if 'begin_date' in entry:
                 entry['begin_date'] = entry['begin_date'].strftime('%x %X')
             if 'end_date' in entry:

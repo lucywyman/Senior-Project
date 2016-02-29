@@ -135,29 +135,33 @@ sql = {
         },
     },
     
-    "assignment": {
+    "submission": {
         "view": {
         
-            "table":    'assignments',
+            "table":    'submissions_have_tests',
         
             "required": [
+                ['submissions', 'submission_id', 'submission_id'],
+                ['students_create_submissions', 'student_id', 'student_id'],
+                ['tests', 'test_id', 'test_id'],
+                ['tests', 'name', 'test_name'],
+                ['versions', 'version_id', 'version_id'],
                 ['assignments', 'assignment_id', 'assignment_id'],
-                ['assignments', 'course_id', 'course_id'],
-                ['assignments', 'begin_date', 'begin_date'],
-                ['assignments', 'end_date', 'end_date'],
-                ['assignments', 'submission_limit', 'submission_limit'],
-                ['assignments', 'feedback_level', 'feedback_level'],
-                ['assignments', 'late_submission', 'late_submission'],
-                ['assignments', 'name', 'name'],
                 ['depts', 'dept_name', 'dept_name'],
-                ['courses', 'course_num', 'course_num'],
+                ['assignments', 'name', 'assignment_name'],
+                ['submissions', 'grade', 'grade'],
                 ['courses', 'name', 'course_name'],
-                ['users', 'username', 'teacher'],
+                ['submissions', 'submission_date', 'submission_date'],
+                ['submissions_have_tests', 'result', 'result'],
+                ['users', 'username', 'student', 'students'],
+                ['courses', 'course_num', 'course_num'],
             ],
                 
             "optional": {},
             
-            "allowed": ['users', 'teachers'],
+            "allowed": [
+                ['users', 'students', 'su'],
+            ],
             
         },
     },
@@ -184,7 +188,9 @@ sql = {
                 
             "optional": {},
             
-            "allowed": ['users', 'teachers'],
+            "allowed": [
+                ['users', 'teachers', 'tu'],
+            ],
             
         },
     },
@@ -211,7 +217,9 @@ sql = {
                 
             "optional": {},
             
-            "allowed": ['users', 'teachers'],
+            "allowed": [
+                ['users', 'teachers', 'tu'],
+            ],
             
         },
     },
@@ -238,7 +246,9 @@ sql = {
                 
             "optional": {},
             
-            "allowed": ['users', 'teachers'],
+            "allowed": [
+                ['users', 'teachers', 'tu'],
+            ],
             
         },
     },
@@ -265,7 +275,9 @@ sql = {
                 
             "optional": {},
             
-            "allowed": ['users', 'teachers'],
+            "allowed": [
+                ['users', 'teachers', 'tu'],
+            ],
             
         },
     },
@@ -292,7 +304,9 @@ sql = {
                 
             "optional": {},
             
-            "allowed": ['users', 'teachers'],
+            "allowed": [
+                ['users', 'teachers', 'tu'],
+            ],
             
         },
     },
@@ -319,7 +333,9 @@ sql = {
                 
             "optional": {},
             
-            "allowed": ['users', 'teachers'],
+            "allowed": [
+                ['users', 'teachers', 'tu'],
+            ],
             
         },
     },
