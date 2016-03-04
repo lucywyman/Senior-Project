@@ -459,7 +459,7 @@ commands = {
                 "student":  True,
                 },
 
-            "required": ['assignment-id', 'file',],
+            "required": ['assignment-id', 'filepath',],
             
             "required2": [],
 
@@ -675,7 +675,7 @@ commands = {
                 "student":  False,
                 },
 
-            "required": ['file', 'name'],
+            "required": ['filepath', 'name'],
             
             "required2": [],
 
@@ -713,7 +713,7 @@ commands = {
             
             "required2": [],
 
-            "optional": ['file', 'name', 'points', 'time'],
+            "optional": ['filepath', 'name', 'points', 'time'],
 
             "help":     "Attempts to update selected test, adds update as new test if the test cannot be updated (tests can't be changed if any student submissions reference those tests).",
 
@@ -747,11 +747,11 @@ commands = {
                 # "student":  False,
                 # },
 
-            # "required": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'file', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
+            # "required": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'filepath', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
             
             # "required2": [],
 
-            # "optional": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'file', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
+            # "optional": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'filepath', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
 
             # "help":     "",
 
@@ -764,11 +764,11 @@ commands = {
                 # "student":  False,
                 # },
 
-            # "required": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'file', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
+            # "required": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'filepath', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
             
             # "required2": [],
 
-            # "optional": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'file', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
+            # "optional": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'filepath', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
 
             # "help":     "",
 
@@ -781,11 +781,11 @@ commands = {
                 # "student":  False,
                 # },
 
-            # "required": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'file', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
+            # "required": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'filepath', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
             
             # "required2": [],
 
-            # "optional": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'file', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
+            # "optional": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'filepath', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
 
             # "help":     "",
 
@@ -798,11 +798,11 @@ commands = {
                 # "student":  False,
                 # },
 
-            # "required": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'file', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
+            # "required": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'filepath', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
             
             # "required2": [],
 
-            # "optional": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'file', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
+            # "optional": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'filepath', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
 
             # "help":     "",
             
@@ -855,7 +855,7 @@ options = {
             "table":    "assignments",
             "key":      "end_date",
             },
-    "file":     {
+    "filepath":     {
             "type":     "file",
             "help":     "Filepath of file to be used.",
             },
@@ -942,7 +942,7 @@ options = {
             "help":     "Keywords for assignment.",
             "example":   "For example, an assignment using Python for loops might have tags=python,\'control loops\'.",
             "table":    "tags",
-            "key":      "text",
+            "key":      "tag_id",
             },
     "teacher":     {
             "type":     "str",
