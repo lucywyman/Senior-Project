@@ -1,4 +1,5 @@
 sql = {
+    "basedir": 'c:/Senior-Project/cli/logs/',
     "assignment": {
         "view": {
         
