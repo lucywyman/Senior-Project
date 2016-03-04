@@ -416,8 +416,8 @@ def parsekv(validkeys, args):
 
     for key in data:
         for id, value in enumerate(data[key]):
-            if (value.startswith('"') and value.endswith('"'))
-                or (value.startswith("'") and value.endswith("'")):
+            if ((value.startswith('"') and value.endswith('"'))
+                or (value.startswith("'") and value.endswith("'"))):
                 data[key][id] = value[1:-1]
 
     return data
