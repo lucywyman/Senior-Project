@@ -13,7 +13,7 @@
 import cmd, getpass, glob, json, logging, os, requests, shlex, sys
 
 import help_strings, command_dict
-
+import re
 
 # Helper function for Linux Filepath completion
 def _append_slash_if_dir(p):
@@ -76,8 +76,8 @@ class AutoShell(cmd.Cmd):
 
         # add console handler to logger
         self.logger.addHandler(self.ch)
-        
-        
+
+
     def emptyline(self):
         pass
 
@@ -92,108 +92,108 @@ class AutoShell(cmd.Cmd):
                 self.ch.setLevel(logging.WARNING)
                 print("Verbose: OFF")
 
-                
+
     def command_exec(self, command, args):
         self.logger.debug("START. Args='{0}'".format(args))
         args = parse(args)
         self.logger.debug("Args split. Args='{0}'".format(args))
-        
+
         if not args:
             print("\nError: Arguments not valid\n")
             self.onecmd("help " + command)
             self.logger.debug("END")
             return
-            
+
         if not self.command_access(self.user, command, args[0]):
             print("\nError: Arguments not valid\n")
             self.logger.debug("END")
             return
-            
+
         self.logger.debug("Entering {0} mode".format(args[0].upper()))
-        
+
         #TODO - Add support for multiple values per key (ie student=hennign,luxylu,grepa)
         data = self.command_data(command, args)
-        
+
         if data == False:
             print("\nError: Arguments not valid\n")
             self.onecmd("help " + command)
             self.logger.debug("END")
             return
-        
+
         response = self.command_request(command, args[0], data)
 
         if response == False:
             self.logger.debug("END")
             return
-        
+
         self.command_response(response)
-        
+
         self.logger.debug("END")
         return
-        
-    
+
+
     def command_access(self, user, command, subcommand):
         self.logger.debug("Checking access levels.")
         self.logger.debug("User level is {0}.".format(user))
         self.logger.debug("Access for {0} is {1}".format(user, command_dict.commands[command][subcommand]["access"][user]))
-        
+
         if not command_dict.commands[command][subcommand]["access"][user]:
             self.logger.debug("Access denied.")
             return False
-        
+
         self.logger.debug("Access granted.")
         return True
-        
-    
+
+
     def command_data(self, command, args):
         self.logger.debug("Entering argument processing.")
         com = command_dict.commands[command][args[0]]
-        
+
         self.logger.debug("Valid keys include {0}, {1}, {2}.".format(com["required"], com["required2"], com["optional"]))
         validkeys = com["required"] + com["required2"] + com["optional"]
-        
+
         # args[1:] skips first entry (which will be a subcommand)
         data = parsekv(validkeys, args[1:])
         self.logger.debug("data is '{0}'".format(data))
-        
+
         self.logger.debug("Verifying that required options are present.")
         keys = data.keys()
-        
+
         required = False
         if set(com["required"]).issubset(keys):
             required = True
         elif com["required2"] and set(com["required2"]).issubset(keys):
             required = True
-        
+
         if not required:
             self.logger.debug("Not all required arguments given.")
             return False
-            
+
         #TODO - Verify value types
-            
+
         return data
-        
-        
+
+
     def command_request(self, command, subcommand, data):
         url = self.server + '/' + command + '/' + subcommand + '/'
         self.logger.debug("url is '{0}'".format(url))
-        
+
         r = None
         files = {}
-        
+
         if "filepath" in data:
             # TODO verify filepath - handle open failure gracefully
             #TODO - handle multiples?
             data['filepath'][0] = os.path.normpath(data['filepath'][0])
             files = { "file": open(data['filepath'][0], 'rb') }
             self.logger.debug("file is '{0}'".format(data['filepath'][0]))
-        
+
             if subcommand in ['add', 'update']:
                 self.logger.debug("POSTing")
                 # TODO gracefully handle failure
                 r = requests.post(url, files=files, data=data)
-             
-        else:                
+
+        else:
             if subcommand in ['add', 'update', 'link']:
                 self.logger.debug("POSTing")
                 # TODO gracefully handle failure
@@ -203,25 +203,25 @@ class AutoShell(cmd.Cmd):
                 self.logger.debug("GETting")
                 # TODO gracefully handle failure
                 r = requests.get(url, json=data)
-                
+
             elif subcommand == 'delete':
                 com = command_dict.commands[command][subcommand]
                 question = None
-                
+
                 if com["confirmation"]:
                     question = com["confirmation"] + ' Proceed? '
-                
+
                 if question and not query_yes_no(question):
                     self.logger.debug("Operation aborted.")
                     return False
-               
+
                 self.logger.debug("DELETEing")
                 # TODO gracefully handle failure
                 r = requests.delete(url, json=data)
-        
+
         return r
-            
-            
+
+
     def command_response(self, response):
         # TODO more robust error reporting
         if response.status_code==200:
@@ -234,7 +234,7 @@ class AutoShell(cmd.Cmd):
             self.logger.error("Failed")
 
     #----------------------------------------
-    
+
     def do_assignment(self, args):
         self.command_exec("assignment", args)
 
@@ -242,7 +242,7 @@ class AutoShell(cmd.Cmd):
         self.print_help("assignment")
 
     #----------------------------------------
-    
+
     def do_ce(self, args):
         self.command_exec("ce", args)
 
@@ -250,7 +250,7 @@ class AutoShell(cmd.Cmd):
         self.print_help("ce")
 
     #----------------------------------------
-    
+
     def do_course(self, args):
         self.command_exec("course", args)
 
@@ -258,7 +258,7 @@ class AutoShell(cmd.Cmd):
     def help_course(self):
         self.print_help("course")
     #----------------------------------------
-    
+
     def do_grade(self, args):
         self.command_exec("grade", args)
 
@@ -266,7 +266,7 @@ class AutoShell(cmd.Cmd):
         self.print_help("grade")
 
     #----------------------------------------
-    
+
     def do_group(self, args):
         self.command_exec("group", args)
 
@@ -274,18 +274,18 @@ class AutoShell(cmd.Cmd):
         self.print_help("group")
 
     #----------------------------------------
-    
+
     def do_student(self, args):
         self.command_exec("student", args)
-        
+
     def help_student(self):
         self.print_help("student")
 
     #----------------------------------------
-    
+
     def do_submission(self, args):
         self.command_exec("submission", args)
-        
+
     def help_submission(self):
         self.print_help("submission")
 
@@ -305,15 +305,15 @@ class AutoShell(cmd.Cmd):
         return completions
 
     #----------------------------------------
-    
+
     def do_ta(self, args):
         self.command_exec("ta", args)
-            
+
     def help_ta(self):
         self.print_help("ta")
 
     #----------------------------------------
-    
+
     def do_tag(self, args):
         self.command_exec("tag", args)
 
@@ -324,7 +324,7 @@ class AutoShell(cmd.Cmd):
 
     def do_test(self, args):
         self.command_exec("test", args)
-        
+
     def complete_test(self, text, line, begidx, endidx):
         before_arg = line.rfind(" ", 0, begidx)
         if before_arg == -1:
@@ -392,7 +392,8 @@ class AutoShell(cmd.Cmd):
                 print("Are you a boat? I don't know how to help" + self.user + "s... :(")
 
 def parse(arg):
-    return shlex.split(arg, posix=False)
+    pattern = re.compile(r'''((?:[^\s"']|"[^"]*"|'[^']*')+)''')
+    return pattern.split(arg)[1::2]
 
 def parsekv(validkeys, args):
     data = {}
@@ -408,12 +409,19 @@ def parsekv(validkeys, args):
         if key not in validkeys:
             auto.logger.warning("'{0}' is not a valid key".format(arg))
             continue
-        
+
         value = value.split(',')
-        
+
         data[key] = value
+
+    for key in data:
+        for id, value in enumerate(data[key]):
+            if (value.startswith('"') and value.endswith('"'))
+                or (value.startswith("'") and value.endswith("'")):
+                data[key][id] = value[1:-1]
+
     return data
- 
+
 def query_yes_no(question, default="no"):
     """Ask a yes/no question via raw_input() and return their answer.
 
