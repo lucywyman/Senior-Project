@@ -181,10 +181,12 @@ class AutoShell(cmd.Cmd):
         r = None
         files = {}
         
-        if "file" in data:
+        if "filepath" in data:
             # TODO verify filepath - handle open failure gracefully
-            files = { "file": open(data["file"], 'rb') }
-            self.logger.debug("file is '{0}'".format(data["file"]))
+            #TODO - handle multiples?
+            data['filepath'][0] = os.path.normpath(data['filepath'][0])
+            files = { "file": open(data['filepath'][0], 'rb') }
+            self.logger.debug("file is '{0}'".format(data['filepath'][0]))
         
             if subcommand in ['add', 'update']:
                 self.logger.debug("POSTing")
@@ -390,7 +392,7 @@ class AutoShell(cmd.Cmd):
                 print("Are you a boat? I don't know how to help" + self.user + "s... :(")
 
 def parse(arg):
-    return shlex.split(arg)
+    return shlex.split(arg, posix=False)
 
 def parsekv(validkeys, args):
     data = {}
