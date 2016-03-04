@@ -8,32 +8,35 @@ class Department(models.Model):
     department has 'CS' prefixed to their classes, which is relevant to 
     determining the class id.
     """
-
     name = models.TextField()
+
+
+class User(models.Model):
+    """
+    """
+    first_name = models.TextField()
+    last_name = models.TextField()
+    onid = models.TextField()
+    password = models.CharField(max_length=1024)
+
 
 class Teacher(models.Model):
     """
     """
-    first_name = models.TextField()
-    last_name = models.TextField()
-    onid = models.TextField()
-    department = models.ForeignKey('Department', null=False, blank=True)
-    # TODO make this correct
     classes = models.ManyToManyField('Course')
+    user = models.ForeignKey('User', null=False, blank=False)
 
 class TA(models.Model):
     """
     """
-    first_name = models.TextField()
-    last_name = models.TextField()
-    onid = models.TextField()
-    departement = models.ForeignKey('Department')
-    # TODO
     classes = models.ManyToManyField('Course')
+    user = models.ForeignKey('User', null=False, blank=False)
 
 class Student(models.Model):
     """
     """
+    user = models.ForeignKey('User', null=False, blank=False)
+
 
 class Course(models.Model):
     """
@@ -77,9 +80,8 @@ class Submission(models.Model):
     # TODO define media root
     def user_directory(self):
         return 'user_{0}/{1}'.format(instance.user.id, filename)+'/submissions'
-
     student = models.TextField()
-    filepath = models.FileField(upload_to=user_directory)
+    #filepath = models.FileField(upload_to=user_directory)
     comments = models.TextField()
     date_submitted = models.DateTimeField(auto_now_add=True)
     grade = models.TextField()

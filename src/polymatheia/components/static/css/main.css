@@ -6963,9 +6963,6 @@ input[type=checkbox]:not(:disabled) ~ .lever:active:after {
     top: -14px;
     font-size: 0.8rem; }
 
-select {
-  display: none; }
-
 select.browser-default {
   display: block; }
 
@@ -8342,5 +8339,9 @@ button.picker__today:focus, button.picker__clear:focus, button.picker__close:foc
     margin-bottom: 5em; } }
 a:hover {
   color: rgba(255, 255, 255, 0.7); }
+
+main {
+  max-width: 80%;
+  margin: 0 auto; }
 
 /*# sourceMappingURL=main.css.map */
