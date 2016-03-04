@@ -39,3 +39,5 @@ coverage.xml
 
 # Translations
 *.mo
+src/interfaces/__pycache__/
+src/results/
