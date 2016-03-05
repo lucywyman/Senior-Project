@@ -1,0 +1,16 @@
+<nav class='row orange darken-4'>
+<a class='col s1' href='/'>Home</a>
+<a class='col s1' href='/about'>About</a>
+{# if user.is_authenticated #}
+<!-- TODO List courses in subnav like canvas -->
+<a class='col s1' href='/courses'>Courses &#x25bc;</a>
+{# endif #}
+{# if user.is_authenticated and user.is_student#}
+<a class='col s1' href='/logout'>Logout</a>
+{# else if user.is_authenticated and user.is_teacher or ta#}
+<a class='col s1' href='/courses/create'>Add course</a>
+{# else #}
+<a class='col s1' href='/login'>Login</a>
+<a class='col s1' href="/register">Sign up</a>
+{# endif #}
+</nav>
