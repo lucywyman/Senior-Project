@@ -1,0 +1,14 @@
+@import 'materialize';
+
+$link-color: #fff;
+
+a {
+	&:hover {
+		color: rgba($link-color, .7);
+	}
+}
+
+main {
+	max-width: 80%;
+	margin: 0 auto;
+}

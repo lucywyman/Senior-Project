@@ -1,0 +1,2 @@
+def dummyfunc():
+    return 'hello'
