@@ -29,22 +29,10 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         """Serve a GET request."""
 
         # split path into components
-        path = self.path
-        if path.startswith('/') and path.endswith('/'):
-            path = path.split('/')
-            path = path[1:-1]
-        elif path.startswith('/') and not path.endswith('/'):
-            path = path.split('/')
-            path = path[1:]
-
-        # if path isn't length 2, then it's a bad
-        # path and we should just stop
-        if len(path) != 2:
-            self.send_response(404)
-            self.end_headers()
-            return
-
-
+        # path will always begin and end with '/', creating empty
+        # entry at beginning and end of list, removed by path[1:-1] slice
+        path = self.path.split('/')
+        path = path[1:-1]
 
         # create cursor for querying db
         cur = conn.cursor()
@@ -52,11 +40,8 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         command = path[0]
         subcommand = path[1]
 
-        try:
-            data = self.rfile.read(int(self.headers['Content-Length'])).decode("UTF-8")
-            data = json.loads(data)
-        except:
-            data = {}
+        data = self.rfile.read(int(self.headers['Content-Length'])).decode("UTF-8")
+        data = json.loads(data)
 
         condition = None
         length = len(data)
@@ -285,23 +270,11 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
         """Serve a POST request"""
 
-
         # split path into components
-        path = self.path
-        if path.startswith('/') and path.endswith('/'):
-            path = path.split('/')
-            path = path[1:-1]
-        elif path.startswith('/') and not path.endswith('/'):
-            path = path.split('/')
-            path = path[1:]
-
-        # if path isn't length 2, then it's a bad
-        # path and we should just stop
-        if len(path) != 2:
-            self.send_response(404)
-            self.end_headers()
-            return
-
+        # path will always begin and end with '/', creating empty
+        # entry at beginning and end of list, removed by path[1:-1] slice
+        path = self.path.split('/')
+        path = path[1:-1]
 
         # create cursor for querying db
         cur = conn.cursor()
@@ -315,11 +288,8 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         fileitem = None
 
         if self.headers['Content-Type'] == 'application/json':
-            try:
-                data = self.rfile.read(int(self.headers['Content-Length'])).decode("UTF-8")
-                data = json.loads(data)
-            except:
-                data = {}
+            data = self.rfile.read(int(self.headers['Content-Length'])).decode("UTF-8")
+            data = json.loads(data)
 
         elif 'multipart/form-data' in self.headers['Content-Type']:
 
@@ -595,20 +565,10 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         """Serve a DELETE request"""
 
         # split path into components
-        path = self.path
-        if path.startswith('/') and path.endswith('/'):
-            path = path.split('/')
-            path = path[1:-1]
-        elif path.startswith('/') and not path.endswith('/'):
-            path = path.split('/')
-            path = path[1:]
-
-        # if path isn't length 2, then it's a bad
-        # path and we should just stop
-        if len(path) != 2:
-            self.send_response(404)
-            self.end_headers()
-            return
+        # path will always begin and end with '/', creating empty
+        # entry at beginning and end of list, removed by path[1:-1] slice
+        path = self.path.split('/')
+        path = path[1:-1]
 
         # create cursor for querying db
         cur = conn.cursor()
@@ -616,11 +576,8 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         command = path[0]
         subcommand = path[1]
 
-        try:
-            data = self.rfile.read(int(self.headers['Content-Length'])).decode("UTF-8")
-            data = json.loads(data)
-        except:
-            data = {}
+        data = self.rfile.read(int(self.headers['Content-Length'])).decode("UTF-8")
+        data = json.loads(data)
 
         print(data)
 
