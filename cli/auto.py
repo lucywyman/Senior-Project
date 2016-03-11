@@ -13,7 +13,7 @@
 import cmd, getpass, glob, json, logging, os, requests, shlex, sys
 
 import help_strings, command_dict
-import re
+import re, textwrap
 
 # Helper function for Linux Filepath completion
 def _append_slash_if_dir(p):
@@ -378,18 +378,96 @@ class AutoShell(cmd.Cmd):
         self.onecmd("EOF")
         return True
 
-
-    # Helper function for printing help messages
-    # TODO - Rewrite help to procedurally generate usage information from command_dict.py
+    # TODO - add pagination for long helps
     def print_help(self, help_target):
-        if self.user=="teacher":
-                print(help_strings.teacher[help_target])
-        elif self.user=="ta":
-                print(help_strings.ta[help_target])
-        elif self.user=="student":
-                print(help_strings.student[help_target])
+        if command_dict.commands.get(help_target):
+            access_granted = False
+            syn_wrapper = textwrap.TextWrapper(initial_indent='\t', width=80, subsequent_indent='\t\t')
+            wrapper = textwrap.TextWrapper(initial_indent='\t\t', width=80, subsequent_indent='\t\t')
+            for key in command_dict.commands[help_target]:
+                if command_dict.commands[help_target][key]['access'].get(self.user):
+                    access_granted = True
+            if access_granted:
+                
+                print()
+                print('NAME')
+                print()
+                print('\t' + help_target)
+                print()
+                print()
+                print('SYNOPSIS')
+                print()
+                
+                # print subcommands
+                for key in command_dict.commands[help_target]:
+                    com = command_dict.commands[help_target][key]
+                    if com['access'].get(self.user):
+                        req1 = None
+                        req2 = None
+                        req3 = None
+                        options = ""
+                        if com.get('required'):
+                            req1 = " ".join(['{0}=<value>'.format(x) for x in com['required']])
+                            req1 = '(' + req1 + ')'
+                        if com.get('required2'):
+                            req2 = " ".join(['{0}=<value>'.format(x) for x in com['required2']])
+                            req2 = '(' + req2 + ')'
+                        if com.get('optional'):
+                            options = " ".join(['{0}=<value>'.format(x) for x in com['optional']])
+                            options = '[' + options + ']'
+                        
+                        if req1 and req2:
+                            req3 = '(' + req1 + '|' + req2 + ')'
+                        
+                        
+                        if req1 and not req2:
+                            syn = help_target + ' ' + key + ' ' + req1 + ' ' + options
+                        elif not req1 and req2:
+                            syn = help_target + ' ' + key + ' ' + req2 + ' ' + options
+                        elif req3:
+                            syn = help_target + ' ' + key + ' ' + req3 + ' ' + options
+                        else:
+                            syn = help_target + ' ' + key + ' ' + options
+                            
+                        print(syn_wrapper.fill(syn))
+                        print()
+                
+                print()
+                print('DESCRIPTION')
+                print()
+             
+                for key in command_dict.commands[help_target]:
+                    com = command_dict.commands[help_target][key]
+                    if com['access'].get(self.user):
+                        print('\t' + help_target + ' ' + key)
+                        print(wrapper.fill(com['help']))
+                        print()
+                        
+                print()
+                print('OPTIONS')
+                print()
+                options_list = []
+                for key in command_dict.commands[help_target]:
+                    com = command_dict.commands[help_target][key]
+                    if com['access'].get(self.user):
+                        options_list += com['required'] + com['required2'] + com['optional']
+                
+                options_list = list(set(options_list))
+                options_list.sort()
+                
+                for opt in options_list:
+                    print('\t' + opt)
+                    print(wrapper.fill(command_dict.options[opt]['help']))
+                    print()
+                
+                print()
+                
+                        
+                
+            else:
+                print('\n**** Access denied\n')
         else:
-                print("Are you a boat? I don't know how to help" + self.user + "s... :(")
+            print('\n**** Command not found\n')
 
 def parse(arg):
     pattern = re.compile(r'''((?:[^\s"']|"[^"]*"|'[^']*')+)''')
