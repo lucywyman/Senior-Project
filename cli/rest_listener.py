@@ -402,7 +402,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 data['student'][0] = cur.fetchone()['user_id']
             elif command == 'submission':
                 table = 'submissions'
-                cur.execute("""SELECT MAX(versions.version_id) AS max_version FROM versions GROUP BY versions.assignment_id HAVING assignment_id=%(assignment-id)s""", data)
+                cur.execute("""SELECT MAX(versions.version_id) AS max_version FROM versions GROUP BY versions.assignment_id HAVING assignment_id=%s""", data[assignment-id][0])
                 data['version']= []
                 data['version'].append(cur.fetchone()['max_version'])
             elif command == 'ta':
