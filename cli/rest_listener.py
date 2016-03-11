@@ -2,6 +2,7 @@
 
 import http.server
 import socketserver
+import socket
 import argparse
 import json
 import psycopg2
@@ -14,6 +15,7 @@ import os
 import cgi
 import ast
 from shutil import move, rmtree
+import stat
 
 # Connect to an existing database
 conn = psycopg2.connect("dbname=postgres user=postgres password=killerkat5", cursor_factory= psycopg2.extras.RealDictCursor)
@@ -472,6 +474,12 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 print("fpath: " + fpath)
                 os.makedirs(os.path.dirname(fpath), exist_ok=True)
                 move(os.path.normpath(sql['basedir'] + fn), fpath)
+                
+                # call tester
+                if submit(ret):
+                    print("Submission successfully sent to tester!")
+                else:
+                    print("Submission to tester failed!")
 
             elif command == 'test':
                 fn = os.path.basename(fileitem.filename)
@@ -757,6 +765,16 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         except:
             f.close()
             raise
+    
+    def submit(self,id):
+        s = socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);
+        if(s.connect('\0recvPort')):
+            msg = '{"sub_ID":' + str(id) + '}'
+            s.send(msg.encode())
+            s.close()
+            return 1
+        else:
+            return 0
 
 
 if __name__ == '__main__':
