@@ -1,0 +1,7 @@
+- hosts: project15
+  become: True
+  become_user: root
+  become_method: sudo
+  
+  tasks:
+

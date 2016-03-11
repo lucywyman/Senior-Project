@@ -1,0 +1,131 @@
+---
+# tasks file for roles/auto
+- name: Install epel-release
+  yum: name=epel-release state=present
+    
+# - include: python.yml
+  # vars:
+    # tmpdir: "/Users/(user)/tmpfile/python"
+    # name: "Python"
+    # version: "3.4.4"
+    
+- name: Install all python 3.4 libraries
+  yum: name=python34* state=present
+  
+- name: Install other packages
+  yum: name={{ item }} state=present
+  with_items:
+    - haproxy
+    - http://yum.postgresql.org/9.5/redhat/rhel-7-x86_64/pgdg-centos95-9.5-2.noarch.rpm
+    - git
+    - gcc
+    - emacs
+
+- name: Install all postgresql 9.5 libraries
+  yum: name=postgresql95* state=present
+  
+- name: Install python-psycopg2 packages for ansible
+  yum: name={{ item }} state=present
+  with_items:
+    - python-psycopg2
+    - python-psycopg2-debuginfo
+    - python-psycopg2-doc
+  
+  
+- name: get pip3 script
+  get_url: 
+    url: https://bootstrap.pypa.io/get-pip.py 
+    mode: 0744
+    dest: ~/
+    
+- name: install pip
+  command: /usr/bin/python3 ~/get-pip.py
+  
+- name: symlink in pg_config
+  file:
+    src: /usr/pgsql-9.5/bin/pg_config
+    dest: /bin/pg_config
+    state: link
+    
+- name: install pyscopg2 package
+  command: /usr/bin/pip3 install psycopg2
+    
+- name: install pip packages
+  pip: name={{ item }} executable=pip3 state=present
+  environment:
+    PATH: "{{ ansible_env.PATH }}:/usr/pgsql-9.5/bin"
+  with_items:
+    - requests
+
+
+- name: init database
+  shell: /usr/pgsql-9.5/bin/postgresql95-setup initdb
+  args:
+    creates: /var/lib/pgsql/9.5/data/postgresql.conf
+  
+    
+- name: Start PostgreSQL 9.5 and enable at boot
+  service: name=postgresql-9.5 enabled=yes state=started
+  
+
+    
+- name: set postgres password
+  postgresql_user: db=postgres name=postgres password=killerkat5 state=present
+  become: true
+  become_user: postgres
+
+- name: copy over test schema
+  copy:
+    src: files/test_schema.sql
+    dest: ~/test_schema.sql
+  become: true
+  become_user: postgres    
+  
+  
+- name: load test schema (clears database before running)
+  command: psql -f ~/test_schema.sql
+  become: true
+  become_user: postgres
+  
+  
+- name: copy over updated pg_hba.conf
+  copy:
+    src: files/pg_hba.conf
+    dest: /var/lib/pgsql/9.5/data/pg_hba.conf
+    
+    
+- name: Start PostgreSQL 9.5 and enable at boot
+  service: name=postgresql-9.5 state=restarted
+  
+  
+
+  
+- name: git clone project repo
+  git:
+    repo: https://github.com/lucywyman/Senior-Project.git
+    dest: /auto/
+
+# Set base directory as specified in auto.yml    
+- name: template test
+  template:
+    src: roles/auto/templates/sql_dict.j2
+    dest: /auto/cli/sql_dict.py
+    
+- name: copy over script file
+  copy:
+    dest: ~/haproxy.sh
+    src: files/haproxy.sh
+    mode: 0744
+    
+- name: run script
+  command: ~/haproxy.sh arg1
+  args:
+    creates: /etc/systemd/system/cs312-auto@.service
+    
+- name: update haproxy.cfg
+  copy: 
+    src: files/haproxy.cfg
+    dest: /etc/haproxy/haproxy.cfg
+        
+- name: start and enable HAProxy daemon
+  service: name=haproxy state=started enabled=yes

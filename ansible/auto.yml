@@ -1,0 +1,8 @@
+- hosts: project15
+  become: True
+  become_user: root
+  become_method: sudo
+  vars:
+    base_dir: "{{ BASE_DIR|default('/auto/log/') }}"
+  roles:
+    - auto

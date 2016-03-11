@@ -1,0 +1,12 @@
+- name: "make dir"
+  local_action: command mkdir -p {{ tmpdir }}/{{ version }}
+- name: "wget src"
+  local_action: get_url url=http://www.python.org/ftp/python/{{ version }}/Python-{{ version }}.tgz dest={{ tmpdir }}/{{ version }}
+- name: "tar"
+  local_action: command tar xzvf Python-{{ version }}.tgz chdir={{ tmpdir }}/{{ version }}
+- name: "configure"
+  local_action: command {{ tmpdir }}/{{ version }}/{{ name }}-{{ version }}/configure --prefix={{ tmpdir }}/{{ version }} chdir={{ tmpdir }}/{{ version }}
+- name: "make"
+  local_action: command make chdir={{ tmpdir }}/{{ version }}
+- name: "make install"
+  local_action: command make install chdir={{ tmpdir }}/{{ version }}
