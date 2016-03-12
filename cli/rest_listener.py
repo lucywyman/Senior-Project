@@ -2,6 +2,8 @@
 
 import http.server
 import socketserver
+from socketserver import ThreadingMixIn
+import threading
 import socket
 import argparse
 import json
@@ -16,6 +18,7 @@ import cgi
 import ast
 from shutil import move, rmtree
 import stat
+
 
 # Connect to an existing database
 conn = psycopg2.connect("dbname=postgres user=postgres password=killerkat5", cursor_factory= psycopg2.extras.RealDictCursor)
@@ -402,7 +405,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 data['student'][0] = cur.fetchone()['user_id']
             elif command == 'submission':
                 table = 'submissions'
-                cur.execute("""SELECT MAX(versions.version_id) AS max_version FROM versions GROUP BY versions.assignment_id HAVING assignment_id=%s""", data[assignment-id][0])
+                cur.execute("""SELECT MAX(versions.version_id) AS max_version FROM versions GROUP BY versions.assignment_id HAVING assignment_id=%s""", data['assignment-id'][0])
                 data['version']= []
                 data['version'].append(cur.fetchone()['max_version'])
             elif command == 'ta':
@@ -428,7 +431,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             aid = None
 
             if command == 'submission':
-                aid = data.pop('assignment-id', None)
+                aid = data.pop('assignment-id', None)[0]
 
             length = len(data)
             keys = data.keys()
@@ -476,7 +479,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 move(os.path.normpath(sql['basedir'] + fn), fpath)
                 
                 # call tester
-                if submit(ret):
+                if self.submit(ret):
                     print("Submission successfully sent to tester!")
                 else:
                     print("Submission to tester failed!")
@@ -770,20 +773,25 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         s = socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);
         if(s.connect('\0recvPort')):
             msg = '{"sub_ID":' + str(id) + '}'
-            s.send(msg.encode())
+            print(msg)
+            msg = msg.encode()
+            print(msg)
+            s.send(msg)
             s.close()
             return 1
         else:
             return 0
 
-
+class ThreadingHTTPServer(ThreadingMixIn, http.server.HTTPServer):
+    pass
+        
+        
 if __name__ == '__main__':
 
     handler = RESTfulHandler
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--cgi', action='store_true',
-                       help='Run as CGI Server')
+
     parser.add_argument('--bind', '-b', default='', metavar='ADDRESS',
                         help='Specify alternate bind address '
                              '[default: all interfaces]')
@@ -792,8 +800,12 @@ if __name__ == '__main__':
                         nargs='?',
                         help='Specify alternate port [default: 8000]')
     args = parser.parse_args()
-    if args.cgi:
-        handler_class = http.server.CGIHTTPRequestHandler
-    else:
-        handler_class = handler # http.server.SimpleHTTPRequestHandler (old default handler)
-    http.server.test(HandlerClass=handler_class, port=args.port, bind=args.bind)
+
+    # http.server.test is an internal http.server function
+    # https://hg.python.org/cpython/file/3.4/Lib/http/server.py
+    http.server.test(
+        HandlerClass=handler,
+        ServerClass=ThreadingHTTPServer,
+        port=args.port,
+        bind=args.bind
+        )
