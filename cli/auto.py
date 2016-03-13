@@ -12,7 +12,7 @@
 
 import cmd, getpass, glob, json, logging, os, requests, shlex, sys
 
-import help_strings, command_dict
+import command_dict
 import re, textwrap
 
 # Helper function for Linux Filepath completion
