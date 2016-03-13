@@ -336,7 +336,7 @@ commands = {
             
             "required2": ['course-id'],
 
-            "optional": ['ta','course-id'],
+            "optional": ['ta','course-id', 'student'],
 
             "help":     "View students assigned to selected TA",
 
