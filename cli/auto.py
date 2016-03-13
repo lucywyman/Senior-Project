@@ -12,7 +12,7 @@
 
 import cmd, getpass, glob, json, logging, os, requests, shlex, sys
 
-import command_dict
+import command_dict, sql_dict
 import re, textwrap
 
 # Helper function for Linux Filepath completion
@@ -126,7 +126,7 @@ class AutoShell(cmd.Cmd):
             self.logger.debug("END")
             return
 
-        self.command_response(response)
+        self.command_response(command, args[0], response)
 
         self.logger.debug("END")
         return
@@ -222,14 +222,14 @@ class AutoShell(cmd.Cmd):
         return r
 
 
-    def command_response(self, response):
+    def command_response(self, command, subcommand, response):
         # TODO more robust error reporting
+        print()
         if response.status_code==200:
-            print("\nRequest succeeded!")
             try:
-                print(json.dumps(response.json(), indent=2))
+                self.print_response(command, subcommand, response.json())
             except:
-                print("No response")
+                print("\nNo response")
         else:
             self.logger.error("Failed")
 
@@ -469,6 +469,28 @@ class AutoShell(cmd.Cmd):
         else:
             print('\n**** Command not found\n')
 
+    def print_response(self, command, subcommand, json):
+        
+        self.logger.debug("Data is: {0}".format(json))
+    
+        data = json
+        
+        cols = sql_dict.sql[command][subcommand]['view_order']
+ 
+        col_widths = [max([len(str(row[key])) for row in data] + [len(str(key))])+4 for key in cols]
+        
+        print("|".join(str(val).center(col_widths[pos]) for pos,val in enumerate(cols)))
+        
+        print("|".join(str("="*(col_widths[pos]-2)).center(col_widths[pos]) for pos,val in enumerate(cols)))
+        
+        data.sort(key = sql_dict.sql[command][subcommand]['sort_order'])
+        
+        for row in data:
+            print("|".join(str(row[val]).center(col_widths[pos]) for pos,val in enumerate(cols)))
+
+        
+        
+        
 def parse(arg):
     pattern = re.compile(r'''((?:[^\s"']|"[^"]*"|'[^']*')+)''')
     return pattern.split(arg)[1::2]

@@ -17,6 +17,7 @@ sql = {
                 ['depts', 'dept_name', 'dept_name'],
                 ['courses', 'course_num', 'course_num'],
                 ['courses', 'name', 'course_name'],
+                # fourth entry specifies witch table to join with
                 ['users', 'username', 'teacher_id', 'teachers'],
             ],
                 
@@ -25,6 +26,10 @@ sql = {
             "allowed": [
                 ['users', 'teachers', 'tchu'],
             ],
+            
+            "view_order": ['dept_name', 'course_num', 'assignment_id', 'name', 'end_date','late_submission', 'submission_limit', 'feedback_level', 'course_id'],
+            
+            "sort_order": (lambda x: (x['course_id'], x['assignment_id'])),
             
         },
     },
@@ -57,6 +62,10 @@ sql = {
                     ['tests', 'name', 'test_name'],
                 ],
             },
+            
+            "view_order": ['ce_id', 'name', 'text', 'assignment_id', ],
+            
+            "sort_order": (lambda x: (x['course_id'], x['assignment_id'])),
             
         },
     },
