@@ -34,8 +34,8 @@ SERVER = 'localhost'
 class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
     def __init__(self, *args, **kwargs):
-        
-        
+
+
         # create logger for RESTfulHandler
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
@@ -53,9 +53,9 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
             # add console handler to logger
             self.logger.addHandler(self.ch)
-            
+
             self.logger.handler_set = True
- 
+
         super(RESTfulHandler, self).__init__(*args, **kwargs)
 
     def do_GET(self):
@@ -64,12 +64,12 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
         path = self.parse_path()
 
-        
+
         # end response if serving favicon or path is wrong length
         if self.favicon_check(path) or not self.path_check(path, 2):
             self.logger.info("END")
             return
-            
+
 
         # create cursor for querying db
         cur = conn.cursor()
@@ -84,7 +84,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             data = {}
 
         condition = None
-        length = len(data)
+
 
 
         select = []
@@ -242,12 +242,21 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 data['student_id'][0] = cur.fetchone()['user_id']
             if 'ta_id' in data:
                 cur.execute("SELECT users.user_id FROM users INNER JOIN tas ON users.user_id=tas.ta_id WHERE users.username=%s", (data['ta_id'][0],))
-                data['ta_id'][0] = cur.fetchone()['user_id']
+                try:
+                    data['ta_id'][0] = cur.fetchone()['user_id']
+                except TypeError:
+                    self.send_error(404, 'Not Found',
+                        'TA {0} not found'.format(data['ta_id'][0]))
+                    self.end_headers()
+                    self.logger.info("END")
+                    return
 
         #check data to build where clause
         self.logger.debug(select)
 
         self.logger.debug(data)
+
+        length = len(data)
 
         # if allowed table exists and is longer than one, we need to use
         # id numbers instead of onids
@@ -284,12 +293,17 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         self.logger.debug(data)
         cur.execute(query, data)
 
-        self.send_response(HTTPStatus.OK)
-        self.send_header('Content-type', 'application/json')
-        self.end_headers()
-
         result = cur.fetchall()
         self.logger.debug(result)
+
+        if result:
+            self.send_response(HTTPStatus.OK)
+
+        else:
+            self.send_response(HTTPStatus.NO_CONTENT)
+
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
 
         for entry in result:
             if 'submission_date' in entry:
@@ -310,7 +324,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         result = json.dumps(result)
 
         self.wfile.write(bytes(result, 'UTF-8'))
-        
+
         self.logger.info("END")
 
 
@@ -497,7 +511,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 self.logger.debug("fpath: " + fpath)
                 os.makedirs(os.path.dirname(fpath), exist_ok=True)
                 move(os.path.normpath(sql['basedir'] + fn), fpath)
-                
+
                 # call tester
                 if self.submit(ret):
                     self.logger.debug("Submission successfully sent to tester!")
@@ -741,11 +755,11 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         self.send_response(HTTPStatus.OK)
         self.send_header('Content-type', 'application/json')
         self.end_headers()
-        
+
         self.logger.info("END")
-    
-            
-            
+
+
+
     def parse_path(self):
         # split path into components
         path = self.path
@@ -755,15 +769,15 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         elif path.startswith('/') and not path.endswith('/'):
             path = path.split('/')
             path = path[1:]
-            
+
         return path
-        
-        
+
+
     def favicon_check(self, path):
         if len(path)==1 and path[0]=='favicon.ico':
-        
+
             self.logger.debug("FAVICON CHECK")
-        
+
             try:
                 f = open('favicon.ico', 'rb')
             except OSError:
@@ -777,25 +791,25 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(f.read())
             f.close()
-            
+
             return True
-            
+
         return False
-        
-        
+
+
     def path_check(self, path, length):
         if len(path) != length:
             self.send_error(HTTPStatus.NOT_FOUND)
             self.end_headers()
             return False
-            
+
         return True
-            
-        
-        
-            
-            
-    
+
+
+
+
+
+
     def submit(self, id):
         s = socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);
         if(s.connect('\0recvPort')):
@@ -811,8 +825,8 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
 class ThreadingHTTPServer(ThreadingMixIn, http.server.HTTPServer):
     pass
-        
-        
+
+
 if __name__ == '__main__':
 
     handler = RESTfulHandler
@@ -829,7 +843,7 @@ if __name__ == '__main__':
                         nargs='?',
                         help='Specify alternate port [default: 8000]')
     args = parser.parse_args()
-    
+
     if args.verbosity:
         if args.verbosity>2:
             print("-vv is maximum verbosity")
