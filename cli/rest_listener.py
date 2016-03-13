@@ -295,9 +295,15 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             if 'submission_date' in entry:
                 entry['submission_date'] = entry['submission_date'].strftime('%x %X')
             if 'begin_date' in entry:
-                entry['begin_date'] = entry['begin_date'].strftime('%x %X')
+                try:
+                    entry['begin_date'] = entry['begin_date'].strftime('%x %X')
+                except:
+                    pass
             if 'end_date' in entry:
-                entry['end_date'] = entry['end_date'].strftime('%x %X')
+                try:
+                    entry['end_date'] = entry['end_date'].strftime('%x %X')
+                except:
+                    pass
 
 
         #print(json.dumps(result, indent=2))
@@ -830,10 +836,8 @@ if __name__ == '__main__':
             print("setting verbosity to -vv")
             logLevel = logging.DEBUG
         elif args.verbosity==2:
-            print("Verbose = 2")
             logLevel = logging.DEBUG
         elif args.verbosity==1:
-            print("Verbose = 1")
             logLevel = logging.INFO
 
 
