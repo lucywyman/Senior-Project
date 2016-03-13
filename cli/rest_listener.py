@@ -18,38 +18,54 @@ import cgi
 import ast
 from shutil import move, rmtree
 import stat
+import logging
 
+# private file
+from HTTPStatus import HTTPStatus
 
 # Connect to an existing database
 conn = psycopg2.connect("dbname=postgres user=postgres password=killerkat5", cursor_factory= psycopg2.extras.RealDictCursor)
 conn.autocommit = True
 
-
+logLevel = logging.WARNING
 
 PORT = 8000
 SERVER = 'localhost'
 class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
+    def __init__(self, *args, **kwargs):
+        
+        
+        # create logger for RESTfulHandler
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.DEBUG)
+
+        # create console handler
+        self.ch = logging.StreamHandler()
+        self.ch.setLevel(logLevel)
+
+        # create formatter
+        self.formatter = logging.Formatter("%(asctime)s - %(funcName)s - %(levelname)s: %(message)s")
+
+        # add formatter to console handler
+        self.ch.setFormatter(self.formatter)
+
+        # add console handler to logger
+        self.logger.addHandler(self.ch)
+ 
+        super(RESTfulHandler, self).__init__(*args, **kwargs)
+
     def do_GET(self):
         """Serve a GET request."""
 
-        # split path into components
-        path = self.path
-        if path.startswith('/') and path.endswith('/'):
-            path = path.split('/')
-            path = path[1:-1]
-        elif path.startswith('/') and not path.endswith('/'):
-            path = path.split('/')
-            path = path[1:]
-
-        # if path isn't length 2, then it's a bad
-        # path and we should just stop
-        if len(path) != 2:
-            self.send_response(404)
-            self.end_headers()
+        path = self.parse_path()
+        self.logger.info("Testing INFO level")
+        self.logger.debug("Testing DEBUG level")
+        
+        # end response if serving favicon or path is wrong length
+        if self.favicon_check(path) or not self.path_check(path, 2):
             return
-
-
+            
 
         # create cursor for querying db
         cur = conn.cursor()
@@ -168,8 +184,8 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
 
 
-        print(join_set)
-        print("-----")
+        #print(join_set)
+        #print("-----")
         # This algorithm is designed to keep going over possible
         # joins until a pass is made where no joins are used.
         # This allows us to assume that list of joins is unordered
@@ -179,18 +195,18 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         while join_size_new != join_size_old:
             join_size_old = len(used_tables) + len(used_users)
             for join in join_set:
-                print("join, used tables, len(allowed), used users:")
-                print(join)
-                print(used_tables)
-                print(len(sql[command][subcommand]['allowed']))
-                print(used_users)
-                print("--------")
+                #print("join, used tables, len(allowed), used users:")
+                #print(join)
+                #print(used_tables)
+                #print(len(sql[command][subcommand]['allowed']))
+                #print(used_users)
+                #print("--------")
                 if (join[0] in used_tables) != (join[1] in used_tables):
                     if (join[0] == 'users' and len(sql[command][subcommand]['allowed']) > 0):
-                        print("entered join[0]=='users' branch:")
+                        #print("entered join[0]=='users' branch:")
                         tmp = [x[2] for x in sql[command][subcommand]['allowed'] if x[1]==join[1]]
-                        print(tmp)
-                        print("--------")
+                        #print(tmp)
+                        #print("--------")
                         if tmp and tmp[0] not in used_users:
                             query += (" INNER JOIN " + join[0] + " AS "
                                 + tmp[0] + " ON " + tmp[0] + "." + join[2] + "=" + join[1] + "." + join[3] + " ")
@@ -265,7 +281,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         print(data)
         cur.execute(query, data)
 
-        self.send_response(200)
+        self.send_response(HTTPStatus.OK)
         self.send_header('Content-type', 'application/json')
         self.end_headers()
 
@@ -281,7 +297,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 entry['end_date'] = entry['end_date'].strftime('%x %X')
 
 
-        print(json.dumps(result, indent=2))
+        #print(json.dumps(result, indent=2))
         result = json.dumps(result)
 
         self.wfile.write(bytes(result, 'UTF-8'))
@@ -303,7 +319,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         # if path isn't length 2, then it's a bad
         # path and we should just stop
         if len(path) != 2:
-            self.send_response(404)
+            self.send_error(HTTPStatus.NOT_FOUND)
             self.end_headers()
             return
 
@@ -590,7 +606,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             print(data)
             cur.execute(query, data)
 
-        self.send_response(200)
+        self.send_response(HTTPStatus.OK)
         self.send_header('Content-type', 'application/json')
         self.end_headers()
 
@@ -617,7 +633,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         # if path isn't length 2, then it's a bad
         # path and we should just stop
         if len(path) != 2:
-            self.send_response(404)
+            self.send_error(HTTPStatus.NOT_FOUND)
             self.end_headers()
             return
 
@@ -716,7 +732,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             print(data)
             cur.execute(query, data)
 
-        self.send_response(200)
+        self.send_response(HTTPStatus.OK)
         self.send_header('Content-type', 'application/json')
         self.end_headers()
 
@@ -768,8 +784,60 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         except:
             f.close()
             raise
+            
+            
+            
+    def parse_path(self):
+        # split path into components
+        path = self.path
+        if path.startswith('/') and path.endswith('/'):
+            path = path.split('/')
+            path = path[1:-1]
+        elif path.startswith('/') and not path.endswith('/'):
+            path = path.split('/')
+            path = path[1:]
+            
+        return path
+        
+        
+    def favicon_check(self, path):
+        if len(path)==1 and path[0]=='favicon.ico':
+        
+            print("FAVICON CHECK")
+        
+            try:
+                f = open('favicon.ico', 'rb')
+            except OSError:
+                self.send_error(HTTPStatus.NOT_FOUND, "File not found")
+                return True
+            self.send_response(HTTPStatus.OK)
+            self.send_header("Content-Type", "image/x-icon")
+            fs = os.fstat(f.fileno())
+            self.send_header("Content-Length", str(fs[6]))
+            self.send_header("Last-Modified", self.date_time_string(fs.st_mtime))
+            self.end_headers()
+            self.wfile.write(f.read())
+            f.close()
+            
+            return True
+            
+        return False
+        
+        
+    def path_check(self, path, length):
+        if len(path) != length:
+            self.send_error(HTTPStatus.NOT_FOUND)
+            self.end_headers()
+            return False
+            
+        return True
+            
+        
+        
+            
+            
     
-    def submit(self,id):
+    def submit(self, id):
         s = socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);
         if(s.connect('\0recvPort')):
             msg = '{"sub_ID":' + str(id) + '}'
@@ -792,6 +860,8 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
 
+    parser.add_argument("-v", "--verbosity", action="count",
+                    help="Specify output verbosity")
     parser.add_argument('--bind', '-b', default='', metavar='ADDRESS',
                         help='Specify alternate bind address '
                              '[default: all interfaces]')
@@ -800,6 +870,19 @@ if __name__ == '__main__':
                         nargs='?',
                         help='Specify alternate port [default: 8000]')
     args = parser.parse_args()
+    
+    if args.verbosity:
+        if args.verbosity>2:
+            print("-vv is maximum verbosity")
+            print("setting verbosity to -vv")
+            logLevel = logging.DEBUG
+        elif args.verbosity==2:
+            print("Verbose = 2")
+            logLevel = logging.DEBUG
+        elif args.verbosity==1:
+            print("Verbose = 1")
+            logLevel = logging.INFO
+
 
     # http.server.test is an internal http.server function
     # https://hg.python.org/cpython/file/3.4/Lib/http/server.py
