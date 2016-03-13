@@ -105,7 +105,7 @@ class AutoShell(cmd.Cmd):
             return
 
         if not self.command_access(self.user, command, args[0]):
-            print("\nError: Arguments not valid\n")
+            print("\n*** Unauthorized: {0} {1}\n".format(command, args[0]))
             self.logger.debug("END")
             return
 
@@ -223,13 +223,29 @@ class AutoShell(cmd.Cmd):
 
 
     def command_response(self, command, subcommand, response):
-        # TODO more robust error reporting
         print()
         if response.status_code==200:
             try:
                 self.print_response(command, subcommand, response.json())
             except:
                 print("\nNo response")
+
+        elif response.status_code==204:
+            print("\nNo results matched your query\n")
+
+        elif response.status_code==404:
+            if response.text:
+                rexp = r'Error code explanation: \d\d\d - ([^<]+)'
+                res = re.search(rexp, response.text)
+
+                if res and res.group(1):
+                    errexp = res.group(1)
+                    print('\n{0} Error: {1}\n'.format(response.status_code, errexp))
+                else:
+                    print('\n{0} Error: {1}\n'.format(response.status_code, response.message))
+            else:
+                print('\n{0} Error: {1}\n'.format(response.status_code, response.message))
+
         else:
             self.logger.error("Failed")
 
@@ -388,7 +404,7 @@ class AutoShell(cmd.Cmd):
                 if command_dict.commands[help_target][key]['access'].get(self.user):
                     access_granted = True
             if access_granted:
-                
+
                 print()
                 print('NAME')
                 print()
@@ -397,7 +413,7 @@ class AutoShell(cmd.Cmd):
                 print()
                 print('SYNOPSIS')
                 print()
-                
+
                 # print subcommands
                 for key in command_dict.commands[help_target]:
                     com = command_dict.commands[help_target][key]
@@ -415,11 +431,11 @@ class AutoShell(cmd.Cmd):
                         if com.get('optional'):
                             options = " ".join(['{0}=<value>'.format(x) for x in com['optional']])
                             options = '[' + options + ']'
-                        
+
                         if req1 and req2:
                             req3 = '(' + req1 + '|' + req2 + ')'
-                        
-                        
+
+
                         if req1 and not req2:
                             syn = help_target + ' ' + key + ' ' + req1 + ' ' + options
                         elif not req1 and req2:
@@ -428,21 +444,21 @@ class AutoShell(cmd.Cmd):
                             syn = help_target + ' ' + key + ' ' + req3 + ' ' + options
                         else:
                             syn = help_target + ' ' + key + ' ' + options
-                            
+
                         print(syn_wrapper.fill(syn))
                         print()
-                
+
                 print()
                 print('DESCRIPTION')
                 print()
-             
+
                 for key in command_dict.commands[help_target]:
                     com = command_dict.commands[help_target][key]
                     if com['access'].get(self.user):
                         print('\t' + help_target + ' ' + key)
                         print(wrapper.fill(com['help']))
                         print()
-                        
+
                 print()
                 print('OPTIONS')
                 print()
@@ -451,46 +467,48 @@ class AutoShell(cmd.Cmd):
                     com = command_dict.commands[help_target][key]
                     if com['access'].get(self.user):
                         options_list += com['required'] + com['required2'] + com['optional']
-                
+
                 options_list = list(set(options_list))
                 options_list.sort()
-                
+
                 for opt in options_list:
                     print('\t' + opt)
                     print(wrapper.fill(command_dict.options[opt]['help']))
                     print()
-                
+
                 print()
-                
-                        
-                
+
+
+
             else:
                 print('\n**** Access denied\n')
         else:
             print('\n**** Command not found\n')
 
     def print_response(self, command, subcommand, json):
-        
+
         self.logger.debug("Data is: {0}".format(json))
-    
+
         data = json
-        
-        cols = sql_dict.sql[command][subcommand]['view_order']
- 
+
+        cols = [x for x in sql_dict.sql[command][subcommand]['view_order'] if x in data[0]]
+
+        sort_order = [x for x in sql_dict.sql[command][subcommand]['sort_order'] if x in data[0]]
+
         col_widths = [max([len(str(row[key])) for row in data] + [len(str(key))])+4 for key in cols]
-        
+
         print("|".join(str(val).center(col_widths[pos]) for pos,val in enumerate(cols)))
-        
+
         print("|".join(str("="*(col_widths[pos]-2)).center(col_widths[pos]) for pos,val in enumerate(cols)))
-        
-        data.sort(key = sql_dict.sql[command][subcommand]['sort_order'])
-        
+
+        data.sort(key = lambda x: [x[key] for key in sort_order])
+
         for row in data:
             print("|".join(str(row[val]).center(col_widths[pos]) for pos,val in enumerate(cols)))
 
-        
-        
-        
+
+
+
 def parse(arg):
     pattern = re.compile(r'''((?:[^\s"']|"[^"]*"|'[^']*')+)''')
     return pattern.split(arg)[1::2]
