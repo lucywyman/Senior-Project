@@ -40,30 +40,34 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
 
-        # create console handler
-        self.ch = logging.StreamHandler()
-        self.ch.setLevel(logLevel)
+        if not getattr(self.logger, 'handler_set', None):
+            # create console handler
+            self.ch = logging.StreamHandler()
+            self.ch.setLevel(logLevel)
 
-        # create formatter
-        self.formatter = logging.Formatter("%(asctime)s - %(funcName)s - %(levelname)s: %(message)s")
+            # create formatter
+            self.formatter = logging.Formatter("%(asctime)s - %(funcName)s - %(levelname)s: %(message)s")
 
-        # add formatter to console handler
-        self.ch.setFormatter(self.formatter)
+            # add formatter to console handler
+            self.ch.setFormatter(self.formatter)
 
-        # add console handler to logger
-        self.logger.addHandler(self.ch)
+            # add console handler to logger
+            self.logger.addHandler(self.ch)
+            
+            self.logger.handler_set = True
  
         super(RESTfulHandler, self).__init__(*args, **kwargs)
 
     def do_GET(self):
         """Serve a GET request."""
+        self.logger.info("START")
 
         path = self.parse_path()
-        self.logger.info("Testing INFO level")
-        self.logger.debug("Testing DEBUG level")
+
         
         # end response if serving favicon or path is wrong length
         if self.favicon_check(path) or not self.path_check(path, 2):
+            self.logger.info("END")
             return
             
 
@@ -117,12 +121,12 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             for row in sql[command][subcommand]['allowed']:
                 if row[1] not in tables:
                     tables += [row[1]]
-        print(tables)
-        print("-----")
+        self.logger.debug(tables)
+
 
         tmp = db_graph.generate_joins(db_graph.graph, sql[command][subcommand]['table'], tables)
-        print(tmp)
-        print("-----")
+        self.logger.debug(tmp)
+
         # remove assignments join path and manually add
         # teachers_teach_courses join path
         # both paths have cost of two, but assignments path hides courses
@@ -241,10 +245,9 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 data['ta_id'][0] = cur.fetchone()['user_id']
 
         #check data to build where clause
-        print(select)
-        print("-----")
-        print('data')
-        print(data)
+        self.logger.debug(select)
+
+        self.logger.debug(data)
 
         # if allowed table exists and is longer than one, we need to use
         # id numbers instead of onids
@@ -277,8 +280,8 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         for k in data:
             data[k] = data[k][0]
 
-        print(query)
-        print(data)
+        self.logger.info(query)
+        self.logger.debug(data)
         cur.execute(query, data)
 
         self.send_response(HTTPStatus.OK)
@@ -286,7 +289,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
 
         result = cur.fetchall()
-        print(result)
+        self.logger.debug(result)
 
         for entry in result:
             if 'submission_date' in entry:
@@ -301,26 +304,21 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         result = json.dumps(result)
 
         self.wfile.write(bytes(result, 'UTF-8'))
+        
+        self.logger.info("END")
 
 
     def do_POST(self):
         """Serve a POST request"""
 
 
-        # split path into components
-        path = self.path
-        if path.startswith('/') and path.endswith('/'):
-            path = path.split('/')
-            path = path[1:-1]
-        elif path.startswith('/') and not path.endswith('/'):
-            path = path.split('/')
-            path = path[1:]
+        self.logger.info("START")
 
-        # if path isn't length 2, then it's a bad
-        # path and we should just stop
-        if len(path) != 2:
-            self.send_error(HTTPStatus.NOT_FOUND)
-            self.end_headers()
+        path = self.parse_path()
+
+        # end response path is wrong length
+        if not self.path_check(path, 2):
+            self.logger.info("END")
             return
 
 
@@ -330,7 +328,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         command = path[0]
         subcommand = path[1]
 
-        print(self.headers)
+        self.logger.debug(self.headers)
 
         data = None
         fileitem = None
@@ -349,17 +347,17 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 headers=self.headers,
                 environ={'REQUEST_METHOD':'POST',
                          })
-            # print("Form:")
-            print(form)
+
+            self.logger.debug(form)
             variable = ""
             value = ""
             data = {}
-            print(form.keys())
+            self.logger.debug(form.keys())
             for key in form.keys():
                 if key not in ['file', 'filepath']:
                     variable = str(key)
                     value = str(form.getvalue(variable))
-                    print("value: {0}".format(value))
+                    self.logger.debug("value: {0}".format(value))
 
                     #TODO Lists should result in mutiple sends from cli, so this should eventually be removed. Fixes items coming in quoted array or makes item into array.
                     try:
@@ -370,7 +368,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     if type(data[variable]) != type([]):
                         data[variable] = [str(value)]
 
-            print(data)
+            self.logger.debug(data)
 
             fileitem = form['file']
 
@@ -382,7 +380,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             else:
                message = 'No file was uploaded'
 
-            print(message)
+            self.logger.debug(message)
 
             #TODO add logic to replace test update with test add if test is already being used by a version.
 
@@ -476,38 +474,38 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
             # TODO - Quick workaround for data being in arrays
             # How to deal with when multiple values available?
-            print(data)
+            self.logger.debug(data)
             for k in data:
                 data[k] = data[k][0]
 
-            print(query)
-            print(data)
+            self.logger.debug(query)
+            self.logger.debug(data)
 
             if command == 'submission':
                 fn = os.path.basename(fileitem.filename)
                 cur.execute(query, data)
                 ret = cur.fetchone()['submission_id']
-                print(ret)
+                self.logger.debug(ret)
                 fpath = sql['basedir'] + 'submission/{0}/{1}/sub/{2}'.format(aid, ret, fn)
                 fpath = os.path.normpath(fpath)
-                print("fpath: " + fpath)
+                self.logger.debug("fpath: " + fpath)
                 os.makedirs(os.path.dirname(fpath), exist_ok=True)
                 move(os.path.normpath(sql['basedir'] + fn), fpath)
                 
                 # call tester
                 if self.submit(ret):
-                    print("Submission successfully sent to tester!")
+                    self.logger.debug("Submission successfully sent to tester!")
                 else:
-                    print("Submission to tester failed!")
+                    self.logger.debug("Submission to tester failed!")
 
             elif command == 'test':
                 fn = os.path.basename(fileitem.filename)
                 cur.execute(query, data)
                 ret = cur.fetchone()['test_id']
-                print(ret)
+                self.logger.debug(ret)
                 fpath = sql['basedir'] + 'tests/{0}/{1}'.format(ret, fn)
                 fpath = os.path.normpath(fpath)
-                print("fpath: " + fpath)
+                self.logger.debug("fpath: " + fpath)
                 os.makedirs(os.path.dirname(fpath), exist_ok=True)
                 move(os.path.normpath(sql['basedir'] + fn), fpath)
             else:
@@ -588,10 +586,10 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 fn = os.path.basename(fileitem.filename)
                 ret = data[idkey]
 
-                print(ret)
+                self.logger.debug(ret)
                 fpath = sql['basedir'] + 'tests/{0}/{1}/'.format(ret, fn)
                 fpath = os.path.normpath(fpath)
-                print("fpath: " + fpath)
+                self.logger.debug("fpath: " + fpath)
                 os.makedirs(os.path.dirname(fpath), exist_ok=True)
 
                 # Clear test directory before uploading new file
@@ -617,9 +615,11 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
         # self.wfile.write(bytes(result, 'UTF-8'))
 
+        self.logger.info("END")
 
     def do_DELETE(self):
         """Serve a DELETE request"""
+        self.logger.info("START")
 
         # split path into components
         path = self.path
@@ -649,7 +649,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         except:
             data = {}
 
-        print(data)
+        self.logger.debug(data)
 
         if subcommand == 'delete':
             table = None
@@ -726,65 +726,18 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     rmtree(os.path.normpath(delpath))
 
                 else:
-                    print("Warning: Test path '{0}' could not be automatically deleted because system does not support symlink attack protection.".format(os.path.normpath(delpath)))
+                    self.logger.warning("Test path '{0}' could not be automatically deleted because system does not support symlink attack protection.".format(os.path.normpath(delpath)))
 
-            print(query)
-            print(data)
+            self.logger.info(query)
+            self.logger.debug(data)
             cur.execute(query, data)
 
         self.send_response(HTTPStatus.OK)
         self.send_header('Content-type', 'application/json')
         self.end_headers()
-
-    def send_head(self):
-        """Common code for GET and HEAD commands.
-
-        This sends the response code and MIME headers.
-
-        Return value is either a file object (which has to be copied
-        to the outputfile by the caller unless the command was HEAD,
-        and must be closed by the caller under all circumstances), or
-        None, in which case the caller has nothing further to do.
-
-        """
-        path = self.translate_path(self.path)
-        f = None
-        if os.path.isdir(path):
-            parts = urllib.parse.urlsplit(self.path)
-            if not parts.path.endswith('/'):
-                # redirect browser - doing basically what apache does
-                self.send_response(HTTPStatus.MOVED_PERMANENTLY)
-                new_parts = (parts[0], parts[1], parts[2] + '/',
-                             parts[3], parts[4])
-                new_url = urllib.parse.urlunsplit(new_parts)
-                self.send_header("Location", new_url)
-                self.end_headers()
-                return None
-            for index in "index.html", "index.htm":
-                index = os.path.join(path, index)
-                if os.path.exists(index):
-                    path = index
-                    break
-            else:
-                return self.list_directory(path)
-        ctype = self.guess_type(path)
-        try:
-            f = open(path, 'rb')
-        except OSError:
-            self.send_error(HTTPStatus.NOT_FOUND, "File not found")
-            return None
-        try:
-            self.send_response(HTTPStatus.OK)
-            self.send_header("Content-type", ctype)
-            fs = os.fstat(f.fileno())
-            self.send_header("Content-Length", str(fs[6]))
-            self.send_header("Last-Modified", self.date_time_string(fs.st_mtime))
-            self.end_headers()
-            return f
-        except:
-            f.close()
-            raise
-            
+        
+        self.logger.info("END")
+    
             
             
     def parse_path(self):
@@ -803,7 +756,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
     def favicon_check(self, path):
         if len(path)==1 and path[0]=='favicon.ico':
         
-            print("FAVICON CHECK")
+            self.logger.debug("FAVICON CHECK")
         
             try:
                 f = open('favicon.ico', 'rb')
@@ -841,9 +794,9 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         s = socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);
         if(s.connect('\0recvPort')):
             msg = '{"sub_ID":' + str(id) + '}'
-            print(msg)
+            self.logger.debug(msg)
             msg = msg.encode()
-            print(msg)
+            self.logger.debug(msg)
             s.send(msg)
             s.close()
             return 1
