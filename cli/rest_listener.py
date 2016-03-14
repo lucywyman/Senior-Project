@@ -258,15 +258,18 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
         length = len(data)
 
+        self.logger.debug("Length is: {0}".format(length))
+
         # if allowed table exists and is longer than one, we need to use
         # id numbers instead of onids
         if sql[command][subcommand]['allowed'] and len(sql[command][subcommand]['allowed']) > 0:
             tmp = sql[command][subcommand]['allowed']
+            self.logger.debug("Allowed for {0} {1} is {2}".format(command, subcommand, tmp))
             if length > 0:
                 condition = " WHERE " + " AND ".join(
-                    ["{0}.{1}=%({2})s".format(a[2], b[1], b[1])
+                    ["{0}.{1}=%({2})s".format(a[2], b[1], b[2])
                     for a in tmp for b in select
-                    if (a[0]==b[0]) and (a[1]==b[3]) and (b[1]!=b[2]) and (b[1] in data)]
+                    if (a[0]==b[0]) and (a[1]==b[3]) and (b[1]!=b[2]) and (b[2] in data)]
                     +
                     ["{0}.{1}=%({2})s".format(x[0], x[1], x[1]) for x
                     in select if (x[1] in data) and (x[1] == x[2])]

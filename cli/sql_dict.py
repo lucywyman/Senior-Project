@@ -18,7 +18,8 @@ sql = {
                 ['courses', 'course_num', 'course_num'],
                 ['courses', 'name', 'course_name'],
                 # fourth entry specifies witch table to join with
-                ['users', 'username', 'teacher_id', 'teachers'],
+                ['users', 'user_id', 'teacher_id', 'teachers'],
+                ['users', 'username', 'teacher', 'teachers'],
             ],
 
             "optional": {},
@@ -85,7 +86,8 @@ sql = {
                 ['courses', 'term', 'term'],
                 ['courses', 'year', 'year'],
                 ['depts', 'dept_name', 'dept_name'],
-                ['users', 'username', 'teacher_id', 'teachers'],
+                ['users', 'user_id', 'teacher_id', 'teachers'],
+                ['users', 'username', 'teacher', 'teachers'],
             ],
 
             "optional": {},
@@ -94,7 +96,7 @@ sql = {
                 ['users', 'teachers', 'tchu'],
             ],
 
-            "view_order": ['course_id', 'dept_name', 'course_num', 'name', 'term', 'year', 'teacher_id' ],
+            "view_order": ['course_id', 'dept_name', 'course_num', 'name', 'term', 'year', 'teacher' ],
 
             "sort_order": ['year', 'course_id', 'dept_name', 'course_num'],
 
