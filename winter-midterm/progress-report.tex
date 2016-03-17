@@ -171,18 +171,11 @@ it seemed better than the alternative of having students be able to
 authenticate as professors and change their grades, which would defeat the
 entire purpose of the application.
 
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.8\textwidth]{register}
-\caption{The Registration Page}
-\end{figure}
-
 Currently, the majority of the work on the web interface will be filling in the
 stubs, creating the rest of the templates and urls, ensuring that forms and
 pages act as expected, and once the API is able to update the database as well
 as display it ensure that that functionality works through the GUI as well.
-This is entirely replicatory work, meaning that all “new” or unique features
+This is entirely replicatory work, meaning that all new or unique features
 have been implemented successfully and now much be repeated and tweaked to fill
 out the rest of the application.  
 
@@ -282,7 +275,7 @@ implementing the tags feature. We also want to finish implementing
 authentication through the database.
 
 
-For the Web UI, all that is left to do is “fill in” the rest of the
+For the Web UI, all that is left to do is fill in the rest of the
 application, replicating and tweaking functionality we already have (ie.
 creating the rest of the forms and web pages, filling out the sitemap
 structure, and making all the correct API calls).  We don't foresee any major
@@ -386,7 +379,7 @@ def print_response(self, command, subcommand, json):
 
 Listing 3 shows the CLI helper function print\_response. This function takes a
 command, subcommand, and the json from a HTTP response and processes it into
-nice looking columns as seen in Figure 2. First the view and sort orders are
+nice looking columns as seen in Figure 1. First the view and sort orders are
 checked against the data to see which columns are present in the data. Then a
 list of column widths is built using the maximum length of the values for each
 key or length of the key name, whichever is longer. After printing the column
@@ -673,17 +666,27 @@ on Python's \texttt{operator} library, a functionality we may need to implement
 separately in other languages.
 
 \section{Screenshots}
+Below are screenshots of relevant aspects of our system which are particularly
+visual, or can be clarified visually.
 \subsection{Web Interface (GUI)}
+The index page, being the home of the site and the first page is most people 
+see, so it needs to be done right!  Students should ideally be able to access
+most, if not all, other parts of the website from this page. For that reason
+we included a list of courses and their relevant assignments, and will add
+links to upload a submission for that assignment if it is not past due.
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=0.8\textwidth]{index-page}
 	\caption{Demo of the home page for the website}
 \end{figure}
 
+As stated previously, we also require the students register with our application
+individually, so needed a registration page as well.
+
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.8\textwidth]{register}
-\caption{The Registration Page}
+\caption{Demo of the Registration page, where students must create an account}
 \end{figure}
 
 \pagebreak
@@ -698,7 +701,7 @@ we've included a few here.
 \caption{Demonstrating opening message of the CLI and the output of 'help ce'.}
 \end{figure}
 
-Figure 5 demonstrates a few interesting aspects of the CLI. The first is the
+Figure 4 demonstrates a few interesting aspects of the CLI. The first is the
 welcome message, which welcomes the user and explains how to use the help
 command to see other commands. Next we use the 'level' command to change access
 levels while also using 'help ce' command to show how a help file looks
@@ -710,7 +713,7 @@ different depending on your access level.
 \caption{Demonstration of the course command with debugging active.}
 \end{figure}
 
-Figure 6 shows a test run of the \texttt{course} command with verbose on.
+Figure 5 shows a test run of the \texttt{course} command with verbose on.
 Verbose is a testing command that will most likely either be removed from the
 released version or restricted to teachers. The CLI has been written using
 Python's logging module to insert debug messages. The verbose command allows
