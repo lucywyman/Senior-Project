@@ -546,7 +546,7 @@ def run(self):
 	s.send(msg.encode())
 	s.close()
     \end{minted}
-    \caption{}
+    \caption{Main loop of my testing processes. Recieve, process, return.}
 \end{listing}
 The dispenser thread works with the tester processes, checking for a pending
 test first, then checking for processes without a current test. Both are
@@ -599,7 +599,7 @@ while running:
 			tlock.release()
 			rec.close
     \end{minted}
-    \caption{}
+    \caption{Main loop of my herald (manage) process.}
 \end{listing}
 
 The select tree allows non-blocking port listening. If a new test is registered
@@ -664,7 +664,7 @@ class test_suite:
 	def it(self,message):
 		print('# ' + message)
     \end{minted}
-    \caption{}
+    \caption{Python testing framework. Used to generate TAP output from a test suite.}
 \end{listing}
 
 Here are the implementations for the testing functions. They reference back to
