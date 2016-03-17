@@ -546,9 +546,9 @@ def run(self):
 	s.send(msg.encode())
 	s.close()
     \end{minted}
-    \caption{Main loop of my testing processes. Recieve, process, return.}
+    \caption{Dispenser thread for my herald process. Wait, send.}
 \end{listing}
-The dispenser thread works with the tester processes, checking for a pending
+The dispenser thread (Listing 7) works with the tester processes, checking for a pending
 test first, then checking for processes without a current test. Both are
 performed with Python condition blocking. In addition, upon assigning a test to
 a tester, the submission ID is stored in the tester's index.  The main thread's
@@ -602,8 +602,8 @@ while running:
     \caption{Main loop of my herald (manage) process.}
 \end{listing}
 
-The select tree allows non-blocking port listening. If a new test is registered
-on the socket bound to 'c', then it is registered in a FIFO queue, and a the
+The select tree (Listing 8) allows non-blocking port listening. If a new test is registered
+on the socket bound to 'c', then it is registered in a FIFO queue, and the
 thread condition is notified in case the dispenser was waiting on that. The 'r'
 socket will will hear back from the testers and mark the tester process done,
 then notify of the freed process. The 'k' socket is a cleanup socket that
@@ -667,10 +667,10 @@ class test_suite:
     \caption{Python testing framework. Used to generate TAP output from a test suite.}
 \end{listing}
 
-Here are the implementations for the testing functions. They reference back to
-print functions for their results, and the comparison relies on Python's
-\texttt{operator} library, a functionality we may need to implement separately
-in other languages.
+Here in the test_suite (Listing 8) are the implementations for the testing functions. 
+They reference back toprint functions for their results, and the comparison relies 
+on Python's \texttt{operator} library, a functionality we may need to implement 
+separately in other languages.
 
 \section{Screenshots}
 \subsection{Web Interface (GUI)}
