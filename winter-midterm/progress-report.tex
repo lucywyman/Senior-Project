@@ -1,14 +1,78 @@
-\documentclass[10pt,draftclsnofoot,onecolumn]{IEEEtran}
+%% bare_jrnl.tex
+%% V1.4b
+%% 2015/08/26
+%% by Michael Shell
+%% see http://www.michaelshell.org/
+%% for current contact information.
+%%
+%% This is a skeleton file demonstrating the use of IEEEtran.cls
+%% (requires IEEEtran.cls version 1.8b or later) with an IEEE
+%% journal paper.
+%%
+%% Support sites:
+%% http://www.michaelshell.org/tex/ieeetran/
+%% http://www.ctan.org/pkg/ieeetran
+%% and
+%% http://www.ieee.org/
+
+%%*************************************************************************
+%% Legal Notice:
+%% This code is offered as-is without any warranty either expressed or
+%% implied; without even the implied warranty of MERCHANTABILITY or
+%% FITNESS FOR A PARTICULAR PURPOSE! 
+%% User assumes all risk.
+%% In no event shall the IEEE or any contributor to this code be liable for
+%% any damages or losses, including, but not limited to, incidental,
+%% consequential, or any other damages, resulting from the use or misuse
+%% of any information contained here.
+%%
+%% All comments are the opinions of their respective authors and are not
+%% necessarily endorsed by the IEEE.
+%%
+%% This work is distributed under the LaTeX Project Public License (LPPL)
+%% ( http://www.latex-project.org/ ) version 1.3, and may be freely used,
+%% distributed and modified. A copy of the LPPL, version 1.3, is included
+%% in the base LaTeX documentation of all distributions of LaTeX released
+%% 2003/12/01 or later.
+%% Retain all contribution notices and credits.
+%% ** Modified files should be clearly indicated as such, including  **
+%% ** renaming them and changing author support contact information. **
+%%*************************************************************************
+
+
+% *** Authors should verify (and, if needed, correct) their LaTeX system  ***
+% *** with the testflow diagnostic prior to trusting their LaTeX platform ***
+% *** with production work. The IEEE's font choices and paper sizes can   ***
+% *** trigger bugs that do not appear when using other class files.       ***                          ***
+% The testflow support page is at:
+% http://www.michaelshell.org/tex/testflow/
+
+\documentclass[conference,letterpaper,10pt,onecolumn]{IEEEtran}
 \usepackage{graphicx}
 \usepackage{float}
 \usepackage{listings}
 \floatstyle{boxed} 
 \restylefloat{figure}
+\usepackage[margin=0.75in]{geometry}
+\usepackage{minted}
+\widowpenalty10000
+\clubpenalty10000
 
-\title{Winter Progress Report}
+
+
+
+% correct bad hyphenation here
+\hyphenation{op-tical net-works semi-conduc-tor}
+
+\title{Automated Grading System
+\\ \LARGE Winter Term Progress Report
+\\ \Large CS 462 }
+
 \author{Wyman, Lucy
 \and Hennig, Nathan
 \and Gass, Andrew}
+
+
 
 \begin{document}
 \maketitle
@@ -17,7 +81,7 @@ This document details the progress our group has made in the
 last three months on our Automated Grading System for OSU EECS.  This includes
 elements we have begun working on and details of what code has already been
 written, as well as how we plan to build on these elements in the coming
-months.  We also discuss problems and roadblocks we’ve come across, and other
+months.  We also discuss problems and roadblocks we've come across, and other
 interesting aspects of development thus far. It also includes plans for the
 future of our project, and how we expect to complete the project.
 \end{abstract}
@@ -29,7 +93,7 @@ future of our project, and how we expect to complete the project.
 \section{Project Summary}
 The purpose of this project is to provide an automated grading system for EECS
 classes. This will allow teachers to quickly and asynchronously provide
-feedback to students, saving graders’ time and improving feedback quality and
+feedback to students, saving graders' time and improving feedback quality and
 response time for students. 
 
 Our system allows students to upload their homework to our server, which then
@@ -57,7 +121,7 @@ are working on filling in details and trying to preempt any bugs that might
 come up as we go.
 
 We are writing the command-line interface (CLI) in Python using a powerful
-module called ‘cmd’ that is part of the core Python library. The cmd module
+module called 'cmd' that is part of the core Python library. The cmd module
 provides an extremely simple framework for implementing CLIs while being
 flexible enough for most purposes, including ours.
 
@@ -65,7 +129,7 @@ The CLI is complete except for final polishing and tweaking of output and error
 reporting. All command functions have been fully implemented. All usage
 information is printed dynamically from the Python dictionary we wrote that
 defines all commands for the CLI. Command output is printed neatly in columns.
-Using Python’s basic logging module, we have implemented verbose debugging logs
+Using Python's basic logging module, we have implemented verbose debugging logs
 to provide debugging for the implemented commands. Implemented functions are
 running correctly and generating the expected output, normal and debug output
 alike.
@@ -78,7 +142,7 @@ return the desired result.
 
 The REST server is approximately ninety-five percent complete. All API calls
 are detected and responded to, but a few minor, non-core features (assignment
-tagging, for example) aren’t working properly yet. Also, the API currently only
+tagging, for example) aren't working properly yet. Also, the API currently only
 returns output for view commands. Other commands such as insert and update just
 receive a code 200 OK response. Ideally all commands that modify the database
 will receive output about those modifications as their response.
@@ -118,18 +182,19 @@ Currently, the majority of the work on the web interface will be filling in the
 stubs, creating the rest of the templates and urls, ensuring that forms and
 pages act as expected, and once the API is able to update the database as well
 as display it ensure that that functionality works through the GUI as well.
-This is entirely replicatory work, meaning that all “new” or unique features
+This is entirely replicatory work, meaning that all �new� or unique features
 have been implemented successfully and now much be repeated and tweaked to fill
 out the rest of the application.  
 
 The last major piece of our project is the testing interface. This piece caused
-us some trouble at the beginning of the term, when we realized that we didn’t
+us some trouble at the beginning of the term, when we realized that we didn't
 have a firm idea of how our client wanted testing to be performed. After
 further discussion and research, we decided to implement an interface for each
 language we add testing capability for. The interfaces provide output in a
 standardized format, as laid out by the Test Anything Protocol (TAP). An
 example of TAP output follows:
 
+\pagebreak
 \begin{lstlisting}
 1..4
 # Basic tests
@@ -141,7 +206,7 @@ ok 4 testing works?
 
 This was generated using the Python framework we implemented and a test that
 uses that framework to execute a few simple tests. In addition to expecting
-equality or inequality, the framework provides an “expect error” function,
+equality or inequality, the framework provides an �expect error� function,
 which can be passed a function handle that should throw an error. The
 structure for the testing functions and the Test Manager are somewhere between
 alpha and beta, and can listen to the RESTful API.We still need to expand the
@@ -176,8 +241,8 @@ of the CLI will be easy to implement.
 There have also been some unforeseen troubles with the Web UI. First is the URL
 and authentication issue.  A few months  ago we contacted EECS to ask about
 getting a subdomain for our application, and they notified us that even with
-the help of our mentor this wouldn’t be possible until much closer to Expo.
-Because of this, we couldn’t authorize the application with the Central
+the help of our mentor this wouldn't be possible until much closer to Expo.
+Because of this, we couldn't authorize the application with the Central
 Authentication Services, which we were planning on using for authentication.
 So, we decided to set up our own login system, initially thinking it would be
 temporary but then deciding that it was necessary to properly authenticate our
@@ -185,15 +250,15 @@ users and would be production quality.
 
 Then there were unexpected difficulties with setting up a basic login system to
 use in place of CAS for development.  For a while I had a difficult time
-getting login to actually talk to my local database, but since that wasn’t what
+getting login to actually talk to my local database, but since that wasn't what
 we were planning on doing in production (the UI will talk to the database
-through an API, and it won’t necessarily be local), I scrapped that and have
-decided to authenticate using the methods we’ll be using in production, which
+through an API, and it won't necessarily be local), I scrapped that and have
+decided to authenticate using the methods we'll be using in production, which
 do actually work.  In retrospect this was a pretty minor and inconsequential
 roadblock, but at the time it was very frustrating.
 
 As stated above in the status section, the testing section of our project gave
-us some issues after we realized that we hadn’t adequately define requirements
+us some issues after we realized that we hadn't adequately define requirements
 for that section during the design phase. We were able to solve this problem by
 researching various testing methods and looking at sites like CodeWars.com that
 focus on code testing. We eventually settled on a framework based on the
@@ -217,17 +282,17 @@ implementing the tags feature. We also want to finish implementing
 authentication through the database.
 
 
-For the Web UI, all that is left to do is “fill in” the rest of the
+For the Web UI, all that is left to do is �fill in� the rest of the
 application, replicating and tweaking functionality we already have (ie.
 creating the rest of the forms and web pages, filling out the sitemap
-structure, and making all the correct API calls).  We don’t foresee any major
+structure, and making all the correct API calls).  We don't foresee any major
 roadblocks with this as the actual functionality has already been tested and is
 working, and now we are just filling in the stubs for the rest of the
 application.
 
 The implementation of the testing framework should be fairly straightforward.
-We don’t expect the initial issues to cause problems with hitting the beta
-release since we’re now following a well-conceived design, and most of the work
+We don't expect the initial issues to cause problems with hitting the beta
+release since we're now following a well-conceived design, and most of the work
 going forward will be linking with the database, as well as writing interfaces
 with more languages and deciding on the extent we plan to support
 multi-language tests.
@@ -238,7 +303,8 @@ Listing 1 is an example of querying the API for data to be displayed on a
 web page, parsing the data, and then rendering the page. This is part 
 of the core functionality of the web interface part of the system, is 
 just talking to the API, parsing that input/output, and then displaying it.
-\begin{lstlisting}[language=Python, caption=View function for the index page]
+\begin{listing}[H]
+    \begin{minted}[linenos]{python}
 def index(request):
 	api_ip = settings.API_IP
 	user_data = {'student':['hennign']}
@@ -254,13 +320,18 @@ def index(request):
 		aobj = requests.get(api_ip+'assignment/view')
 		c[0]['assignments'] = aobj.json()
 		courses.append(c[0])
-	return render_to_response('index.html', {'n':datetime.datetime.now(), 'user':user[0], 'courses':courses})
-\end{lstlisting}
+	return render_to_response('index.html', {'n':datetime.datetime.now(), 
+                              'user':user[0], 'courses':courses})
+    \end{minted}
+    \caption{View function for the index page}
+\end{listing}
 
+\pagebreak
 The other core functionality is getting data from users to put in the database,
-which is done through forms like this one:
+which is done through forms like the one created in Listing 2.
 
-\begin{lstlisting}[language=Python, caption=Example of a form]
+\begin{listing}[H]
+    \begin{minted}[linenos]{python} 
 class NewUser(forms.Form):
 	first_name = forms.CharField(label='First Name', required=True)
 	last_name = forms.CharField(label='Last Name', required=True)
@@ -268,17 +339,24 @@ class NewUser(forms.Form):
 	onid = forms.CharField(label='ONID ID Number', required=True)
 	usertype = forms.ChoiceField(choices=TYPES,
 			required=True, label='Are you a Professor, TA, or student?')
-	password = forms.CharField(label='Password', required=True, widget=forms.PasswordInput)
-	password2 = forms.CharField(label='Re-enter Password', required=True, widget=forms.PasswordInput)
-\end{lstlisting}
+	password = forms.CharField(label='Password',
+                               required=True,
+                               widget=forms.PasswordInput)
+	password2 = forms.CharField(label='Re-enter Password',
+                                required=True,
+                                widget=forms.PasswordInput)
+    \end{minted}
+    \caption{Example of a form}
+\end{listing}
 
 \subsection{Command Line Interface}
-The CLI is implemented using the module ‘cmd’, one of the core Python modules.
+The CLI is implemented using the module 'cmd', one of the core Python modules.
 Due to the robustness of said module, most of the CLI code is very
-straightforward. Here are a few samples of the code that weren’t
+straightforward. Here are a few samples of the code that weren't
 straightforward.
 
-\begin{lstlisting}[language=Python, caption=CLI code responsible for printing the view commands results returned from the REST API]
+\begin{listing}[H]
+    \begin{minted}[linenos]{python}
 def print_response(self, command, subcommand, json):
 	data = json
 
@@ -302,7 +380,9 @@ def print_response(self, command, subcommand, json):
 	for row in data:
 		print("|".join(str(row[val]).center(col_widths[pos]) 
 				for pos,val in enumerate(cols)))
-\end{lstlisting}
+    \end{minted}
+    \caption{CLI code responsible for printing the view commands results returned from the REST API}
+\end{listing}
 
 Listing 3 shows the CLI helper function print\_response. This function takes a
 command, subcommand, and the json from a HTTP response and processes it into
@@ -317,18 +397,21 @@ This piece of code is important, because this view output is what users will
 see most frequently. The output needs to be well formated, both to impress the
 users and to improve the usability of the CLI.
 
-\begin{figure}[h]
+\begin{figure}[H]
 \centering
 \includegraphics[width=0.8\textwidth]{senior-project-course-view-output}
 \caption{Screenshot of CLI output from course view command showing column formatted data.}
 \end{figure}
 
-\begin{lstlisting}[language=Python, caption=CLI code responsible for hiding undocumented commands from help.]
+\begin{listing}[H]
+    \begin{minted}[linenos]{python}
 undoc_header = None
 def print_topics(self, header, cmds, cmdlen, maxcol):
 	if header is not None:
 		cmd.Cmd.print_topics(self, header, cmds, cmdlen, maxcol)
-\end{lstlisting}
+    \end{minted}
+    \caption{CLI code responsible for hiding undocumented commands from help}
+\end{listing}
 
 By default, when the \texttt{help} command is run, undocumented commands are
 prefaced with the string in undoc\_header and listed out. This behavior is
@@ -346,7 +429,8 @@ completely reimplementing the inherited function.
 
 \subsection{REST API}
 
-\begin{lstlisting}[language=Python, caption=Generating a list of edges for tables in a PostgreSQL database from the information schema tables.]
+\begin{listing}[H]
+    \begin{minted}[linenos]{python}
 for table in tables:
 	query = """SELECT tc.constraint_name, tc.table_name, kcu.column_name,
 			ccu.table_name AS foreign_table_name,
@@ -356,13 +440,17 @@ for table in tables:
 		ON tc.constraint_name = kcu.constraint_name
 		JOIN information_schema.constraint_column_usage AS ccu
 		ON ccu.constraint_name = tc.constraint_name
-		WHERE constraint_type = 'FOREIGN KEY' AND tc.table_name = \%(tablename)s"""
+		WHERE constraint_type = 'FOREIGN KEY' 
+              AND tc.table_name = %(tablename)s"""
 	cur.execute(query, table)
 	for row in cur.fetchall():
 		constraint, table, column, foreign_table, foreign_column = row
 		edges.append([row['table_name'], row['foreign_table_name'],
 			row['column_name'], row['foreign_column_name']])
-\end{lstlisting}
+    \end{minted}
+    \caption{Generating a list of edges for tables in a PostgreSQL database from the information schema tables}
+\end{listing}
+
 Some of the most interesting code in the REST server is related to the way the
 API builds queries for the view commands. At first we considered writing each
 query by hand, but after careful consideration we decided that it would
@@ -378,7 +466,8 @@ tables in the graph. Automatically generating joins this way allows easy
 modification of the view commands, thereby increasing the maintainability of
 the REST server.
 
-\begin{lstlisting}[language=Python, caption=Processing a multipart/form-data HTTP request using cgi.FieldStorage and saving a file to disk]
+\begin{listing}[H]
+    \begin{minted}[linenos]{python}
 elif 'multipart/form-data' in self.headers['Content-Type']:
 	form = cgi.FieldStorage(
 		fp=self.rfile,
@@ -405,8 +494,12 @@ elif 'multipart/form-data' in self.headers['Content-Type']:
 	# Test if the file was uploaded
 	if fileitem.filename:
 		fn = os.path.basename(fileitem.filename)
-		open(os.path.normpath(sql['basedir'] + fn), 'wb').write(fileitem.file.read())
-\end{lstlisting}
+		open(os.path.normpath(sql['basedir'] + fn),
+             'wb').write(fileitem.file.read())
+    \end{minted}
+    \caption{Processing a multipart/form-data HTTP request using cgi.FieldStorage and saving a file to disk}
+\end{listing}
+
 While the data from Content-Type \texttt{application/json} can easily be parsed,
 \texttt{multipart/form-data} is more complex. Luckily we determined that the cgi
 module was capable of automatically processing such a request, as shown in
@@ -420,7 +513,8 @@ include file data. One of the core requirements of our project is that users
 are able to submit files that are then tested. Without the code in Listing 6,
 any attempt to submit a file would fail.
 \subsection{Testing Framework}
-\begin{lstlisting}[language=Python]
+\begin{listing}[H]
+    \begin{minted}[linenos]{python}
 class dispenserThread (threading.Thread):
 def __init__(self):
 	threading.Thread.__init__(self)
@@ -451,14 +545,17 @@ def run(self):
 	msg = '{"sub_ID":' + str(sub_ID) + '}'
 	s.send(msg.encode())
 	s.close()
-\end{lstlisting}
+    \end{minted}
+    \caption{}
+\end{listing}
 The dispenser thread works with the tester processes, checking for a pending
 test first, then checking for processes without a current test. Both are
 performed with Python condition blocking. In addition, upon assigning a test to
-a tester, the submission ID is stored in the tester’s index.  The main thread’s
-‘matched’ code:
+a tester, the submission ID is stored in the tester's index.  The main thread's
+'matched' code:
 
-\begin{lstlisting}[language=Python]
+\begin{listing}[H]
+    \begin{minted}[linenos]{python}
 while running:
 	readlist,writelist,exceptlist = select.select([c,k,r],[],[])
 	for avail in readlist:
@@ -501,17 +598,20 @@ while running:
 			tlock.notify()
 			tlock.release()
 			rec.close
-\end{lstlisting}
+    \end{minted}
+    \caption{}
+\end{listing}
 
 The select tree allows non-blocking port listening. If a new test is registered
-on the socket bound to ‘c’, then it is registered in a FIFO queue, and a the
-thread condition is notified in case the dispenser was waiting on that. The ‘r’
+on the socket bound to 'c', then it is registered in a FIFO queue, and a the
+thread condition is notified in case the dispenser was waiting on that. The 'r'
 socket will will hear back from the testers and mark the tester process done,
-then notify of the freed process. The ‘k’ socket is a cleanup socket that
+then notify of the freed process. The 'k' socket is a cleanup socket that
 closes out all the tester processes. Finally, the testing framework for Python
 is on the following page:
 
-\begin{lstlisting}[language=Python]
+\begin{listing}[H]
+    \begin{minted}[linenos]{python}
 import operator
 
 class test_suite:
@@ -523,12 +623,14 @@ class test_suite:
 	def ok(self,message):
 		self.testcount += 1
 		self.testsremain -= 1
-		if(self.testsremain < 0): print('# Exceeded declared test count for this "describe"!')
+		if(self.testsremain < 0): print(
+            '# Exceeded declared test count for this "describe"!')
 		print('ok ' + str(self.testcount) + ' ' + message)
 	def notok(self,message):
 		self.testcount += 1
 		self.testsremain -= 1
-		if(self.testsremain < 0): print('# Exceeded declared test count for this "describe"!')
+		if(self.testsremain < 0): print(
+            '# Exceeded declared test count for this "describe"!')
 		print('not ok ' + str(self.testcount) + ' ' + message)
 
 	#Testing functions
@@ -561,9 +663,12 @@ class test_suite:
 		self.testsremain = tests
 	def it(self,message):
 		print('# ' + message)
-\end{lstlisting}
+    \end{minted}
+    \caption{}
+\end{listing}
+
 Here are the implementations for the testing functions. They reference back to
-print functions for their results, and the comparison relies on Python’s
+print functions for their results, and the comparison relies on Python's
 \texttt{operator} library, a functionality we may need to implement separately
 in other languages.
 
@@ -581,21 +686,22 @@ in other languages.
 \caption{The Registration Page}
 \end{figure}
 
+\pagebreak
 \subsection{Command Line Interface}
-The nature of a command line interface is such that it doesn’t really lend
+The nature of a command line interface is such that it doesn't really lend
 itself interesting screenshots, but in order to demonstrate how the CLI looks,
-we’ve include a few here.
+we've included a few here.
 
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.8\textwidth]{senior-project-screenshot-CLI-help-ce}
-\caption{Demonstrating opening message of the CLI and the output of ‘help ce’.}
+\caption{Demonstrating opening message of the CLI and the output of 'help ce'.}
 \end{figure}
 
-Figure 3 demonstrates a few interesting aspects of the CLI. The first is the
+Figure 5 demonstrates a few interesting aspects of the CLI. The first is the
 welcome message, which welcomes the user and explains how to use the help
-command to see other commands. Next we use the ‘level’ command to change access
-levels while also using ‘help ce’ command to show how a help file looks
+command to see other commands. Next we use the 'level' command to change access
+levels while also using 'help ce' command to show how a help file looks
 different depending on your access level.
 
 \begin{figure}[h]
@@ -604,19 +710,23 @@ different depending on your access level.
 \caption{Demonstration of the course command with debugging active.}
 \end{figure}
 
-Figure 4 shows a test run of the \texttt{course} command with verbose on.
+Figure 6 shows a test run of the \texttt{course} command with verbose on.
 Verbose is a testing command that will most likely either be removed from the
 released version or restricted to teachers. The CLI has been written using
-Python’s logging module to insert debug messages. The verbose command allows
+Python's logging module to insert debug messages. The verbose command allows
 the user to change the logging level from warning to debug and back.
 
 As can be seen from the debug messages above, the attempt to run the
 \texttt{course} command worked beautifully. All the arguments were parsed
 correctly and the API call was made correctly. Unfortunately, the REST server
-doesn’t implement the course command yet, so it returned a \texttt{501
-Unsupported} method’ error as its response.
+doesn't implement the course command yet, so it returned a \texttt{501
+Unsupported} method' error as its response.
 
 \subsection{Testing Framework}
+Why is this here?
+
+
+\pagebreak
 \section{Conclusion}
 We are currently optimistic that we will have our beta version ready by the end
 of Winter term. Overall the core of the project is about 80\% implemented, and
