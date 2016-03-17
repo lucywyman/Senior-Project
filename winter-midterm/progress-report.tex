@@ -283,6 +283,7 @@ roadblocks with this as the actual functionality has already been tested and is
 working, and now we are just filling in the stubs for the rest of the
 application.
 
+\pagebreak
 The implementation of the testing framework should be fairly straightforward.
 We don't expect the initial issues to cause problems with hitting the beta
 release since we're now following a well-conceived design, and most of the work
@@ -319,7 +320,6 @@ def index(request):
     \caption{View function for the index page}
 \end{listing}
 
-\pagebreak
 The other core functionality is getting data from users to put in the database,
 which is done through forms like the one created in Listing 2.
 
@@ -660,7 +660,7 @@ class test_suite:
     \caption{Python testing framework. Used to generate TAP output from a test suite.}
 \end{listing}
 
-Here in the test_suite (Listing 8) are the implementations for the testing functions. 
+Here in the test\_suite (Listing 8) are the implementations for the testing functions. 
 They reference back toprint functions for their results, and the comparison relies 
 on Python's \texttt{operator} library, a functionality we may need to implement 
 separately in other languages.
@@ -725,19 +725,13 @@ correctly and the API call was made correctly. Unfortunately, the REST server
 doesn't implement the course command yet, so it returned a \texttt{501
 Unsupported} method' error as its response.
 
-\subsection{Testing Framework}
-Why is this here?
-
 
 \pagebreak
 \section{Conclusion}
-We are currently optimistic that we will have our beta version ready by the end
-of Winter term. Overall the core of the project is about 80\% implemented, and
-remaining implementation looks to be mostly straightforward. The most serious
-issue we face right now is properly authenticating our users. Since one of our
-requirements is to use OSU hardware, we would also like to use OSU
-authentication systems instead of forcing users to create a password just for
-our system. This issue will not be resolved in time for the beta release, but
-we are confident we will have a solution implemented for our 1.0 release in
-spring.
+We are pleased to report that our  beta version is essentially complete, just
+as we planned. All that is left for the core of our project is to properly
+integrate authentication. Right now there are a few places that should be
+checking for access rights that aren't, but we expect implementation to consist
+of little more than a few short functions. Otherwise we expect to be focused
+on polishing code and adding a few bonus features as schedules permit.
 \end{document}
