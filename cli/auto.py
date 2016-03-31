@@ -12,8 +12,8 @@
 
 import cmd, getpass, glob, json, logging, os, requests, shlex, sys
 
-import help_strings, command_dict
-import re
+import command_dict, sql_dict
+import re, textwrap
 
 # Helper function for Linux Filepath completion
 def _append_slash_if_dir(p):
@@ -105,7 +105,7 @@ class AutoShell(cmd.Cmd):
             return
 
         if not self.command_access(self.user, command, args[0]):
-            print("\nError: Arguments not valid\n")
+            print("\n*** Unauthorized: {0} {1}\n".format(command, args[0]))
             self.logger.debug("END")
             return
 
@@ -126,7 +126,7 @@ class AutoShell(cmd.Cmd):
             self.logger.debug("END")
             return
 
-        self.command_response(response)
+        self.command_response(command, args[0], response)
 
         self.logger.debug("END")
         return
@@ -222,14 +222,30 @@ class AutoShell(cmd.Cmd):
         return r
 
 
-    def command_response(self, response):
-        # TODO more robust error reporting
+    def command_response(self, command, subcommand, response):
+        print()
         if response.status_code==200:
-            print("\nRequest succeeded!")
             try:
-                print(json.dumps(response.json(), indent=2))
+                self.print_response(command, subcommand, response.json())
             except:
-                print("No response")
+                print("\nNo response")
+
+        elif response.status_code==204:
+            print("\nNo results matched your query\n")
+
+        elif response.status_code==404:
+            if response.text:
+                rexp = r'Error code explanation: \d\d\d - ([^<]+)'
+                res = re.search(rexp, response.text)
+
+                if res and res.group(1):
+                    errexp = res.group(1)
+                    print('\n{0} Error: {1}\n'.format(response.status_code, errexp))
+                else:
+                    print('\n{0} Error: {1}\n'.format(response.status_code, response.message))
+            else:
+                print('\n{0} Error: {1}\n'.format(response.status_code, response.message))
+
         else:
             self.logger.error("Failed")
 
@@ -378,18 +394,120 @@ class AutoShell(cmd.Cmd):
         self.onecmd("EOF")
         return True
 
-
-    # Helper function for printing help messages
-    # TODO - Rewrite help to procedurally generate usage information from command_dict.py
+    # TODO - add pagination for long helps
     def print_help(self, help_target):
-        if self.user=="teacher":
-                print(help_strings.teacher[help_target])
-        elif self.user=="ta":
-                print(help_strings.ta[help_target])
-        elif self.user=="student":
-                print(help_strings.student[help_target])
+        if command_dict.commands.get(help_target):
+            access_granted = False
+            syn_wrapper = textwrap.TextWrapper(initial_indent='\t', width=80, subsequent_indent='\t\t')
+            wrapper = textwrap.TextWrapper(initial_indent='\t\t', width=80, subsequent_indent='\t\t')
+            for key in command_dict.commands[help_target]:
+                if command_dict.commands[help_target][key]['access'].get(self.user):
+                    access_granted = True
+            if access_granted:
+
+                print()
+                print('NAME')
+                print()
+                print('\t' + help_target)
+                print()
+                print()
+                print('SYNOPSIS')
+                print()
+
+                # print subcommands
+                for key in command_dict.commands[help_target]:
+                    com = command_dict.commands[help_target][key]
+                    if com['access'].get(self.user):
+                        req1 = None
+                        req2 = None
+                        req3 = None
+                        options = ""
+                        if com.get('required'):
+                            req1 = " ".join(['{0}=<value>'.format(x) for x in com['required']])
+                            req1 = '(' + req1 + ')'
+                        if com.get('required2'):
+                            req2 = " ".join(['{0}=<value>'.format(x) for x in com['required2']])
+                            req2 = '(' + req2 + ')'
+                        if com.get('optional'):
+                            options = " ".join(['{0}=<value>'.format(x) for x in com['optional']])
+                            options = '[' + options + ']'
+
+                        if req1 and req2:
+                            req3 = '(' + req1 + '|' + req2 + ')'
+
+
+                        if req1 and not req2:
+                            syn = help_target + ' ' + key + ' ' + req1 + ' ' + options
+                        elif not req1 and req2:
+                            syn = help_target + ' ' + key + ' ' + req2 + ' ' + options
+                        elif req3:
+                            syn = help_target + ' ' + key + ' ' + req3 + ' ' + options
+                        else:
+                            syn = help_target + ' ' + key + ' ' + options
+
+                        print(syn_wrapper.fill(syn))
+                        print()
+
+                print()
+                print('DESCRIPTION')
+                print()
+
+                for key in command_dict.commands[help_target]:
+                    com = command_dict.commands[help_target][key]
+                    if com['access'].get(self.user):
+                        print('\t' + help_target + ' ' + key)
+                        print(wrapper.fill(com['help']))
+                        print()
+
+                print()
+                print('OPTIONS')
+                print()
+                options_list = []
+                for key in command_dict.commands[help_target]:
+                    com = command_dict.commands[help_target][key]
+                    if com['access'].get(self.user):
+                        options_list += com['required'] + com['required2'] + com['optional']
+
+                options_list = list(set(options_list))
+                options_list.sort()
+
+                for opt in options_list:
+                    print('\t' + opt)
+                    print(wrapper.fill(command_dict.options[opt]['help']))
+                    print()
+
+                print()
+
+
+
+            else:
+                print('\n**** Access denied\n')
         else:
-                print("Are you a boat? I don't know how to help" + self.user + "s... :(")
+            print('\n**** Command not found\n')
+
+    def print_response(self, command, subcommand, json):
+
+        self.logger.debug("Data is: {0}".format(json))
+
+        data = json
+
+        cols = [x for x in sql_dict.sql[command][subcommand]['view_order'] if x in data[0]]
+
+        sort_order = [x for x in sql_dict.sql[command][subcommand]['sort_order'] if x in data[0]]
+
+        col_widths = [max([len(str(row[key])) for row in data] + [len(str(key))])+4 for key in cols]
+
+        print("|".join(str(val).center(col_widths[pos]) for pos,val in enumerate(cols)))
+
+        print("|".join(str("="*(col_widths[pos]-2)).center(col_widths[pos]) for pos,val in enumerate(cols)))
+
+        data.sort(key = lambda x: [x[key] for key in sort_order])
+
+        for row in data:
+            print("|".join(str(row[val]).center(col_widths[pos]) for pos,val in enumerate(cols)))
+
+
+
 
 def parse(arg):
     pattern = re.compile(r'''((?:[^\s"']|"[^"]*"|'[^']*')+)''')
