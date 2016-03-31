@@ -77,7 +77,7 @@ WSGI_APPLICATION = 'polymatheia.wsgi.application'
 DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql_psycopg2',
-            'NAME': 'polymatheia',
+            'NAME': 'postgres',
             'USER': 'pguser',
             'PASSWORD': 'pguser',
             'HOST': 'localhost',
@@ -124,3 +124,4 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = ['/home/lucy/githubs/Senior-Project/src/polymatheia/components/static/']
 STATIC_ROOT='collected_static'
+API_IP = 'http://140.211.168.78/'
