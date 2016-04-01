@@ -29,14 +29,14 @@ def _append_slash_if_dir(p):
 # Enabling debugging at http.client level (requests->urllib3->http.client)
 # you will see the REQUEST, including HEADERS and DATA, and RESPONSE with HEADERS but without DATA.
 # the only thing missing will be the response.body which is not logged.
-try: # for Python 3
-    from http.client import HTTPConnection
-except ImportError:
-    from httplib import HTTPConnection
-HTTPConnection.debuglevel = 1
-requests_log = logging.getLogger("requests.packages.urllib3")
-requests_log.setLevel(logging.DEBUG)
-requests_log.propagate = True
+# try: # for Python 3
+    # from http.client import HTTPConnection
+# except ImportError:
+    # from httplib import HTTPConnection
+# HTTPConnection.debuglevel = 1
+# requests_log = logging.getLogger("requests.packages.urllib3")
+# requests_log.setLevel(logging.DEBUG)
+# requests_log.propagate = True
 #----------------------------------------------------------------------
 
 
@@ -190,19 +190,31 @@ class AutoShell(cmd.Cmd):
 
             if subcommand in ['add', 'update']:
                 self.logger.debug("POSTing")
-                # TODO gracefully handle failure
-                r = requests.post(url, files=files, data=data)
+                try:
+                    r = requests.post(url, files=files, data=data)
+                except requests.ConnectionError as e:
+                    self.logger.warning(
+                        'ConnectionError: {0}'.format(e.response)
+                        )
 
         else:
             if subcommand in ['add', 'update', 'link']:
                 self.logger.debug("POSTing")
-                # TODO gracefully handle failure
-                r = requests.post(url, json=data)
+                try:
+                    r = requests.post(url, json=data)
+                except requests.ConnectionError as e:
+                    self.logger.warning(
+                        'ConnectionError: {0}'.format(e.response)
+                        )
 
             elif subcommand == 'view':
                 self.logger.debug("GETting")
-                # TODO gracefully handle failure
-                r = requests.get(url, json=data)
+                try:
+                    r = requests.get(url, json=data)
+                except requests.ConnectionError as e:
+                    self.logger.warning(
+                        'ConnectionError: {0}'.format(e.response)
+                        )
 
             elif subcommand == 'delete':
                 com = command_dict.commands[command][subcommand]
@@ -216,22 +228,39 @@ class AutoShell(cmd.Cmd):
                     return False
 
                 self.logger.debug("DELETEing")
-                # TODO gracefully handle failure
-                r = requests.delete(url, json=data)
+                try:
+                    r = requests.delete(url, json=data)
+                except requests.ConnectionError as e:
+                    self.logger.warning(
+                        'ConnectionError: {0}'.format(e.response)
+                        )
 
         return r
 
 
     def command_response(self, command, subcommand, response):
         print()
+
+        if not response:
+            self.logger.warning(
+                'ServerError: No response received from server'
+                )
+            return
+
         if response.status_code==200:
             try:
-                self.print_response(command, subcommand, response.json())
+                self.print_response(
+                    command, subcommand, response.json()
+                    )
             except:
-                print("\nNo response")
+                print("\nHTTP {0}: Success\n"
+                    .format(response.status_code)
+                    )
 
         elif response.status_code==204:
-            print("\nNo results matched your query\n")
+            print("\nHTTP {0}: No results matched your query\n"
+                .format(response.status_code)
+                    )
 
         elif response.status_code==404:
             if response.text:
