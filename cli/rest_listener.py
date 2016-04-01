@@ -19,6 +19,7 @@ import ast
 from shutil import move, rmtree
 import stat
 import logging
+from sys import platform
 
 # private file
 from HTTPStatus import HTTPStatus
@@ -31,6 +32,10 @@ logLevel = logging.WARNING
 
 PORT = 8000
 SERVER = 'localhost'
+
+# ensure that file directory exists
+os.makedirs(os.path.normpath(sql['basedir']), exist_ok=True)
+
 class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
     def __init__(self, *args, **kwargs):
@@ -46,7 +51,9 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             self.ch.setLevel(logLevel)
 
             # create formatter
-            self.formatter = logging.Formatter("%(asctime)s - %(funcName)s - %(levelname)s: %(message)s")
+            self.formatter = logging.Formatter(
+                "%(asctime)s - %(funcName)s - %(levelname)s: %(message)s"
+                )
 
             # add formatter to console handler
             self.ch.setFormatter(self.formatter)
@@ -77,15 +84,8 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         command = path[0]
         subcommand = path[1]
 
-        try:
-            data = self.rfile.read(int(self.headers['Content-Length'])).decode("UTF-8")
-            data = json.loads(data)
-        except:
-            data = {}
-
-        condition = None
-
-
+        data = self.get_data()[0]
+        self.logger.debug("Data: {0}".format(data))
 
         select = []
         tables = []
@@ -132,7 +132,8 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         # both paths have cost of two, but assignments path hides courses
         # with no associated assignments
         if command == 'course':
-            not_allowed = ['assignments', 'tas', 'tas_assist_in_courses', 'tas_assigned_students']
+            not_allowed = ['assignments', 'tas', 'tas_assist_in_courses',
+                           'tas_assigned_students']
             tmp = [x for x in tmp if (x[0] not in not_allowed) and (x[1] not in not_allowed)]
             tmp.insert(0,['courses', 'teachers_teach_courses', 'course_id', 'course_id'])
             tmp.insert(0,['teachers_teach_courses', 'teachers', 'teacher_id', 'teacher_id'])
@@ -231,8 +232,8 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                         used_tables.append(join[0])
             join_size_new = len(used_tables) + len(used_users)
 
-        # if allowed table exists and is longer than one, we need to use
-        # id numbers instead of onids
+        # if allowed table exists and is longer than one,
+        # we need to use id numbers instead of onids
         if sql[command][subcommand]['allowed'] and len(sql[command][subcommand]['allowed']) > 0:
             if 'teacher_id' in data:
                 cur.execute("SELECT users.user_id FROM users INNER JOIN teachers ON users.user_id=teachers.teacher_id WHERE users.username=%s", (data['teacher_id'][0],))
@@ -260,8 +261,9 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
         self.logger.debug("Length is: {0}".format(length))
 
-        # if allowed table exists and is longer than one, we need to use
-        # id numbers instead of onids
+        # if allowed table exists and is longer than one,
+        # we need to use id numbers instead of onids
+        condition = None
         if sql[command][subcommand]['allowed'] and len(sql[command][subcommand]['allowed']) > 0:
             tmp = sql[command][subcommand]['allowed']
             self.logger.debug("Allowed for {0} {1} is {2}".format(command, subcommand, tmp))
@@ -353,59 +355,11 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
         self.logger.debug(self.headers)
 
-        data = None
-        fileitem = None
+        data, fileitem = self.get_data()
 
-        if self.headers['Content-Type'] == 'application/json':
-            try:
-                data = self.rfile.read(int(self.headers['Content-Length'])).decode("UTF-8")
-                data = json.loads(data)
-            except:
-                data = {}
 
-        elif 'multipart/form-data' in self.headers['Content-Type']:
 
-            form = cgi.FieldStorage(
-                fp=self.rfile,
-                headers=self.headers,
-                environ={'REQUEST_METHOD':'POST',
-                         })
-
-            self.logger.debug(form)
-            variable = ""
-            value = ""
-            data = {}
-            self.logger.debug(form.keys())
-            for key in form.keys():
-                if key not in ['file', 'filepath']:
-                    variable = str(key)
-                    value = str(form.getvalue(variable))
-                    self.logger.debug("value: {0}".format(value))
-
-                    #TODO Lists should result in mutiple sends from cli, so this should eventually be removed. Fixes items coming in quoted array or makes item into array.
-                    try:
-                        data[variable] = ast.literal_eval(value)
-                    except:
-                        data[variable] = [str(value)]
-
-                    if type(data[variable]) != type([]):
-                        data[variable] = [str(value)]
-
-            self.logger.debug(data)
-
-            fileitem = form['file']
-
-            # Test if the file was uploaded
-            if fileitem.filename:
-               fn = os.path.basename(fileitem.filename)
-               open(os.path.normpath(sql['basedir'] + fn), 'wb').write(fileitem.file.read())
-               message = 'The file "' + fn + '" was uploaded successfully'
-            else:
-               message = 'No file was uploaded'
-
-            self.logger.debug(message)
-
-            #TODO add logic to replace test update with test add if test is already being used by a version.
+        #TODO add logic to replace test update with test add if test is already being used by a version.
 
         if subcommand == 'add':
             table = None
@@ -809,11 +763,100 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         return True
 
 
+    def get_data(self):
 
+        if self.headers['Content-Type'] == 'application/json':
 
+            self.logger.info("Data Type: JSON")
 
+            try:
+                data = self.rfile.read(
+                    int(self.headers['Content-Length'])
+                    ).decode("UTF-8")
+                data = json.loads(data)
+                self.logger.info("Data Loaded")
+
+            except ValueError as e:
+                self.logger.info("ValueError: {0}".format(e.message))
+                data = {}
+
+            return data, None
+
+        elif 'multipart/form-data' in self.headers['Content-Type']:
+
+            self.logger.info("Data Type: multipart/form-data")
+
+            # parse multipart/form-data into cgi.FieldStorage
+            # data structure for ease of use.
+            form = cgi.FieldStorage(
+                fp=self.rfile,
+                headers=self.headers,
+                environ={'REQUEST_METHOD':'POST',}
+                         )
+
+            data, fileitem = self.process_form(form)
+
+            return data, fileitem
+
+    def process_form(self, form):
+        variable = ""
+        value = ""
+        data = {}
+
+        self.logger.debug("Form Keys: {0}".format(form.keys()))
+        self.logger.debug("Processing Form Keys")
+        for key in form.keys():
+            if key not in ['file', 'filepath']:
+                variable = str(key)
+                value = str(form.getvalue(variable))
+                self.logger.debug("Variable: {0}, value: {1}"
+                    .format(variable, value)
+                    )
+
+                # TODO Lists should result in mutiple sends from
+                # cli, so this should eventually be removed. Fixes
+                # items coming in quoted array or makes item into
+                # array.
+                try:
+                    data[variable] = ast.literal_eval(value)
+                except SyntaxError as e:
+                    self.logger.info(
+                        "SyntaxError: {0} ({1}, {2})"
+                            .format(e.msg, variable, value)
+                        )
+                    data[variable] = [str(value)]
+
+                if type(data[variable]) != type([]):
+                    data[variable] = [str(value)]
+
+        fileitem = self.get_file(form)
+
+        return data, fileitem
+
+    def get_file(self, form):
+
+        fileitem = form['file']
+
+        # Test if the file was uploaded
+        if fileitem is not None and fileitem.filename:
+            fn = os.path.basename(fileitem.filename)
+            with open(os.path.normpath(sql['basedir'] + fn), 'wb') as f:
+                f.write(fileitem.file.read())
+            self.logger.debug('File "' + fn + '" saved to {0}'
+                .format(os.path.normpath(sql['basedir'] + fn))
+                )
+        else:
+            # multipart/form-data should only be used when uploading
+            # files. If there is no file, something went seriously wrong
+            self.logger.warning('Error: No file was uploaded!')
+
+        return fileitem
 
     def submit(self, id):
+    
+        if platform.startswith('win'):
+            return 0
+    
         s = socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);
         if(s.connect('\0recvPort')):
             msg = '{"sub_ID":' + str(id) + '}'
