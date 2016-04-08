@@ -21,6 +21,7 @@ import stat
 import logging
 from sys import platform
 from passlib.hash import pbkdf2_sha512
+import ssl
 
 
 # private file with HTTP response codes
@@ -1334,6 +1335,41 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 class ThreadingHTTPServer(ThreadingMixIn, http.server.HTTPServer):
     pass
 
+# http.server.test is an internal http.server function
+# https://hg.python.org/cpython/file/3.4/Lib/http/server.py
+def test(HandlerClass=http.server.BaseHTTPRequestHandler,
+         ServerClass=http.server.HTTPServer, protocol="HTTP/1.0", port=443, bind=""):
+    """Test the HTTP request handler class.
+
+    This runs an HTTP server on port 443 (or the port argument).
+
+    """
+    server_address = (bind, port)
+
+    HandlerClass.protocol_version = protocol
+    httpd = ServerClass(server_address, HandlerClass)
+
+    # add ssl
+    httpd.socket = ssl.wrap_socket(
+        httpd.socket,
+        keyfile  = os.path.normpath(
+            'domains/vm-cs-cap-g15.eecs.oregonstate.edu.key'
+            ),
+        certfile = os.path.normpath(
+            'domains/vm-cs-cap-g15.eecs.oregonstate.edu.cert'
+            ),
+        server_side=True
+        )
+
+    sa = httpd.socket.getsockname()
+    print("Serving HTTPS on", sa[0], "port", sa[1], "...")
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        print("\nKeyboard interrupt received, exiting.")
+        httpd.server_close()
+        sys.exit(0)
+
 
 if __name__ == '__main__':
 
@@ -1347,9 +1383,9 @@ if __name__ == '__main__':
                         help='Specify alternate bind address '
                              '[default: all interfaces]')
     parser.add_argument('port', action='store',
-                        default=8000, type=int,
+                        default=443, type=int,
                         nargs='?',
-                        help='Specify alternate port [default: 8000]')
+                        help='Specify alternate port [default: 443]')
     args = parser.parse_args()
 
     if args.verbosity:
@@ -1363,9 +1399,8 @@ if __name__ == '__main__':
             logLevel = logging.INFO
 
 
-    # http.server.test is an internal http.server function
-    # https://hg.python.org/cpython/file/3.4/Lib/http/server.py
-    http.server.test(
+
+    test(
         HandlerClass=handler,
         ServerClass=ThreadingHTTPServer,
         port=args.port,

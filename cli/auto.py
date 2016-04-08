@@ -47,6 +47,8 @@ requests_log.propagate = True
 
 class AutoShell(cmd.Cmd):
 
+    CA_BUNDLE = 'ca.cert'
+
     # TODO Call server to identify user as student, ta,
     # or teacher.
     def __init__(self, user='', password='', verbosity=0):
@@ -56,8 +58,9 @@ class AutoShell(cmd.Cmd):
         self.password = password
         self.new_password = ''
         self.auth = (user, password)
-        self.server = "http://127.0.0.1:8000"
+        self.server = "https://vm-cs-cap-g15.eecs.oregonstate.edu:443"
         self.pool = ThreadPool(processes=5)
+
 
         # create logger for AUTO
         self.logger = logging.getLogger(__name__)
@@ -273,7 +276,7 @@ class AutoShell(cmd.Cmd):
             if subcommand in ['add', 'update']:
                 self.logger.debug("POSTing w/file")
                 try:
-                    r = requests.post(url, files=files, data=data, auth=self.auth)
+                    r = requests.post(url, files=files, data=data, auth=self.auth, verify=self.CA_BUNDLE)
                 except requests.ConnectionError as e:
                     self.logger.warning(
                         'ConnectionError: {0}'.format(e.response)
@@ -284,7 +287,7 @@ class AutoShell(cmd.Cmd):
                 self.logger.debug("POSTing w/o file")
                 try:
                     # send POST request to server
-                    r = requests.post(url, json=data, auth=self.auth)
+                    r = requests.post(url, json=data, auth=self.auth, verify=self.CA_BUNDLE)
                 except requests.ConnectionError as e:
                     self.logger.warning(
                         'ConnectionError: {0}'.format(e.response)
@@ -293,7 +296,7 @@ class AutoShell(cmd.Cmd):
             elif subcommand == 'view':
                 self.logger.debug("GETting")
                 try:
-                    r = requests.get(url, json=data, auth=self.auth)
+                    r = requests.get(url, json=data, auth=self.auth, verify=self.CA_BUNDLE)
                 except requests.ConnectionError as e:
                     self.logger.warning(
                         'ConnectionError: {0}'.format(e.response)
@@ -312,7 +315,7 @@ class AutoShell(cmd.Cmd):
 
                 self.logger.debug("DELETEing")
                 try:
-                    r = requests.delete(url, json=data, auth=self.auth)
+                    r = requests.delete(url, json=data, auth=self.auth, verify=self.CA_BUNDLE)
                 except requests.ConnectionError as e:
                     self.logger.warning(
                         'ConnectionError: {0}'.format(e.response)
@@ -591,12 +594,17 @@ class AutoShell(cmd.Cmd):
 
     # TODO - add pagination for long helps
     def print_help(self, help_target):
+
+        self.logger.debug("Help Target: {0}".format(help_target))
+
         if command_dict.commands.get(help_target):
+
             access_granted = False
             syn_wrapper = textwrap.TextWrapper(initial_indent='\t', width=80, subsequent_indent='\t\t')
             wrapper = textwrap.TextWrapper(initial_indent='\t\t', width=80, subsequent_indent='\t\t')
+
             for key in command_dict.commands[help_target]:
-                if command_dict.commands[help_target][key]['access'].get(self.auth_level) or help_target=='login':
+                if self.auth_check_helper(help_target, key):
                     access_granted = True
             if access_granted:
 
@@ -612,7 +620,7 @@ class AutoShell(cmd.Cmd):
                 # print subcommands
                 for key in command_dict.commands[help_target]:
                     com = command_dict.commands[help_target][key]
-                    if com['access'].get(self.auth_level):
+                    if self.auth_check_helper(help_target, key):
                         req1 = None
                         req2 = None
                         req3 = None
@@ -649,7 +657,7 @@ class AutoShell(cmd.Cmd):
 
                 for key in command_dict.commands[help_target]:
                     com = command_dict.commands[help_target][key]
-                    if com['access'].get(self.auth_level):
+                    if self.auth_check_helper(help_target, key):
                         print('\t' + help_target + ' ' + key)
                         print(wrapper.fill(com['help']))
                         print()
@@ -660,7 +668,7 @@ class AutoShell(cmd.Cmd):
                 options_list = []
                 for key in command_dict.commands[help_target]:
                     com = command_dict.commands[help_target][key]
-                    if com['access'].get(self.auth_level):
+                    if self.auth_check_helper(help_target, key):
                         options_list += com['required'] + com['required2'] + com['optional']
 
                 options_list = list(set(options_list))
@@ -679,6 +687,21 @@ class AutoShell(cmd.Cmd):
                 print('\n**** Access denied\n')
         else:
             print('\n**** Command not found\n')
+
+    def auth_check_helper(self, help_target, key):
+        """For print_help, to allow a single place
+        for exceptions to auth checking
+        """
+
+        if (
+            command_dict.commands[help_target][key]['access']
+            .get(self.auth_level)
+            or help_target=='login'
+            ):
+            return True
+
+        else:
+            return False
 
     def print_response(self, command, subcommand, json):
 
@@ -737,7 +760,7 @@ class AutoShell(cmd.Cmd):
 
         self.logger.debug("POSTing Submission")
         try:
-            r = requests.post(url, files=files, data=data)
+            r = requests.post(url, files=files, data=data, verify=self.CA_BUNDLE)
         except requests.ConnectionError as e:
             self.logger.warning(
                 'ConnectionError: {0}'.format(e.response)
