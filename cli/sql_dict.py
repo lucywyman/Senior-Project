@@ -1,5 +1,5 @@
 sql = {
-    "basedir": 'c:/Senior-Project/cli/logs/',
+    "basedir": 'c:/Senior/cli/logs/',
     "assignment": {
         "view": {
 
@@ -98,7 +98,7 @@ sql = {
 
             "view_order": ['course_id', 'dept_name', 'course_num', 'name', 'term', 'year', 'teacher' ],
 
-            "sort_order": ['year', 'course_id', 'dept_name', 'course_num'],
+            "sort_order": ['year', 'term', 'dept_name', 'course_num', 'course_id'],
 
         },
     },
