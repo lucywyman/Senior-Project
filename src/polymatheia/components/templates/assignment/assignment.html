@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>{{ assignment.name }}</h2>
+<h4>Due on: {{ assignment.end_date }}</h4>
+{% if user.type == 'teacher' %}
+<a class='btn' href='assignments/create'>Create Assignment</a>
+{% endif %}
+<p>Assigned on: {{ assignment.begin_date }}</p>
+<p>Submission limit: {{ assignment.submission_limit }}</p>
+<!--<p>{{ assign.instructions }}</p>-->
+
+{{ form.as_table }}
+
+{% endblock %}

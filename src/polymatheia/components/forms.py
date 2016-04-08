@@ -19,6 +19,11 @@ TYPES = (
 		('TA', 'TA'),
 		('S', 'Student')
 		)
+FEEDBACK = (
+        ('1', 1),
+        ('2', 2),
+        ('3', 3)
+        )
 
 ## TODO How to specify teacher vs. student vs. TA
 
@@ -46,7 +51,7 @@ class Assignment(forms.Form):
 	end_date = forms.DateTimeField
 	instructions = forms.CharField
 	submission_limit = forms.IntegerField
-	feedback_level = forms.ChoiceField(choices=[1, 2, 3])
+	feedback_level = forms.ChoiceField(choices=FEEDBACK)
 	late = forms.BooleanField
 
 class Test(forms.Form):

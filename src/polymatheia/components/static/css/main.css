@@ -8337,7 +8337,9 @@ button.picker__today:focus, button.picker__clear:focus, button.picker__close:foc
 @media (min-height: 40.125em) {
   .picker--time .picker__box {
     margin-bottom: 5em; } }
-a:hover {
+nav ul li:hover {
+  background-color: transparent; }
+nav ul li a:hover {
   color: rgba(255, 255, 255, 0.7); }
 
 main {

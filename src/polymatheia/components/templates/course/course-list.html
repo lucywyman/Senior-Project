@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Courses</h2>
+{% if user.type == 'teacher' %}
+<a class='btn' href='courses/create'>Create Course</a>
+{% endif %}
+<table class='course-table border highlight responsive'>
+	<tr class='course-header'>
+		<th>Course</th>
+		<th>Upcoming Assignments</th>
+	</tr>
+	{% for course in courses %}
+	<tr>
+		<td><a href='/course/{{ course.course_id }}'>{{ course.name }}</td>
+		<td>
+			{% for assign in upcoming|slice:":3" %}
+			<p>{{ assign.name }}</p>
+			<strong>Due on: {{ assign.end_date }}</strong>
+			<br>
+			<a class='btn' href='/course/{{ course.course_id }}/{{ assign.assignment_id }}/submit'>Submit Assignment</a>
+			{# else if user.type == 'teacher' or user.type=='ta'#}
+			<a class='btn' href='{{ course.course_id }}/edit'>Edit Assignment</a>
+			{# endif #}
+			{% endfor %}
+		</td>
+	</tr>
+	{% endfor %}
+</table>
+{% endblock %}

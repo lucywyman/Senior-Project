@@ -124,4 +124,4 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = ['/home/lucy/githubs/Senior-Project/src/polymatheia/components/static/']
 STATIC_ROOT='collected_static'
-API_IP = 'http://140.211.168.78/'
+API_IP = 'http://0.0.0.0:8000/'

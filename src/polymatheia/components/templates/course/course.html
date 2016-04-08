@@ -1,14 +1,42 @@
 {% extends "base.html" %}
 
 {% block content %}
-<ul class='courses'>
-{% for course in user.courses %}
-<li>
-<a href='{{ course.id }}/'>{{ course.title }}</a>
-{# if user.has_permission #}
-<a class='update' href='{{ course.id }}/update'>Update</a>
-{# endif #}
-<a class='update' href='{{ course.id }}/assignments'>Assignments</a>
+<h2>{{ course.name }}</h2>
+{% if user.type == 'teacher' %}
+<a class='btn' href='courses/{{ course.course_id }}/edit'>Edit Course</a>
+{% endif %}
+<table class='course-table border highlight responsive'>
+	<tr class='course-header'>
+		<th>Upcoming Assignments</th>
+	</tr>
+	{% for assign in upcoming %}
+	<tr>
+		<td>
+			<a href='/assignment/{{ assign.assign_id }}'>{{ assign.name }}</a>
+			<br><strong>Due on: {{ assign.end }}</strong><br>
+			<a class='btn' href='/course/{{ course.course_id }}/{{ assign.assignment_id }}/submit'>Submit Assignment</a>
+			{# else if user.type == 'teacher' or user.type=='ta' and n < assign.due #}
+			<a href='{{ course.course_id }}/'></a>
+				{# endif #}
+		</td>
+	</tr>
 	{% endfor %}
-</ul>
+</table>
+<table class='course-table border highlight responsive'>
+	<tr class='course-header'>
+		<th>Past Assignments</th>
+	</tr>
+	{% for assign in past %}
+	<tr>
+		<td>
+			<a href='/assignment/{{ assign.assignment_id }}'>{{ assign.name }}</a>
+			<br><strong>Due on: {{ assign.end_date }}</strong><br>
+			{# else if user.type == 'teacher' or user.type=='ta' and n < assign.due #}
+			<a href='{{ course.course_id }}/'></a>
+				{# endif #}
+		</td>
+	</tr>
+	{% endfor %}
+</table>
+
 {% endblock %}

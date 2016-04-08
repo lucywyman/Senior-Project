@@ -1,7 +1,7 @@
 import psycopg2
 import psycopg2.extras
 
-conn = psycopg2.connect("dbname=postgres user=postgres password=killerkat5", cursor_factory= psycopg2.extras.RealDictCursor)
+conn = psycopg2.connect("dbname=postgres user=pguser password=pguser", cursor_factory= psycopg2.extras.RealDictCursor)
 conn.autocommit = True
 
 cur = conn.cursor()

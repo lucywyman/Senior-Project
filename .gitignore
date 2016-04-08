@@ -41,3 +41,6 @@ coverage.xml
 *.mo
 src/interfaces/__pycache__/
 src/results/
+
+src/polymatheia/components/static/css/.sass-cache*
+*.pyc
