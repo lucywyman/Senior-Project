@@ -10,7 +10,7 @@ import json
 import psycopg2
 import psycopg2.extras
 import command_dict
-from datetime import datetime
+from datetime import datetime, timedelta
 import db_graph
 from sql_dict import sql
 import os
@@ -19,9 +19,10 @@ import ast
 from shutil import move, rmtree
 import stat
 import logging
-from sys import platform
+from sys import platform, exit
 from passlib.hash import pbkdf2_sha512
 import ssl
+
 
 
 # private file with HTTP response codes
@@ -492,13 +493,38 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             if command == 'assignment':
                 table = 'assignments'
                 #TODO implement tags
-                #TODO add teacher_id behind the scenes
+
+                # default begin date for assigments is today
                 if 'begin' in data:
                     data['begin'][0] = datetime.strptime(data['begin'][0], '%x %X')
+                else:
+                    data['begin'] = []
+                    data['begin'] = [datetime.now().replace(hour=0,minute=0,second=0,microsecond=0)]
+
+                # default end is 11:59:59 pm 14 days after begin date
                 if 'end' in data:
                     data['end'][0] = datetime.strptime(data['end'][0], '%x %X')
+                else:
+                    data['end'] = []
+                    data['end'] = [(datetime.now() + timedelta(days=14)).replace(hour=23,minute=59,second=59,microsecond=0)]
+
+                # default submission limit is 0 (unlimited submissions)
+                if 'limit' not in data:
+                    data['limit'] = []
+                    data['limit'] = [0]
+
+                # default late submission limit is 0 days
+                if 'late' not in data:
+                    data['late'] = []
+                    data['late'] = [0]
+
+                # default feedback level is 1
+                if 'level' not in data:
+                    data['level'] = []
+                    data['level'] = [1]
+
+
             elif command == 'ce':
-                #TODO add teacher_id behind the scenes
                 table = 'common_errors'
             elif command == 'course':
                 table = 'courses'
@@ -594,6 +620,10 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 query += ") RETURNING test_id"
             elif command == 'course':
                 query += ") RETURNING course_id"
+            elif command == 'assignment':
+                query += ") RETURNING assignment_id"
+            elif command == 'ce':
+                query += ") RETURNING ce_id"
             else:
                 query += ")"
 
@@ -649,6 +679,36 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 cur.execute("""
                     INSERT INTO teachers_teach_courses (teacher_id, course_id)
                     VALUES (%s, %s)
+                    """, (uid, ret)
+                    )
+
+            elif command == 'assignment':
+
+                # add new assignment to database
+                cur.execute(query, data)
+
+                # add current user as instructor for new assignment
+                ret = cur.fetchone()['assignment_id']
+                self.logger.debug("New AssignmentID: {0}".format(ret))
+                cur.execute("""
+                    UPDATE assignments
+                    SET teacher_id=%s
+                    WHERE assignment_id=%s
+                    """, (uid, ret)
+                    )
+
+            elif command == 'ce':
+
+                # add new common error to database
+                cur.execute(query, data)
+
+                # add current user as owner for new common error
+                ret = cur.fetchone()['ce_id']
+                self.logger.debug("New ceID: {0}".format(ret))
+                cur.execute("""
+                    UPDATE common_errors
+                    SET teacher_id=%s
+                    WHERE ce_id=%s
                     """, (uid, ret)
                     )
             else:
@@ -1368,7 +1428,7 @@ def test(HandlerClass=http.server.BaseHTTPRequestHandler,
     except KeyboardInterrupt:
         print("\nKeyboard interrupt received, exiting.")
         httpd.server_close()
-        sys.exit(0)
+        exit(0)
 
 
 if __name__ == '__main__':
