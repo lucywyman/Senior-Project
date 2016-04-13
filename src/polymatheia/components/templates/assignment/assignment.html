@@ -9,7 +9,10 @@
 <p>Assigned on: {{ assignment.begin_date }}</p>
 <p>Submission limit: {{ assignment.submission_limit }}</p>
 <!--<p>{{ assign.instructions }}</p>-->
-
-{{ form.as_table }}
+<form action="/assignment/submit" method="post">
+	{% csrf_token %}
+	{{ form.as_table }}   
+	<input class='btn' type="submit" value="Submit" />
+</form>
 
 {% endblock %}

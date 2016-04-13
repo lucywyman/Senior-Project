@@ -18,9 +18,9 @@
 			<p>{{ assign.name }}</p>
 			<strong>Due on: {{ assign.end_date }}</strong>
 			<br>
-			<a class='btn' href='/course/{{ course.course_id }}/{{ assign.assignment_id }}/submit'>Submit Assignment</a>
+			<a class='btn' href='/assignment/{{ assign.assignment_id }}'>Submit Assignment</a>
 			{# else if user.type == 'teacher' or user.type=='ta'#}
-			<a class='btn' href='{{ course.course_id }}/edit'>Edit Assignment</a>
+			<a class='btn' href='/edit/{{ course.course_id }}/'>Edit Assignment</a>
 			{# endif #}
 			{% endfor %}
 		</td>

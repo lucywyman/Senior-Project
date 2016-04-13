@@ -16,22 +16,26 @@ def create_course(request):
         form = Course(request.POST)
         req = requests.post(api_ip + 'course/add')
         return HttpResponseRedirect('/course/created')
-    else:
-        form = Course()
+    form = Course()
     return render(request, 'course/create_course.html', {'form':form})
 
 def course_list(request):
-    user_data = {'student':['hennign']}
-    user_obj = requests.get(api_ip+'student/view', json=user_data)
+    udata = (request.session.get('user'), 
+            request.session.get('pw'))
+    user_info = {'student':[request.session['user']]}
+    user_obj = requests.get(api_ip+'student/view', 
+            json=user_info, auth=udata)
     user = user_obj.json()
     upcoming = []
     courses = []
     for course in user:
         course_data = {'course-id':[course['course_id']]}
-        c_obj = requests.get(api_ip+'course/view', json=course_data)
-        c = c_obj.json()
-        a_obj = requests.get(api_ip+'assignment/view', json=course_data)
-        assign = a_obj.json()
+        c_obj = requests.get(api_ip+'course/view', 
+                json=course_data, auth=udata)
+        c = (c_obj.json() if c_obj.status_code == 200 else [])
+        a_obj = requests.get(api_ip+'assignment/view', 
+                json=course_data, auth=udata)
+        assign = (a_obj.json() if a_obj.status_code == 200 else [])
         c[0]['assignments'] = assign
         courses.append(c[0])
         for a in assign:
@@ -46,13 +50,15 @@ def course_list(request):
 def course(request):
     ## Super gross: we're guaranteed the url is /course/[0-9]+, so remove
     ## /course/ to get course number
+    udata = (request.session.get('user'), 
+            request.session.get('pw'))
     upcoming, past = [], []
     course_num = request.path[8:]
     course_data = {'course-id':[course_num]}
-    course_obj = requests.get(api_ip+'course/view', json=course_data)
-    course = course_obj.json()
+    course_obj = requests.get(api_ip+'course/view', json=course_data,auth=udata)
+    course = (course_obj.json() if course_obj.status_code == 200 else [])
     a_obj = requests.get(api_ip+'assignment/view')
-    assign = a_obj.json()
+    assign = (a_obj.json() if a_obj.status_code == 200 else [])
     for a in assign:
         end_time = datetime.strptime(a['end_date'], '%m/%d/%y %H:%M:%S')
         if end_time > datetime.now():
@@ -65,17 +71,20 @@ def course(request):
 def edit_course(request):
     if request.method == 'POST':
         return HttpResponseRedirect('/course/edited')
+    udata = (request.session.get('user'), 
+            request.session.get('pw'))
     course_id = request.path[13:] 
     course_data = {'course-id':[course_id]}
-    c_obj = requests.get(api_ip+'course/view', json=course_data)
-    c = c_obj.json()
+    c_obj = requests.get(api_ip+'course/view', json=course_data, auth=udata)
+    c = (c_obj.json() if c_obj.status_code == 200 else [])
     c = c[0]
     ## Format data for form population
     term = (b[0] for b in TERMS if c[term] in b)
-    form = Assignment(initial={'name':c['name'], 
-        'course_num':c['name'],
+    dept = (b[0] for b in DEPTS if c[dept] in b)
+    form = Course(initial={'name':c['name'], 
+        'course_num':c['course_num'],
         'term': term,
         'year':2016,
-        'dept':DEPTS})
+        'dept':dept})
     return render_to_response('course/edit_course.html', 
             {'form':form, 'course':c})

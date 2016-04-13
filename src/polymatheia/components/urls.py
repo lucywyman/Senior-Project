@@ -42,9 +42,14 @@ urlpatterns = [
             name='edit-course'),
         url(r'^assignment/[0-9]+$', polymatheia.components.views.assignment,
             name='assignment-details'),
-        url(r'^assignment/create', polymatheia.components.views.create_assignment,
-            name='create-assignment'),
-        url(r'^assignment/edit/[0-9]+$', polymatheia.components.views.edit_assignment,
+        url(r'^assignment/create', 
+            polymatheia.components.views.create_assignment,
+            name='assignment-create'),
+        url(r'^assignment/created',
+            polymatheia.components.views.created_assignment,
+            name='created-assignment'),
+        url(r'^assignment/edit/[0-9]+$', 
+            polymatheia.components.views.edit_assignment,
             name='edit-assignment')
 		]
 urlpatterns += staticfiles_urlpatterns()

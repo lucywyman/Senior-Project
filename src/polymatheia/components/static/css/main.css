@@ -8344,6 +8344,9 @@ nav ul li a:hover {
 
 main {
   max-width: 80%;
-  margin: 0 auto; }
+  margin: 30px auto; }
+
+.btn, .btn-large {
+  margin: 20px 10px; }
 
 /*# sourceMappingURL=main.css.map */

@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
+<h4 class='error'>{{ error }}</h4>
     <div id="login">
         <form class="form-horizontal" name="LoginForm" action="/login/" method="post">
         {% csrf_token %}
@@ -7,7 +8,7 @@
             <input type="hidden" name="next" value="{{ next }}" />
         {% endif %}
         <div class="control-group">
-            <label class="control-label" for="username">Username</label>
+            <label class="control-label" for="username">ONID name (ie. wymanl)</label>
             <div class="controls">
                 <input type="text" id="username" name="username"  placeholder="Username">
             </div>

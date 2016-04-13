@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>{{ assignment.name }} successfully created!</h2>
+<a class='btn' href='/assignment/create'>Add another assignment</a>
+<a class='btn' href='/assignment/{{ assignment.id }}/test/add'>Add a test</a>
+{% endblock %}

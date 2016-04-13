@@ -4,8 +4,11 @@
 {% if user.type == 'teacher' %}
 <a href='/course/create' class='btn'>Create Course</a>
 {% endif %}
-<h2>Welcome, {{ user.student }}</h2>
 
+<h2>Welcome, {{ user.student }}</h2>
+{% if msg %}
+<h4>{{ msg }}</h4>
+{% endif %}
 <table class='course-table border highlight responsive'>
 	<tr class='course-header'>
 		<th>Course</th>
@@ -18,10 +21,10 @@
 			{% for assign in course.assignments|slice:":3" %}
 			<p>{{ assign.name }}</p>
 			<strong>Due on: {{ assign.end_date }}</strong>
-			{# if n < n and user.type == 'student' #}
-			<a href='/course/{{ course.course_id }}/{{ assign.assignment_id }}/submit'>Submit Assignment</a>
-			{# else if user.type == 'teacher' or user.type=='ta' and n < assign.due #}
-			<a href='{{ course.course_id }}/'>
+			{# if user.type == 'student' #}
+			<a class='btn' href='/course/{{ course.course_id }}/{{ assign.assignment_id }}/submit'>Submit Assignment</a>
+			{# else if user.type == 'teacher' or user.type=='ta'#}
+			<a href='{{ course.course_id }}/'></a>
 			{# endif #}
 			{% endfor %}
 		</td>
