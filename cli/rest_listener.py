@@ -22,6 +22,7 @@ import logging
 from sys import platform, exit
 from passlib.hash import pbkdf2_sha512
 import ssl
+import queue
 
 
 
@@ -1524,23 +1525,25 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
 
     def submit(self, id):
+    
+        herald(self.server.q,id)
 
-        s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-        try:
-            s.connect(('127.0.0.1', 9000))     #'\0recvPort')):
-        except:
-            # TODO - handle errors instead
-            raise
-        else:
-            msg = '{"sub_ID":' + str(id) + '}'
-            self.logger.debug(msg)
-            msg = msg.encode()
-            self.logger.debug(msg)
-            s.send(msg)
-            s.close()
-            return 1
-
-        return 0
+    ##  s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    ##  try:
+    ##      s.connect(('127.0.0.1', 9000))     #'\0recvPort')):
+    ##  except:
+    ##      # TODO - handle errors instead
+    ##      raise
+    ##  else:
+    ##      msg = '{"sub_ID":' + str(id) + '}'
+    ##      self.logger.debug(msg)
+    ##      msg = msg.encode()
+    ##      self.logger.debug(msg)
+    ##      s.send(msg)
+    ##      s.close()
+    ##      return 1
+    ##
+    ##  return 0
 
 
     def create_user(self):
@@ -1801,7 +1804,9 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         return data
 
 class ThreadingHTTPServer(ThreadingMixIn, http.server.HTTPServer):
-    pass
+    def __init__(self,server_address,HandlerClass,q):
+        super(ThreadingHTTPServer, self).__init__(server_address,HandleClass)
+        self.q = q
 
 # http.server.test is an internal http.server function
 # https://hg.python.org/cpython/file/3.4/Lib/http/server.py
@@ -1818,9 +1823,11 @@ def test(
 
     """
     server_address = (bind, port)
-
+    
+    #herald_init returns a q
+    q = herald_init()
     HandlerClass.protocol_version = protocol
-    httpd = ServerClass(server_address, HandlerClass)
+    httpd = ServerClass(server_address, HandlerClass,q)
 
     # add ssl
     httpd.socket = ssl.wrap_socket(
