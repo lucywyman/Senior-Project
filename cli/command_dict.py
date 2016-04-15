@@ -8,7 +8,7 @@ commands = {
                 },
 
             "required": ['course-id', 'name'],
-            
+
             "required2": [],
 
             "optional": ['begin', 'end', 'late', 'level', 'limit', 'name', 'tags'],
@@ -25,7 +25,7 @@ commands = {
                 },
 
             "required": [],
-            
+
             "required2": [],
 
             "optional": ['assignment-id', 'course-id', 'dept',  'num', 'tags', 'teacher', 'term', 'version', 'year'],
@@ -42,7 +42,7 @@ commands = {
                 },
 
             "required": ['assignment-id'],
-            
+
             "required2": [],
 
             "optional": ['begin', 'course-id', 'end', 'late', 'level', 'limit', 'name', 'tags'],
@@ -59,7 +59,7 @@ commands = {
                 },
 
             "required": ['assignment-id'],
-            
+
             "required2": [],
 
             "optional": [],
@@ -81,7 +81,7 @@ commands = {
                 },
 
             "required": ['name', 'text'],
-            
+
             "required2": [],
 
             "optional": [],
@@ -98,7 +98,7 @@ commands = {
                 },
 
             "required": [],
-            
+
             "required2": [],
 
             "optional": ['assignment-id', 'ce-id', 'course-id', 'name', 'test-id', 'version'],
@@ -115,7 +115,7 @@ commands = {
                 },
 
             "required": ['ce-id'],
-            
+
             "required2": [],
 
             "optional": ['name', 'text'],
@@ -132,17 +132,17 @@ commands = {
                 },
 
             "required": ['ce-id'],
-            
+
             "required2": [],
 
             "optional": [],
 
             "help":     "Delete selected common error(s).",
-            
+
             "confirmation": "Deleting this/these common errors will permanenty remove them from the database.",
 
             },
-            
+
         "link":   {
             "access":   {
                 "teacher":  True,
@@ -151,13 +151,13 @@ commands = {
                 },
 
             "required": ['ce-id', 'test-id'],
-            
+
             "required2": [],
 
             "optional": [],
 
             "help":     "Link selected common error(s) to selected test(s).",
-            
+
             },
         },
 
@@ -171,7 +171,7 @@ commands = {
                 },
 
             "required": ['name'],
-            
+
             "required2": [],
 
             "optional": ['dept', 'num', 'term', 'year'],
@@ -188,7 +188,7 @@ commands = {
                 },
 
             "required": [],
-            
+
             "required2": [],
 
             "optional": ['course-id', 'dept', 'name', 'num', 'teacher', 'term', 'year'],
@@ -205,10 +205,10 @@ commands = {
                 },
 
             "required": ['course-id'],
-            
+
             "required2": [],
 
-            "optional": ['dept', 'name', 'num', 'teacher', 'term', 'year'],
+            "optional": ['dept', 'name', 'num', 'term', 'year'],
 
             "help":     "Update course by changing selected values.",
 
@@ -222,13 +222,13 @@ commands = {
                 },
 
             "required": ['course-id'],
-            
+
             "required2": [],
 
             "optional": [],
 
             "help":     "Delete selected course.",
-            
+
             "confirmation": "Deleting this course will permanenty remove all assignments, assignment versions, and submissions associated with this course.",
 
             },
@@ -244,7 +244,7 @@ commands = {
                 },
 
             "required": [],
-            
+
             "required2": [],
 
             "optional": [],
@@ -261,7 +261,7 @@ commands = {
                 },
 
             "required": [],
-            
+
             "required2": [],
 
             "optional": [],
@@ -278,9 +278,9 @@ commands = {
                 },
 
             "required": ['submission', 'grade'],
-            
+
             "required2": ['assignment-id', 'student', 'grade'],
-            
+
             "optional": [],
 
             "help":     "Grade update is an alias of submission update. Updates grade of submission. A specific submission can be selected with the submission key, or by using assignment-id and student keys to select a student's most recent submission for the assignment.",
@@ -295,18 +295,18 @@ commands = {
                 },
 
             "required": [],
-            
+
             "required2": [],
 
             "optional": [],
 
             "help":     "",
-            
+
             "confirmation": "Deleting this  will permanenty remove ",
 
             },
         },
-        
+
     "group": {
         "add":      {
             "access":   {
@@ -316,7 +316,7 @@ commands = {
                 },
 
             "required": ['course-id', 'ta', 'student'],
-            
+
             "required2": [],
 
             "optional": [],
@@ -333,7 +333,7 @@ commands = {
                 },
 
             "required": ['ta'],
-            
+
             "required2": ['course-id'],
 
             "optional": ['ta','course-id', 'student'],
@@ -350,7 +350,7 @@ commands = {
                 },
 
             "required": [],
-            
+
             "required2": [],
 
             "optional": [],
@@ -367,18 +367,76 @@ commands = {
                 },
 
             "required": ['course-id', 'ta'],
-            
+
             "required2": [],
 
             "optional": ['student'],
 
             "help":     "Dis-associate student(s) with selected TA for selected course. Removes all students from selected TA for selected course if no students are listed.",
-            
+
             "confirmation": None,
 
             },
         },
-        
+
+
+
+    "login": {
+        "as":      {
+            "access":   {
+                "teacher":  True,
+                "ta":       True,
+                "student":  True,
+                },
+
+            "required": ['name', 'password'],
+
+            "required2": [],
+
+            "optional": [],
+
+            "help":     "Login as selected user.",
+
+            },
+
+        "new":     {
+            "access":   {
+                "teacher":  True,
+                "ta":       True,
+                "student":  True,
+                },
+
+            "required": ['name', 'password'],
+
+            "required2": [],
+
+            "optional": [],
+
+            "help":     "Create new user with given password. New users have basic student access.",
+
+            },
+
+        "update":   {
+            "access":   {
+                "teacher":  True,
+                "ta":       True,
+                "student":  True,
+                },
+
+            "required": ['password', 'new-password'],
+
+            "required2": [],
+
+            "optional": [],
+
+            "help":     "Update password.",
+
+            },
+        },
+
+
+
+
     "student": {
         "add":      {
             "access":   {
@@ -388,7 +446,7 @@ commands = {
                 },
 
             "required": ['course-id', 'student'],
-            
+
             "required2": [],
 
             "optional": [],
@@ -405,7 +463,7 @@ commands = {
                 },
 
             "required": [],
-            
+
             "required2": [],
 
             "optional": ['course-id', 'first', 'last', 'student'],
@@ -422,7 +480,7 @@ commands = {
                 },
 
             "required": [],
-            
+
             "required2": [],
 
             "optional": [],
@@ -439,18 +497,18 @@ commands = {
                 },
 
             "required": ['course-id', 'student'],
-            
+
             "required2": [],
 
             "optional": [],
 
             "help":     "Removes student(s) from the selected course.",
-            
+
             "confirmation": None,
 
             },
         },
-        
+
     "submission": {
         "add":      {
             "access":   {
@@ -460,7 +518,7 @@ commands = {
                 },
 
             "required": ['assignment-id', 'filepath',],
-            
+
             "required2": [],
 
             "optional": [],
@@ -477,7 +535,7 @@ commands = {
                 },
 
             "required": [],
-            
+
             "required2": [],
 
             "optional": ['assignment-id', 'student', 'submission'],
@@ -494,7 +552,7 @@ commands = {
                 },
 
             "required": ['submission', 'grade'],
-            
+
             "required2": ['assignment-id', 'student', 'grade'],
 
             "optional": [],
@@ -511,18 +569,18 @@ commands = {
                 },
 
             "required": [],
-            
+
             "required2": [],
 
             "optional": [],
 
             "help":     "",
-            
+
             "confirmation": None,
 
             },
         },
-        
+
     "ta": {
         "add":      {
             "access":   {
@@ -532,7 +590,7 @@ commands = {
                 },
 
             "required": ['ta'],
-            
+
             "required2": [],
 
             "optional": ['course-id'],
@@ -549,7 +607,7 @@ commands = {
                 },
 
             "required": [],
-            
+
             "required2": [],
 
             "optional": ['course-id', 'ta'],
@@ -566,7 +624,7 @@ commands = {
                 },
 
             "required": [],
-            
+
             "required2": [],
 
             "optional": [],
@@ -583,18 +641,18 @@ commands = {
                 },
 
             "required": ['ta'],
-            
+
             "required2": [],
 
             "optional": ['course-id'],
 
             "help":     "Removes TA(s) from list of TAs. If a course-id is given, removes the selected TA(s) from that course",
-            
+
             "confirmation": None,
 
             },
         },
-        
+
     "tag": {
         "add":      {
             "access":   {
@@ -604,7 +662,7 @@ commands = {
                 },
 
             "required": ['assignment-id', 'tags'],
-            
+
             "required2": [],
 
             "optional": [],
@@ -621,7 +679,7 @@ commands = {
                 },
 
             "required": [],
-            
+
             "required2": [],
 
             "optional": ['assignment-id', 'tags'],
@@ -638,7 +696,7 @@ commands = {
                 },
 
             "required": [],
-            
+
             "required2": [],
 
             "optional": [],
@@ -655,18 +713,18 @@ commands = {
                 },
 
             "required": ['assignment-id'],
-            
+
             "required2": [],
 
             "optional": ['tags'],
 
             "help":     "Deletes all tags from an assignment, or if specific tags are selected, deletes just those tags. No confirmation.",
-            
+
             "confirmation": None,
 
             },
         },
-        
+
     "test": {
         "add":      {
             "access":   {
@@ -676,7 +734,7 @@ commands = {
                 },
 
             "required": ['filepath', 'name'],
-            
+
             "required2": [],
 
             "optional": ['assignment-id', 'points', 'time'],
@@ -693,7 +751,7 @@ commands = {
                 },
 
             "required": [],
-            
+
             "required2": [],
 
             "optional": ['assignment-id', 'version'],
@@ -710,7 +768,7 @@ commands = {
                 },
 
             "required": ['test-id'],
-            
+
             "required2": [],
 
             "optional": ['filepath', 'name', 'points', 'time'],
@@ -727,18 +785,52 @@ commands = {
                 },
 
             "required": ['test-id'],
-            
+
             "required2": [],
 
             "optional": [],
 
             "help":     "Attempts to delete selected tests. Tests can't be deleted if any student submissions reference those tests.",
-            
+
             "confirmation": "Deleting this test will permanenty remove the test and associated file from the database.",
 
             },
+
+        "link":   {
+            "access":   {
+                "teacher":  True,
+                "ta":       False,
+                "student":  False,
+                },
+
+            "required": ['test-id', 'assignment-id'],
+
+            "required2": [],
+
+            "optional": [],
+
+            "help":     "Link test to assignment. If the assignment already has submissions, a new version with the test will be created, otherwise the test will be linked to the most recent version.",
+
+            },
+
+        "unlink":   {
+            "access":   {
+                "teacher":  True,
+                "ta":       False,
+                "student":  False,
+                },
+
+            "required": ['test-id', 'assignment-id'],
+
+            "required2": [],
+
+            "optional": [],
+
+            "help":     "Attempts to unlink test from assignment. If the assignment already has submissions, a new version with the test removed will be created, otherwise the test will be unlinked from the most recent version.",
+
+            },
         },
-        
+
     # "command": {
         # "add":      {
             # "access":   {
@@ -748,7 +840,7 @@ commands = {
                 # },
 
             # "required": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'filepath', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
-            
+
             # "required2": [],
 
             # "optional": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'filepath', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
@@ -765,7 +857,7 @@ commands = {
                 # },
 
             # "required": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'filepath', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
-            
+
             # "required2": [],
 
             # "optional": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'filepath', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
@@ -782,7 +874,7 @@ commands = {
                 # },
 
             # "required": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'filepath', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
-            
+
             # "required2": [],
 
             # "optional": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'filepath', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
@@ -799,13 +891,13 @@ commands = {
                 # },
 
             # "required": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'filepath', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
-            
+
             # "required2": [],
 
             # "optional": ['assignment-id', 'begin', 'ce-id', 'course-id', 'dept', 'end', 'filepath', 'first', 'grade', 'last', 'late', 'level', 'limit', 'name', 'num', 'points', 'student', 'submission', 'ta', 'tags', 'teacher', 'term', 'test-id', 'text', 'time', 'version', 'year'],
 
             # "help":     "",
-            
+
             # "confirmation": "Deleting this  will permanenty remove ",
 
             # },
@@ -909,6 +1001,18 @@ options = {
             "help":     "Course number. For example, the num for 'CS 444' is '444'.",
             "table":    "courses",
             "key":      "course_num",
+            },
+    "password":     {
+            "type":     "str",
+            "help":     "User password. Can be of any length and include any characters except quotes and whitespace.",
+            "table":    "users",
+            "key":      "password",
+            },
+    "new-password":     {
+            "type":     "str",
+            "help":     "New user password. Can be of any length and include any characters except quotes and whitespace.",
+            "table":    "users",
+            "key":      "new_password",
             },
     "points":     {
             "type":     "int",

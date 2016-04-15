@@ -5,9 +5,11 @@ import select
 import string
 import sys
 import subprocess
+from subprocess import CREATE_NEW_CONSOLE
 import threading
 import json
 from collections import deque
+import os
 
 testQ = deque([])
 qlock = threading.Condition()
@@ -17,10 +19,10 @@ rePorts = []
 killPorts = []
 running = True
 #k for kill, c for recieve, s for sends
-k = socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);
-c = socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);
-r = socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);
-s = socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);
+k = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+c = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+r = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 
 class dispenserThread (threading.Thread):
   def __init__(self):
@@ -48,7 +50,8 @@ class dispenserThread (threading.Thread):
         tlock.wait()
       testers[tester] = int(sub_ID)
       tlock.release()
-      s.connect('\0recvPort' + str(tester))
+      s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+      s.connect(('127.0.0.1', 6000 + tester))
       msg = '{"sub_ID":' + str(sub_ID) + '}'
       s.send(msg.encode())
       s.close()
@@ -58,24 +61,24 @@ def init():
   for i in range(int(sys.argv[1])):
     try:
       #clean out old processes
-      k.connect('\0killPort' + str(i))
+      k.connect(('127.0.0.1', 7000 + i))
       k.send('{"state":"die"}')
       k.close()
       print('Closed existing testing process. Either port conflict, or improper shutdown.')
     except Exception:
       pass
-    rePorts.append(socket.socket(socket.AF_UNIX,socket.SOCK_STREAM))
-    rePorts[i].bind('\0rePort' + str(i))
+    rePorts.append(socket.socket(socket.AF_INET,socket.SOCK_STREAM))
+    rePorts[i].bind(('127.0.0.1', 8000 + i))        #'\0rePort' + str(i))
     rePorts[i].listen(1)
     testers.append(0)
-    subprocess.Popen(['./tester.py',str(i)])
+    subprocess.Popen([sys.executable, os.path.normpath('./tester.py'), str(i)]) #, creationflags = CREATE_NEW_CONSOLE)
   dthread = dispenserThread()
   dthread.daemon = True
   dthread.start()
 
-c.bind("\0recvPort")
-k.bind("\0killPort")
-r.bind("\0rePort")
+c.bind(('127.0.0.1', 9000))       #"\0recvPort")
+k.bind(('127.0.0.1', 9001))       #"\0killPort")
+r.bind(('127.0.0.1', 9002))       #"\0rePort")
 c.listen(10)
 k.listen(1)
 r.listen(int(sys.argv[1]))
@@ -88,6 +91,7 @@ while running:
       msg = h.recv(256)
       h.close()
       dmsg = msg.decode()
+      print("dmsg: '{}'".format(dmsg))
       sub_ID = json.loads(dmsg)["sub_ID"]
       qlock.acquire()
       testQ.append(sub_ID)
@@ -97,8 +101,8 @@ while running:
       print("Herald recieved kill signal")
       remv = k.accept()[0]
       for j in range(int(sys.argv[1])):
-        o = socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);
-        o.connect('\0killPort' + str(j))
+        o = socket.socket(socket.AF_INET,socket.SOCK_STREAM);
+        o.connect(('127.0.0.1', 7000 + j))          #'\0killPort' + str(j))
         o.send('{"state":"die"}'.encode())
         o.close()
       k.close()
