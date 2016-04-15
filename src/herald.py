@@ -1,28 +1,25 @@
-#!/usr/local/bin/python3.2
+#! /usr/bin/python3.4
 
 import socket
 import select
 import string
 import sys
 import subprocess
-from subprocess import CREATE_NEW_CONSOLE
+import signal
+#from subprocess import CREATE_NEW_CONSOLE
 import threading
 import json
 from collections import deque
 import os
+import time
 
 testQ = deque([])
 qlock = threading.Condition()
 testers = []
 tlock = threading.Condition()
-rePorts = []
+#rePorts = []
 killPorts = []
 running = True
-#k for kill, c for recieve, s for sends
-k = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-c = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-r = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 
 class dispenserThread (threading.Thread):
   def __init__(self):
@@ -61,21 +58,30 @@ def init():
   for i in range(int(sys.argv[1])):
     try:
       #clean out old processes
+      k = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
       k.connect(('127.0.0.1', 7000 + i))
-      k.send('{"state":"die"}')
+      k.send('{"state":"die"}'.encode())
       k.close()
       print('Closed existing testing process. Either port conflict, or improper shutdown.')
-    except Exception:
-      pass
-    rePorts.append(socket.socket(socket.AF_INET,socket.SOCK_STREAM))
-    rePorts[i].bind(('127.0.0.1', 8000 + i))        #'\0rePort' + str(i))
-    rePorts[i].listen(1)
+      time.sleep(1)
+    except Exception as e:
+      print('Port ' + str(7000 + i) + ' was free: ' + str(e))
+    #rePorts.append(socket.socket(socket.AF_INET,socket.SOCK_STREAM))
+    #rePorts[i].bind(('127.0.0.1', 8000 + i))        #'\0rePort' + str(i))
+    #rePorts[i].listen(1)
+    subprocess.check_call(["userdel","-rf","tester"+str(i)+"user"])
+    subprocess.check_call(["useradd","-p","pass"+str(i),"tester"+str(i)+"user"])
     testers.append(0)
     subprocess.Popen([sys.executable, os.path.normpath('./tester.py'), str(i)]) #, creationflags = CREATE_NEW_CONSOLE)
   dthread = dispenserThread()
   dthread.daemon = True
   dthread.start()
 
+#k for kill, c for recieve, s for sends
+k = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+c = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+r = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 c.bind(('127.0.0.1', 9000))       #"\0recvPort")
 k.bind(('127.0.0.1', 9001))       #"\0killPort")
 r.bind(('127.0.0.1', 9002))       #"\0rePort")

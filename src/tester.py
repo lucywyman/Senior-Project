@@ -1,9 +1,10 @@
-#!/usr/local/bin/python3.4
+#! /usr/bin/python3.4
 
 import socket
 import select
 import sys
 import subprocess
+import signal
 import time
 import json
 import shutil
@@ -91,15 +92,14 @@ def runProtected(files,sub_ID):
     os.chmod(os.path.split(files['subFile'])[-1],0o0777)
     os.chmod(os.path.split(files['testFile'])[-1],0o0777)
     os.chmod(os.path.normpath('./py_test_osu.py'),0o0777)
-    # TODO change from submission id to test-id. Output alreadying in specific submission folder
+    # TODO change from submission id to test-id. Output already in specific submission folder
     # test id more useful
-    subprocess.call(os.path.normpath('./test.py'),stdout=open('tapresult - ' + str(sub_ID) + '.txt','w'),shell=True)
-    shutil.copy('tapresult - ' + str(sub_ID) + '.txt',os.path.normpath(resultpath))
+    result = subprocess.check_output(["su","tester"+str(sys.argv[1])+"user","-c",os.path.normpath('./test.py')],timeout=5,shell=True)
     os.unlink(os.path.split(files['subFile'])[-1])
     os.unlink(os.path.split(files['testFile'])[-1])
     os.unlink('py_test_osu.py')
-    os.unlink('tapresult - ' + str(sub_ID) + '.txt')
     os.chdir('..')
+    return result
 
 id = sys.argv[1]
 c = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
@@ -124,17 +124,19 @@ while 1:
             print(dmsg)
             sub_ID = json.loads(dmsg)["sub_ID"]
             files = query(sub_ID)
+            res = json.loads('{"Results":[]}')
             for row in files:
                 try:
-                    runProtected(row,sub_ID)
+                    #I'd like to switch Results to an object, and add
+                    #key/value pairs with testID:result
+                    res['Results'].append(runProtected(row,sub_ID))
                 except Exception as e:
                     print(e)
                     raise
-                else:
-                    o = socket.socket(socket.AF_INET,socket.SOCK_STREAM);
-                    o.connect(('127.0.0.1', 9002))      #'\0rePort')
-                    o.send(msg)
-                    o.close()
+            o = socket.socket(socket.AF_INET,socket.SOCK_STREAM);
+            o.connect(('127.0.0.1', 9002))      #'\0rePort')
+            o.send(json.dumps(res).encode())
+            o.close()
         #kill branch
         elif avail is k:
             print("Tester" + id + " recieved kill signal")
