@@ -20,6 +20,31 @@
     - git
     - gcc
     - emacs
+    - postgresql-devel
+    - nodejs
+    - zlib-devel 
+    - bzip2-devel
+    - openssl-devel
+    - ncurses-devel
+    
+- name: Check if python is already latest
+  command: python --version
+  register: python_version_result
+  
+      
+- name: Download and untar python 2.7.9
+  unarchive: 
+    src: http://python.org/ftp/python/2.7.9/Python-2.7.9.tar.xz
+    mode: 0744
+    dest: ~/
+    copy: no
+    creates: ~/Python-2.7.9/
+  when: not "{{ python_version_result.stderr | replace('Python ', '') | version_compare(python_version, '>=') }}"
+    
+- name: install python 2.7.9
+  shell: cd ~/Python-2.7.9/ && ./configure --prefix=/usr/local --enable-unicode=ucs4 --enable-shared LDFLAGS="-Wl,-rpath /usr/local/lib" && make && make install
+  when: not "{{ python_version_result.stderr | replace('Python ', '') | version_compare(python_version, '>=') }}"
+
 
 - name: Install all postgresql 9.5 libraries
   yum: name=postgresql95* state=present
@@ -37,15 +62,22 @@
     url: https://bootstrap.pypa.io/get-pip.py 
     mode: 0744
     dest: ~/
+    validate_certs: no
     
 - name: install pip
   command: /usr/bin/python3 ~/get-pip.py
+
   
-- name: symlink in pg_config
+- name: check to see if pg_config is in path
+  stat: path=/bin/pg_config
+  register: stat_pg
+  
+- name: symlink in pg_config if not in path
   file:
     src: /usr/pgsql-9.5/bin/pg_config
     dest: /bin/pg_config
     state: link
+  when: not stat_pg.stat.exists
     
 - name: install pyscopg2 package
   command: /usr/bin/pip3 install psycopg2
@@ -56,12 +88,16 @@
     PATH: "{{ ansible_env.PATH }}:/usr/pgsql-9.5/bin"
   with_items:
     - requests
+    - passlib
+    - bs4
 
 
 - name: init database
   shell: /usr/pgsql-9.5/bin/postgresql95-setup initdb
   args:
     creates: /var/lib/pgsql/9.5/data/postgresql.conf
+  notify:
+    - restart postgresql-9.5
   
     
 - name: Start PostgreSQL 9.5 and enable at boot
@@ -70,20 +106,27 @@
 
     
 - name: set postgres password
-  postgresql_user: db=postgres name=postgres password=killerkat5 state=present
+  postgresql_user: 
+    db: postgres
+    name: postgres
+    password: killerkat5
+    state: present
+    login_password: killerkat5
   become: true
   become_user: postgres
+  notify:
+    - restart postgresql-9.5
 
 - name: copy over test schema
   copy:
     src: files/test_schema.sql
     dest: ~/test_schema.sql
   become: true
-  become_user: postgres    
+  become_user: postgres  
   
   
 - name: load test schema (clears database before running)
-  command: psql -f ~/test_schema.sql
+  command: psql "dbname=postgres password=killerkat5" -f ~/test_schema.sql
   become: true
   become_user: postgres
   
@@ -92,24 +135,30 @@
   copy:
     src: files/pg_hba.conf
     dest: /var/lib/pgsql/9.5/data/pg_hba.conf
+  notify:
+    - restart postgresql-9.5
     
-    
-- name: Start PostgreSQL 9.5 and enable at boot
-  service: name=postgresql-9.5 state=restarted
-  
-  
-
   
 - name: git clone project repo
   git:
     repo: https://github.com/lucywyman/Senior-Project.git
     dest: /auto/
-
+    version: cli
+    force: yes
+  environment:
+    GIT_SSL_NO_VERIFY: true
+  notify:
+    - restart postgresql-9.5
+    # - restart haproxy
+    
 # Set base directory as specified in auto.yml    
-- name: template test
+- name: add sql_dict with correct basedir
   template:
     src: roles/auto/templates/sql_dict.j2
     dest: /auto/cli/sql_dict.py
+  notify:
+    - restart postgresql-9.5
+    # - restart haproxy
     
 - name: copy over script file
   copy:
@@ -121,11 +170,15 @@
   command: ~/haproxy.sh arg1
   args:
     creates: /etc/systemd/system/cs312-auto@.service
+  notify:
+    - restart cs312-auto@443
     
-- name: update haproxy.cfg
-  copy: 
-    src: files/haproxy.cfg
-    dest: /etc/haproxy/haproxy.cfg
+# - name: update haproxy.cfg
+  # copy: 
+    # src: files/haproxy.cfg
+    # dest: /etc/haproxy/haproxy.cfg
+  # notify:
+    # - restart haproxy
         
-- name: start and enable HAProxy daemon
-  service: name=haproxy state=started enabled=yes
+# - name: start and enable HAProxy daemon
+  # service: name=haproxy state=started enabled=yes

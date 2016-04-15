@@ -2,4 +2,7 @@
 cs312 ansible_ssh_host=140.211.168.78 ansible_ssh_user=centos
 
 [project15]
-project15 ansible_ssh_host=140.211.168.78 ansible_ssh_user=centos
+project15 ansible_ssh_host=vm-cs-cap-g15.eecs.oregonstate.edu ansible_ssh_user=root
+
+[vps]
+vps ansible_ssh_host=158.69.59.66 ansible_ssh_user=root

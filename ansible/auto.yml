@@ -1,8 +1,11 @@
-- hosts: project15
+- hosts: 
+    - project15
+    - vps
   become: True
   become_user: root
   become_method: sudo
   vars:
     base_dir: "{{ BASE_DIR|default('/auto/log/') }}"
+    python_version: "2.7.9"
   roles:
     - auto

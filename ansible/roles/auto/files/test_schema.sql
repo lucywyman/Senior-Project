@@ -8,31 +8,44 @@ CREATE TABLE users (
     user_id		serial PRIMARY KEY,
 	username	varchar(30) UNIQUE,
 	firstname	varchar(50),
-	lastname	varchar(70)
+	lastname	varchar(70),
+    auth        varchar(150)
 );
-INSERT INTO users (username)
-VALUES ('hennign'), ('gassa'), ('wymanl');
+INSERT INTO users (username, auth)
+VALUES 
+    ('teststudent', '$pbkdf2-sha512$25000$vfdeay3lvLe2VirlfK/1Pg$X8Kyw9u2UHkg3R0YC5vzfM1ETAE5bak73Q8E8aswNBqYoj7IavK9pDgCT0.eVmk54oR5kBJqnCRt9PMbgrA06Q'),
+    ('testta', '$pbkdf2-sha512$25000$vfdeay3lvLe2VirlfK/1Pg$X8Kyw9u2UHkg3R0YC5vzfM1ETAE5bak73Q8E8aswNBqYoj7IavK9pDgCT0.eVmk54oR5kBJqnCRt9PMbgrA06Q'),
+    ('testteacher', '$pbkdf2-sha512$25000$vfdeay3lvLe2VirlfK/1Pg$X8Kyw9u2UHkg3R0YC5vzfM1ETAE5bak73Q8E8aswNBqYoj7IavK9pDgCT0.eVmk54oR5kBJqnCRt9PMbgrA06Q'),
+    ('hennign', '$pbkdf2-sha512$25000$vfdeay3lvLe2VirlfK/1Pg$X8Kyw9u2UHkg3R0YC5vzfM1ETAE5bak73Q8E8aswNBqYoj7IavK9pDgCT0.eVmk54oR5kBJqnCRt9PMbgrA06Q'),
+    ('gassa', '$pbkdf2-sha512$25000$vfdeay3lvLe2VirlfK/1Pg$X8Kyw9u2UHkg3R0YC5vzfM1ETAE5bak73Q8E8aswNBqYoj7IavK9pDgCT0.eVmk54oR5kBJqnCRt9PMbgrA06Q'),
+    ('wymanl', '$pbkdf2-sha512$25000$vfdeay3lvLe2VirlfK/1Pg$X8Kyw9u2UHkg3R0YC5vzfM1ETAE5bak73Q8E8aswNBqYoj7IavK9pDgCT0.eVmk54oR5kBJqnCRt9PMbgrA06Q');
 
 CREATE TABLE students (
 	student_id		integer PRIMARY KEY,
 	FOREIGN KEY (student_id) REFERENCES users (user_id) ON DELETE CASCADE
 );
 INSERT INTO students (student_id)
-SELECT user_id from users;
+SELECT user_id from users
+WHERE username='teststudent'
+    OR username='hennign';
 
 CREATE TABLE tas (
 	ta_id		integer PRIMARY KEY,
 	FOREIGN KEY (ta_id) REFERENCES users (user_id) ON DELETE CASCADE
 );
 INSERT INTO tas (ta_id)
-SELECT user_id from users;
+SELECT user_id from users
+WHERE username='testta'
+    OR username='gassa';
 
 CREATE TABLE teachers (
 	teacher_id		integer PRIMARY KEY,
 	FOREIGN KEY (teacher_id) REFERENCES users (user_id) ON DELETE CASCADE
 );
 INSERT INTO teachers (teacher_id)
-SELECT user_id from users;
+SELECT user_id from users
+WHERE username='testteacher'
+    OR username='wymanl';
 
 CREATE TABLE depts (
 	dept_id		smallserial PRIMARY KEY,
@@ -107,7 +120,12 @@ CREATE TABLE assignments (
 	late_submission		smallint
 );
 INSERT INTO assignments (course_id, teacher_id, name, begin_date, end_date, submission_limit, feedback_level, late_submission)
-VALUES ( 1, 1, 'Intro to Loops', TIMESTAMP '2016-02-16 12:00:00', TIMESTAMP '2016-02-24 23:59:00', 0, 3, 7);
+VALUES ( 1, (
+    SELECT T.teacher_id
+    FROM teachers_teach_courses AS T
+    WHERE T.course_id=1
+    LIMIT 1
+    ), 'Intro to Loops', TIMESTAMP '2016-02-16 12:00:00', TIMESTAMP '2016-02-24 23:59:00', 0, 3, 7);
 
 CREATE TABLE tags (
 	tag_id		serial PRIMARY KEY,
