@@ -152,10 +152,6 @@ CREATE TABLE tests (
 	time_limit		smallint
 );
 INSERT INTO tests (name, teacher_id, points, time_limit)
-VALUES
-    ('For Loop', 1, 5, 1),
-    ('While Loop', 1, 5, 1),
-    ('Do While Loop', 1, 5, 1);
 
 CREATE TABLE versions (
 	version_id		serial PRIMARY KEY,
@@ -174,6 +170,13 @@ CREATE TABLE submissions (
 INSERT INTO submissions (version_id)
 SELECT V.version_id
 FROM versions AS V;
+
+CREATE TABLE submissions_have_results (
+	submission_id		integer REFERENCES submissions (submission_id) ON DELETE CASCADE,
+	test_id			    integer REFERENCES tests (test_id) ON DELETE CASCADE,
+	results             text  ,
+    PRIMARY KEY (submission_id, test_id)
+);
 
 CREATE TABLE students_create_submissions (
 	student_id			integer REFERENCES students (student_id) ON DELETE CASCADE,
