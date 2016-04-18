@@ -12,7 +12,7 @@ CREATE TABLE users (
     auth        varchar(150)
 );
 INSERT INTO users (username, auth)
-VALUES 
+VALUES
     ('teststudent', '$pbkdf2-sha512$25000$vfdeay3lvLe2VirlfK/1Pg$X8Kyw9u2UHkg3R0YC5vzfM1ETAE5bak73Q8E8aswNBqYoj7IavK9pDgCT0.eVmk54oR5kBJqnCRt9PMbgrA06Q'),
     ('testta', '$pbkdf2-sha512$25000$vfdeay3lvLe2VirlfK/1Pg$X8Kyw9u2UHkg3R0YC5vzfM1ETAE5bak73Q8E8aswNBqYoj7IavK9pDgCT0.eVmk54oR5kBJqnCRt9PMbgrA06Q'),
     ('testteacher', '$pbkdf2-sha512$25000$vfdeay3lvLe2VirlfK/1Pg$X8Kyw9u2UHkg3R0YC5vzfM1ETAE5bak73Q8E8aswNBqYoj7IavK9pDgCT0.eVmk54oR5kBJqnCRt9PMbgrA06Q'),
@@ -63,7 +63,7 @@ CREATE TABLE courses (
 	year		smallint
 );
 INSERT INTO courses (dept_id, course_num, name, term, year)
-VALUES 
+VALUES
     (1,  161, 'Introduction to Computer Science I',  'winter', 2016),
     (2, 271, 'Digital Logic Design',                'spring', 2016),
     (1,  480, 'Translators',                         'winter', 2016);
@@ -74,7 +74,7 @@ CREATE TABLE students_take_courses (
 	PRIMARY KEY (student_id, course_id)
 );
 INSERT INTO students_take_courses (student_id, course_id)
-SELECT S.student_id, C.course_id 
+SELECT S.student_id, C.course_id
 FROM students AS S, courses AS C
 LIMIT 2;
 
@@ -84,7 +84,7 @@ CREATE TABLE tas_assist_in_courses (
 	PRIMARY KEY (ta_id, course_id)
 );
 INSERT INTO tas_assist_in_courses (ta_id, course_id)
-SELECT T.ta_id, C.course_id 
+SELECT T.ta_id, C.course_id
 FROM courses AS C, tas AS T
 LIMIT 2;
 
@@ -95,7 +95,7 @@ CREATE TABLE tas_assigned_students (
 	PRIMARY KEY (ta_id, student_id, course_id)
 );
 INSERT INTO tas_assigned_students (ta_id, student_id, course_id)
-SELECT T.ta_id, S.student_id, S.course_id 
+SELECT T.ta_id, S.student_id, S.course_id
 FROM students_take_courses AS S, tas AS T
 LIMIT 2;
 
@@ -105,7 +105,7 @@ CREATE TABLE teachers_teach_courses (
 	PRIMARY KEY (teacher_id, course_id)
 );
 INSERT INTO teachers_teach_courses (teacher_id, course_id)
-SELECT T.teacher_id, C.course_id 
+SELECT T.teacher_id, C.course_id
 FROM courses AS C, teachers AS T;
 
 CREATE TABLE assignments (
@@ -151,7 +151,6 @@ CREATE TABLE tests (
 	points			smallint,
 	time_limit		smallint
 );
-INSERT INTO tests (name, teacher_id, points, time_limit)
 
 CREATE TABLE versions (
 	version_id		serial PRIMARY KEY,
@@ -192,9 +191,7 @@ CREATE TABLE versions_have_tests (
 	test_id			integer REFERENCES tests (test_id) ON DELETE CASCADE,
 	PRIMARY KEY	(version_id, test_id)
 );
-INSERT INTO versions_have_tests (version_id, test_id)
-SELECT V.version_id, T.test_id
-FROM versions as V, tests as T;
+
 
 CREATE TABLE submissions_have_tests (
 	submission_id	integer REFERENCES submissions (submission_id) ON DELETE CASCADE,
@@ -202,8 +199,7 @@ CREATE TABLE submissions_have_tests (
 	result			bool,
 	PRIMARY KEY (submission_id, test_id)
 );
-INSERT INTO submissions_have_tests (submission_id, test_id, result)
-VALUES (1,1, false);
+
 
 CREATE TABLE common_errors (
 	ce_id		serial PRIMARY KEY,
@@ -211,8 +207,6 @@ CREATE TABLE common_errors (
 	name		varchar(50),
 	text		varchar(150)
 );
-INSERT INTO common_errors (teacher_id, name, text)
-VALUES (1, 'Baka', 'You failed!');
 
 CREATE TABLE tests_have_common_errors (
 	test_id			integer REFERENCES tests (test_id) ON DELETE CASCADE,
