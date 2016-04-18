@@ -1,5 +1,6 @@
 import operator
 import json
+import sys
 
 class test_suite:
     def __init__(self):
@@ -7,7 +8,17 @@ class test_suite:
         self.testsRemain = 0
         self.TAPstring = ''
         self.weightTotal = 0
-        self.jsonRet = json.loads('{"TAP":"","Tests":[],"Errors":[]}')
+        self.weightAcc = 0
+        self.jsonRet = json.loads('{"TAP":"","Tests":[],"Errors":[],"Grade":""}')
+        self.__dict__ = {}
+        self._connectVars = ''
+        self.testID = 0
+        self._connectVars = sys.argv[1]
+        self.sub_ID = sys.argv[2]
+        self.test_ID = sys.argv[3]
+        sys.argv[1] = "You shouldn't be looking at this."
+        sys.argv[2] = 0
+        sys.argv[3] = 0
         
     #Helper functions
     def ok(self,message,weight):
@@ -35,13 +46,23 @@ class test_suite:
           print('# More tests declared than executed!')
           self.jsonRet['Errors'].append("More tests declared than executed.")
       self.jsonRet['TAP'] = self.TAPstring
-      json.dumps(self.jsonRet)
+      self.jsonRet['Grade'] = self.weightAcc/self.weightTotal
+      conn = psycopg2.connect(self._connectVars, cursor_factory= psycopg2.extras.RealDictCursor)
+      conn.autocommit = True
+      cur = conn.cursor()
+      cur.execute("""
+                        INSERT INTO submissions_have_results (submission_id, test_id, results)
+                        VALUES (%s, %s, %s)
+                        """, (self.sub_ID, self.test_ID, json.dumps(self.jsonRet))
+                        )
+      cur.close()
       
     #Testing functions
     def assert_equals(self,actual,expected,message,weight=0):
         self.weightTotal += weight
         if(operator.eq(actual,expected)):
             self.ok(message,weight)
+            self.weightAcc += weight
         else:
             self.notok(message,weight)
             
@@ -49,6 +70,7 @@ class test_suite:
         self.weightTotal += weight
         if(operator.ne(actual,unexpected)):
             self.ok(message,weight)
+            self.weightAcc += weight
         else:
             self.notok(message,weight)
             
@@ -59,11 +81,13 @@ class test_suite:
             self.notok(message,weight)
         except:
             self.ok(message,weight)
+            self.weightAcc += weight
             
     def expect(self,passed,message,weight=0):
         self.weightTotal += weight
         if(passed):
             self.ok(message,weight)
+            self.weightAcc += weight
         else:
             self.notok(message,weight)
             
