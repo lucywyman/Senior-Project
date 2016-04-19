@@ -23,7 +23,7 @@ from sys import platform, exit
 from passlib.hash import pbkdf2_sha512
 import ssl
 import queue
-
+import rest_extend
 
 
 # private file with HTTP response codes
@@ -1426,9 +1426,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             if authorization[0].lower() == "basic":
                 try:
                     authorization = authorization[1].encode('ascii')
-                    authorization = base64.decodebytes(
-                            authorization
-                        ).decode('ascii')
+                    authorization = base64.decodebytes(authorization).decode('ascii')
                 except (binascii.Error, UnicodeError):
                     self.logger.debug(
                         'AuthError: Unable to decode auth string'
@@ -1527,6 +1525,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
     def submit(self, id):
     
         herald(self.server.q,id)
+        return 0
 
     ##  s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     ##  try:
@@ -1805,7 +1804,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
 class ThreadingHTTPServer(ThreadingMixIn, http.server.HTTPServer):
     def __init__(self,server_address,HandlerClass,q):
-        super(ThreadingHTTPServer, self).__init__(server_address,HandleClass)
+        super(ThreadingHTTPServer, self).__init__(server_address,HandlerClass)
         self.q = q
 
 # http.server.test is an internal http.server function
@@ -1823,12 +1822,19 @@ def test(
 
     """
     server_address = (bind, port)
-    
+    # conf option later!
+    cvars = "dbname=postgres user=postgres password=killerkat5"
+    testerCount = 4
     #herald_init returns a q
-    q = herald_init()
+    q = rest_extend.herald_init(testerCount)
     HandlerClass.protocol_version = protocol
     httpd = ServerClass(server_address, HandlerClass,q)
-
+        
+    tthread = []
+    for i in range(testerCount):
+        tthread.append(rest_extend.testerThread(i,q,cvars))
+        tthread[i].daemon = True
+        tthread[i].start()
     # add ssl
     httpd.socket = ssl.wrap_socket(
         httpd.socket,
