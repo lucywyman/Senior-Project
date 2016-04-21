@@ -1899,7 +1899,6 @@ def custom_init():
             password = config['Database']['password']
             )
         )
-    print(db_conn)
 
     global conn
     conn = psycopg2.connect(
