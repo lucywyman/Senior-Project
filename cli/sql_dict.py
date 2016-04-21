@@ -1,5 +1,4 @@
 sql = {
-    "basedir": '/auto/log/',
     "assignment": {
         "view": {
 
