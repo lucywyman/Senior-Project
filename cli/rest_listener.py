@@ -24,27 +24,11 @@ from passlib.hash import pbkdf2_sha512
 import ssl
 import queue
 import rest_extend
+import configparser
 
 
 # private file with HTTP response codes
 from HTTPStatus import HTTPStatus
-
-# Connect to an existing database
-conn = psycopg2.connect(
-    "dbname=postgres "
-    "user=postgres "
-    "password=killerkat5",
-    cursor_factory= psycopg2.extras.RealDictCursor
-    )
-conn.autocommit = True
-
-logLevel = logging.WARNING
-
-PORT = 8000
-SERVER = 'localhost'
-
-# ensure that file directory exists
-os.makedirs(os.path.normpath(sql['basedir']), exist_ok=True)
 
 class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
@@ -1523,7 +1507,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
 
     def submit(self, id):
-    
+
         herald(self.server.q,id)
         return 0
 
@@ -1829,7 +1813,7 @@ def test(
     q = rest_extend.herald_init(testerCount)
     HandlerClass.protocol_version = protocol
     httpd = ServerClass(server_address, HandlerClass,q)
-        
+
     tthread = []
     for i in range(testerCount):
         tthread.append(rest_extend.testerThread(i,q,cvars))
@@ -1856,8 +1840,43 @@ def test(
         httpd.server_close()
         exit(0)
 
+def init():
+
+    global config = configparser.ConfigParser()
+    config.read('general.cfg')
+
+    # Connect to an existing database
+    global db_conn = (
+        "host={host} "
+        "port={port} "
+        "dbname={dbname} "
+        "user={user} "
+        "password={password} "
+        .format(
+            host     = config['Database']['host'],
+            port     = config['Database']['port'],
+            dbname   = config['Database']['dbname'],
+            user     = config['Database']['user'],
+            password = config['Database']['password']
+            )
+        )
+
+    global conn = psycopg2.connect(
+        db_conn,
+        cursor_factory = psycopg2.extras.RealDictCursor
+        )
+    conn.autocommit = True
+
+    global logLevel = logging.WARNING
+
+
+    # ensure that file directory exists
+    os.makedirs(os.path.normpath(sql['basedir']), exist_ok=True)
+
 
 if __name__ == '__main__':
+
+    init()
 
     handler = RESTfulHandler
 
