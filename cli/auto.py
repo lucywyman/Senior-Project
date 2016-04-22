@@ -267,7 +267,7 @@ class AutoShell(cmd.Cmd):
                         return None
 
                     try:
-                        ret = t.get(.01)
+                        ret = async_req.get(.01)
                     except TimeoutError:
                         pass
                     else:
@@ -283,7 +283,7 @@ class AutoShell(cmd.Cmd):
                         )
 
         else:
-            if subcommand in ['add', 'update', 'link'] or command=='login':
+            if subcommand in ['add', 'update', 'link', 'unlink'] or command=='login':
                 self.logger.debug("POSTing w/o file")
                 try:
                     # send POST request to server
@@ -760,7 +760,7 @@ class AutoShell(cmd.Cmd):
 
         self.logger.debug("POSTing Submission")
         try:
-            r = requests.post(url, files=files, data=data, verify=self.CA_BUNDLE)
+            r = requests.post(url, files=files, data=data, auth=self.auth, verify=self.CA_BUNDLE)
         except requests.ConnectionError as e:
             self.logger.warning(
                 'ConnectionError: {0}'.format(e.response)

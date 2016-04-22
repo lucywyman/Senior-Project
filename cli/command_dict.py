@@ -795,6 +795,40 @@ commands = {
             "confirmation": "Deleting this test will permanenty remove the test and associated file from the database.",
 
             },
+
+        "link":   {
+            "access":   {
+                "teacher":  True,
+                "ta":       False,
+                "student":  False,
+                },
+
+            "required": ['test-id', 'assignment-id'],
+
+            "required2": [],
+
+            "optional": [],
+
+            "help":     "Link test to assignment. If the assignment already has submissions, a new version with the test will be created, otherwise the test will be linked to the most recent version.",
+
+            },
+
+        "unlink":   {
+            "access":   {
+                "teacher":  True,
+                "ta":       False,
+                "student":  False,
+                },
+
+            "required": ['test-id', 'assignment-id'],
+
+            "required2": [],
+
+            "optional": [],
+
+            "help":     "Attempts to unlink test from assignment. If the assignment already has submissions, a new version with the test removed will be created, otherwise the test will be unlinked from the most recent version.",
+
+            },
         },
 
     # "command": {

@@ -1,5 +1,5 @@
 sql = {
-    "basedir": 'c:/Senior/cli/logs/',
+    "basedir": '/auto/log/',
     "assignment": {
         "view": {
 

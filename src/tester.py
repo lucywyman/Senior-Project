@@ -1,42 +1,115 @@
-#!/usr/local/bin/python3.2
+#! /usr/bin/python3.4
+
 import socket
 import select
 import sys
 import subprocess
+import signal
 import time
 import json
 import shutil
 import stat
 import string
 import os
+import psycopg2
+import psycopg2.extras
+
+basedir = 'c:/Senior/cli/logs/'
+
+# Connect to an existing database
+conn = psycopg2.connect("dbname=postgres user=postgres password=killerkat5", cursor_factory= psycopg2.extras.RealDictCursor)
+conn.autocommit = True
 
 def query(id):
-    # Nathan, I think we should work on this part together
-    return {'subFile':'test/dummy.py','testFile':'test/test.py'}
+
+    # create cursor for querying db
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT
+            tests.test_id, tests.name, tests.time_limit,
+            submissions.submission_id, versions_have_tests.version_id,
+            versions.assignment_id
+        FROM tests
+        INNER JOIN versions_have_tests
+        ON versions_have_tests.test_id=tests.test_id
+        INNER JOIN submissions
+        ON submissions.version_id=versions_have_tests.version_id
+        INNER JOIN versions
+        ON versions.version_id=submissions.version_id
+        WHERE submission_id=%s
+        """, (id,)
+        )
+
+    tests = cur.fetchall()
+
+    cur.close()
+
+
+    for test in tests:
+        testpath = os.path.normpath( basedir + 'tests/{}'.format(int(test['test_id'])))
+        subpath = os.path.normpath(
+            basedir +
+            'submission/{0}/{1}/'
+            .format(
+                int(test['assignment_id']),
+                int(test['submission_id'])
+                )
+            )
+        for file in os.listdir(testpath):
+            test['testFile'] = os.path.normpath(testpath + '/' + file)
+            break;
+        for file in os.listdir(subpath):
+            test['subFile'] = os.path.normpath(subpath + '/' + file)
+            break;
+
+    print(tests)
+
+    return tests
 
 def runProtected(files,sub_ID):
-    #will need to be changed when we run it on the vm
-    shutil.copy(files['subFile'],'tester0User')
-    shutil.copy(files['testFile'],'tester0User')
-    shutil.copy('interfaces/py_test_osu.py','tester0User')
-    os.chdir('tester0User')
-    os.chmod(files['subFile'].split('/')[-1],0o0550)
-    os.chmod(files['testFile'].split('/')[-1],0o6550)
-    os.chmod('py_test_osu.py',0o0440)
-    subprocess.call('./test.py',stdout=open('tapresult - ' + str(sub_ID) + '.txt','w'),shell=True)
-    shutil.copy('tapresult - ' + str(sub_ID) + '.txt','../results')
-    os.unlink(files['subFile'].split('/')[-1])
-    os.unlink(files['testFile'].split('/')[-1])
+
+    resultpath = os.path.normpath(
+            basedir +
+            'submission/{0}/{1}/results'
+            .format(
+                int(files['assignment_id']),
+                int(files['submission_id'])
+                )
+            )
+
+    if not os.path.exists(resultpath):
+        os.makedirs(resultpath)
+
+    if not os.path.exists('tester0User'):
+        os.makedirs('tester0User')
+
+
+    shutil.copy(files['subFile'],os.path.normpath('./tester0User/'))
+    shutil.copy(files['testFile'],os.path.normpath('./tester0User/'))
+    shutil.copy(os.path.normpath('interfaces/py_test_osu.py'),os.path.normpath('./tester0User/'))
+    os.chdir(os.path.normpath('./tester0User/'))
+    os.chmod(os.path.split(files['subFile'])[-1],0o0777)
+    os.chmod(os.path.split(files['testFile'])[-1],0o0777)
+    os.chmod(os.path.normpath('./py_test_osu.py'),0o0777)
+    # TODO change from submission id to test-id. Output already in specific submission folder
+    # test id more useful
+    result = subprocess.check_output(["su","tester"+str(sys.argv[1])+"user","-c",os.path.normpath('./test.py')],timeout=5,shell=True)
+    os.unlink(os.path.split(files['subFile'])[-1])
+    os.unlink(os.path.split(files['testFile'])[-1])
     os.unlink('py_test_osu.py')
-    os.unlink('tapresult - ' + str(sub_ID) + '.txt')
     os.chdir('..')
+    return result
+
 id = sys.argv[1]
-c = socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);
-k = socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);
-r = socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);
-c.bind("\0recvPort" + id)
-print("Bound listen port \0recvPort" + id)
-k.bind("\0killPort" + id)
+c = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+k = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+r = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+#c.bind("\0recvPort" + id)
+c.bind(('127.0.0.1', 6000 + int(id)))
+print("Bound listen port {0}".format(6000 + int(id)))
+#k.bind("\0killPort" + id)
+k.bind(('127.0.0.1', 7000 + int(id)))
 c.listen(1)
 k.listen(1)
 while 1:
@@ -48,13 +121,21 @@ while 1:
             msg = h.recv(256)
             h.close()
             dmsg = msg.decode()
+            print(dmsg)
             sub_ID = json.loads(dmsg)["sub_ID"]
             files = query(sub_ID)
-            
-            runProtected(files,sub_ID)
-            o = socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);
-            o.connect('\0rePort')
-            o.send(msg)
+            res = json.loads('{"Results":[]}')
+            for row in files:
+                try:
+                    #I'd like to switch Results to an object, and add
+                    #key/value pairs with testID:result
+                    res['Results'].append(runProtected(row,sub_ID))
+                except Exception as e:
+                    print(e)
+                    raise
+            o = socket.socket(socket.AF_INET,socket.SOCK_STREAM);
+            o.connect(('127.0.0.1', 9002))      #'\0rePort')
+            o.send(json.dumps(res).encode())
             o.close()
         #kill branch
         elif avail is k:
@@ -62,5 +143,5 @@ while 1:
             remv = k.accept()[0]
             k.close()
             exit()
-            
-            
+
+
