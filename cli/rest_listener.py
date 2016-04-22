@@ -24,27 +24,11 @@ from passlib.hash import pbkdf2_sha512
 import ssl
 import queue
 import rest_extend
+import configparser
 
 
 # private file with HTTP response codes
 from HTTPStatus import HTTPStatus
-
-# Connect to an existing database
-conn = psycopg2.connect(
-    "dbname=postgres "
-    "user=postgres "
-    "password=killerkat5",
-    cursor_factory= psycopg2.extras.RealDictCursor
-    )
-conn.autocommit = True
-
-logLevel = logging.WARNING
-
-PORT = 8000
-SERVER = 'localhost'
-
-# ensure that file directory exists
-os.makedirs(os.path.normpath(sql['basedir']), exist_ok=True)
 
 class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
@@ -791,20 +775,12 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 fn = os.path.basename(fileitem.filename)
                 cur.execute(query, data)
                 ret = cur.fetchone()['submission_id']
-                self.logger.debug(ret)
-                fpath = (
-                    sql['basedir'] +
-                    'submission/{0}/{1}/{2}'
-                    .format(
-                        aid,
-                        ret,
-                        fn
-                        )
+
+                delpath, fpath, temppath = self.get_path(
+                    ret, fn, uid, aid
                     )
-                fpath = os.path.normpath(fpath)
-                self.logger.debug("fpath: " + fpath)
-                os.makedirs(os.path.dirname(fpath), exist_ok=True)
-                move(os.path.normpath(sql['basedir'] + fn), fpath)
+
+                move(temppath, fpath)
 
                 # call tester
                 if self.submit(ret):
@@ -823,11 +799,12 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
                 # Move test file to appropriate location
                 fn = os.path.basename(fileitem.filename)
-                fpath = sql['basedir'] + 'tests/{0}/{1}'.format(ret, fn)
-                fpath = os.path.normpath(fpath)
-                self.logger.debug("fpath: " + fpath)
-                os.makedirs(os.path.dirname(fpath), exist_ok=True)
-                move(os.path.normpath(sql['basedir'] + fn), fpath)
+
+                delpath, fpath, temppath = self.get_path(
+                    ret, fn, uid
+                    )
+
+                move(temppath, fpath)
 
                 # if assignment-id was set, link new test to that assignment
                 if aid:
@@ -999,19 +976,19 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 fn = os.path.basename(fileitem.filename)
                 ret = data[idkey]
 
-                self.logger.debug(ret)
-                fpath = sql['basedir'] + 'tests/{0}/{1}/'.format(ret, fn)
-                fpath = os.path.normpath(fpath)
-                self.logger.debug("fpath: " + fpath)
-                os.makedirs(os.path.dirname(fpath), exist_ok=True)
+                delpath, fpath, temppath = self.get_path(
+                    ret, fn, uid
+                    )
 
                 # Clear test directory before uploading new file
-                delpath = sql['basedir'] + 'tests/{0}/'.format(ret)
                 flist = [x for x in os.listdir(delpath)]
                 for file in flist:
-                    os.remove(os.path.normpath(delpath + file))
+                    os.remove(os.path.normpath(
+                        os.path.join(delpath, file)
+                        )
+                    )
 
-                move(os.path.normpath(sql['basedir'] + fn), fpath)
+                move(temppath, fpath)
 
             print(query)
             print(data)
@@ -1165,19 +1142,19 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     pass
 
                 ret = data['test-id']
-                delpath = sql['basedir'] + 'tests/{0}/'.format(ret)
+                delpath, fpath, temppath = self.get_path(
+                    ret, '', uid
+                    )
 
                 if sym_safe:
-                    rmtree(os.path.normpath(delpath))
+                    rmtree(delpath)
 
                 else:
                     self.logger.warning(
                         "Test path '{0}' could not be automatically"
                         " deleted because system does not support"
                         " symlink attack protection."
-                        .format(
-                            os.path.normpath(delpath)
-                            )
+                        .format(delpath)
                         )
 
             self.logger.info(query)
@@ -1203,7 +1180,6 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             path = path[1:]
 
         return path
-
 
     def favicon_check(self, path):
         if len(path)==1 and path[0]=='favicon.ico':
@@ -1336,10 +1312,15 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         # Test if the file was uploaded
         if fileitem is not None and fileitem.filename:
             fn = os.path.basename(fileitem.filename)
-            with open(os.path.normpath(sql['basedir'] + fn), 'wb') as f:
+
+            delpath, fpath, temppath = self.get_path(
+                    '', fn, uid
+                    )
+
+            with open(temppath, 'wb') as f:
                 f.write(fileitem.file.read())
             self.logger.debug('File "' + fn + '" saved to {0}'
-                .format(os.path.normpath(sql['basedir'] + fn))
+                .format(temppath, fn)
                 )
         else:
             # multipart/form-data should only be used when uploading
@@ -1523,7 +1504,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
 
     def submit(self, id):
-    
+
         herald(self.server.q,id)
         return 0
 
@@ -1802,6 +1783,50 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         data.pop('old-version', None)
         return data
 
+    def get_path(self, id, filename, uid, aid=None):
+
+        subpath = None
+        delpath = config['Directories']['testdir'].format(
+            test_id=id
+            )
+        fpath = config['Directories']['testdir'].format(
+            test_id=id
+            )
+        temppath = config['Directories']['tempdir'].format(
+            user_id=uid
+            )
+
+        if aid:
+            subpath = config['Directories']['subdir'].format(
+                assignment_id=aid,
+                submission_id=id
+            )
+
+        paths = [delpath, fpath, temppath, subpath]
+
+        for num, path in enumerate(paths):
+            if path:
+                paths[num] = os.path.normpath(path)
+                os.makedirs(os.path.dirname(path), exist_ok=True)
+
+        delpath, fpath, temppath, subpath = paths
+
+        fpath = os.path.join(fpath, filename)
+        temppath = os.path.join(temppath, filename)
+        if subpath:
+            subpath = os.path.join(subpath, filename)
+
+        self.logger.debug("delpath: {0}".format(delpath))
+        self.logger.debug("fpath: {0}".format(fpath))
+        self.logger.debug("temppath: {0}".format(temppath))
+        self.logger.debug("subpath: {0}".format(subpath))
+
+        if subpath:
+            return delpath, subpath, temppath
+        else:
+            return delpath, fpath, temppath
+
+
 class ThreadingHTTPServer(ThreadingMixIn, http.server.HTTPServer):
     def __init__(self,server_address,HandlerClass,q):
         super(ThreadingHTTPServer, self).__init__(server_address,HandlerClass)
@@ -1829,7 +1854,7 @@ def test(
     q = rest_extend.herald_init(testerCount)
     HandlerClass.protocol_version = protocol
     httpd = ServerClass(server_address, HandlerClass,q)
-        
+
     tthread = []
     for i in range(testerCount):
         tthread.append(rest_extend.testerThread(i,q,cvars))
@@ -1856,7 +1881,43 @@ def test(
         httpd.server_close()
         exit(0)
 
+def custom_init():
+
+    global config
+    config = configparser.ConfigParser()
+    config.read('general.cfg')
+
+    # Connect to an existing database
+    global db_conn
+    db_conn = (
+        "dbname={dbname} "
+        "user={user} "
+        "password={password}"
+        .format(
+            dbname   = config['Database']['dbname'],
+            user     = config['Database']['user'],
+            password = config['Database']['password']
+            )
+        )
+
+    global conn
+    conn = psycopg2.connect(
+        db_conn,
+        cursor_factory = psycopg2.extras.RealDictCursor
+        )
+    conn.autocommit = True
+
+    global logLevel
+    logLevel = logging.WARNING
+
+
+    # ensure that file directory exists
+    os.makedirs(os.path.normpath(config['Directories']['basedir']), exist_ok=True)
+
+
 if __name__ == '__main__':
+
+    custom_init()
 
     handler = RESTfulHandler
 
