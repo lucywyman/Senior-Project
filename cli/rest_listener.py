@@ -719,6 +719,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 data['tags'][0] = cur.fetchone()['tag_id']
             elif command == 'test':
                 table = 'tests'
+                data['teacher'] = [self.uid]
 
 
             filepath = data.pop('filepath', None)
