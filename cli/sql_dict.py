@@ -255,26 +255,37 @@ sql = {
     "test": {
         "view": {
 
-            "table":    'versions_have_tests',
+            "table":    'tests',
 
             "required": [
                 ['tests', 'test_id', 'test_id'],
                 ['tests', 'name', 'test_name'],
-                ['versions', 'version_id', 'version_id'],
-                ['assignments', 'assignment_id', 'assignment_id'],
-                ['assignments', 'course_id', 'course_id'],
-                ['assignments', 'name', 'assignment_name'],
-                ['depts', 'dept_name', 'dept_name'],
-                ['courses', 'course_num', 'course_num'],
-                ['courses', 'name', 'course_name'],
             ],
 
-            "optional": {},
+            "optional": {
+
+                ('assignment_id',): [
+                    ['versions', 'version_id', 'version_id'],
+                    ['assignments', 'assignment_id', 'assignment_id'],
+                    ['assignments', 'course_id', 'course_id'],
+                    ['assignments', 'name', 'assignment_name'],
+                    ['depts', 'dept_name', 'dept_name'],
+                    ['courses', 'course_num', 'course_num'],
+                    ['courses', 'name', 'course_name'],
+                ],
+
+                ('test_id',): [
+                    ['tests', 'teacher_id', 'teacher_id'],
+                    ['tests', 'points', 'points'],
+                    ['tests', 'time_limit', 'time_limit'],
+                ],
+
+            },
 
             "allowed": [
             ],
 
-            "view_order": ['test_id', 'test_name', 'assignment_id', 'assignment_name', 'version_id', 'course_id', 'dept_name', 'course_num', 'course_name'],
+            "view_order": ['test_id', 'test_name', 'points', 'time_limit', 'assignment_id', 'assignment_name', 'version_id', 'course_id', 'dept_name', 'course_num', 'course_name'],
 
             "sort_order": ['course_id', 'version_id', 'test_id'],
 
