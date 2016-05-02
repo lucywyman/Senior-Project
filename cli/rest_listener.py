@@ -777,14 +777,14 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 cur.execute(query, data)
                 ret = cur.fetchone()['submission_id']
 
-                delpath, fpath, temppath = self.get_path(
+                delpath, fpath, subpath = self.get_path(
                     ret, fn, self.uid, aid
                     )
 
-                move(temppath, fpath)
+                move(subpath, fpath)
 
                 # call tester
-                if self.submit(ret):
+                if self.submit(ret) == 0:
                     self.logger.debug(
                         "Submission successfully sent to tester!"
                         )
@@ -1507,7 +1507,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
     def submit(self, id):
 
-        herald(self.server.q,id)
+        rest_extend.herald(self.server.q,id)
         return 0
 
     ##  s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
