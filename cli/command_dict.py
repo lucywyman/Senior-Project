@@ -754,7 +754,7 @@ commands = {
 
             "required2": [],
 
-            "optional": ['assignment-id', 'version'],
+            "optional": ['assignment-id', 'version', 'test-id'],
 
             "help":     "View all tests [for selected assignment-id [and version number, defaults to highest if not given]]",
 
@@ -1094,7 +1094,3 @@ options = {
             "key":      "version_id",
             },
     }
-
-
-
-
