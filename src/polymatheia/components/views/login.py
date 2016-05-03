@@ -15,7 +15,9 @@ def login_user(request):
         request.session['user'] = request.POST['username']
         request.session['pw'] = request.POST['password']
         udata = (request.POST['username'], request.POST['password'])
-        login = requests.post(api_ip+'login/as/', auth=udata)
+        headers = {'content-type':'application/json'}
+        login = requests.post(api_ip+'login/as/', auth=udata, verify=False,
+                headers=headers, json={})
         if login.status_code == 200:
             l_obj = login.json()
             request.session['type'] = l_obj['auth_level']
@@ -26,4 +28,6 @@ def login_user(request):
                     RequestContext(request))
     return render_to_response('auth/login.html', RequestContext(request))
 
-
+def logout_user(request):
+    request.session.flush()
+    return render_to_response('auth/logout.html')

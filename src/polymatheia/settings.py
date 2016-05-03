@@ -124,20 +124,6 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = ['/home/lucy/githubs/Senior-Project/src/polymatheia/components/static/']
 STATIC_ROOT='collected_static'
-API_IP = 'http://0.0.0.0:8000/'
-
-# For Memcached
-'''
-CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-            'LOCATION': '127.0.0.1:11211',
-            }
-        }
-CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
-            }
-        }
-        '''
+#API_IP = 'https://vm-cs-cap-g15.eecs.oregonstate.edu/'
+API_IP = 'https://0.0.0.0/'
 SESSION_ENGINE='django.contrib.sessions.backends.signed_cookies'

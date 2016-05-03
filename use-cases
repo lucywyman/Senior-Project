@@ -1,0 +1,69 @@
+For the UI
+----------
+Assignments:
+x Teacher can add assignment
+x Teacher can view assignment
+x Student can view assignment
+TA can view assignment
+x Teacher can update assignment
+Teacher can delete assignment
+
+CE:
+Teacher can add ce
+Teacher can view ce
+Teacher can update ce
+Teacher can delete ce
+
+Courses:
+x Teacher can add course
+x Teacher can view course
+x Student can view course
+TA can view course
+x Teacher can update course
+Teacher can delete course
+
+Grades:
+Teacher can update grades
+TA can update grades
+
+Login:
+x Teacher can login
+x Student can login
+TA can login
+x Teacher can logout
+x Student can logout
+TA can logout
+Teacher can change password
+TA can change password
+Student can change password
+
+Student:
+Teacher can add student to a class
+Teacher can view student
+TA can view student
+Student can view student (?)
+Teacher can delete student
+
+Submission:
+Student can add submission
+Teacher can view submission
+TA can view submission
+Student can view submission
+Student can update submission
+
+TA:
+Teacher can add TA
+Teacher can view TA
+Teacher can delete TA
+
+Test:
+Teacher can add test
+Teacher can view test
+Teacher can update test
+Teacher can delete test
+Teacher can link test to assignment
+Teacher can unlink test to assignment
+
+To make modular:
+----------------
+* Return created page or make error

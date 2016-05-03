@@ -1,5 +1,4 @@
 <ul id='courses' class='dropdown-content'>
-	<li>{{ user }}</li>
 	{% for course in user.courses %}
 	<li><a href='{{ course.url }}'>{{ course.title }}</a></li>
 	<li class='divider'></li>
@@ -9,15 +8,14 @@
 <ul>
 <li><a href='/'>Home</a></li>
 <li><a href='/about'>About</a></li>
-{% if user.student_id %}
+{% if user %}
 <li>
 	<a class='dropdown-button' data-beloworigin="true" data-hover="true" href='/courses' data-activates='courses'>Courses<i class="material-icons">arrow_drop_down</i></a>
 </li>
 {% endif %}
-{% if user.student_id%}
+{% if user%}
 <li><a href='/logout'>Logout</a></li>
 {% else %}
-<li class='col s2'><a href='/course/create'>Add course</a></li>
 <li><a href='/login'>Login</a></li>
 <li><a href="/register">Sign up</a></li>
 {% endif %}

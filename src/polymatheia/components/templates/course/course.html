@@ -1,9 +1,15 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>{{ course.name }}</h2>
-{% if user.type == 'teacher' %}
-<a class='btn' href='courses/{{ course.course_id }}/edit'>Edit Course</a>
+<h2>{{ course.dept }} {{ course.num }} {{ course.name }}</h2>
+<h4>{{ course.term }} {{ course.year }}</h4>
+{% if user.teacher %}
+<a class='btn' href='/course/edit/{{ course.course_id }}'>
+	<i class='material-icons'>edit</i> course</a>
+<a class='btn' href='/assignment/create'>
+	<i class='material-icons'>add</i> assignment</a>
+<a class='btn' href='/ta/create'>
+	<i class='material-icons'>add</i> ta</a>
 {% endif %}
 <table class='course-table border highlight responsive'>
 	<tr class='course-header'>
@@ -12,12 +18,15 @@
 	{% for assign in upcoming %}
 	<tr>
 		<td>
-			<a href='/assignment/{{ assign.assign_id }}'>{{ assign.name }}</a>
+			<a href='/assignment/{{ assign.assignment_id }}'>{{ assign.name }}</a>
 			<br><strong>Due on: {{ assign.end }}</strong><br>
-			<a class='btn' href='/course/{{ course.course_id }}/{{ assign.assignment_id }}/submit'>Submit Assignment</a>
-			{# else if user.type == 'teacher' or user.type=='ta' and n < assign.due #}
-			<a href='{{ course.course_id }}/'></a>
-				{# endif #}
+			{% if user.student %}
+			<a class='btn' href='/assignment/submit/{{ assign.assignment_id }}'>
+				Submit Assignment</a>
+			{% elif user.teacher %}
+			<a class='btn' href='/assignment/edit/{{ assign.assignment_id }}'>
+				<i class='material-icons'>edit</i> assignment</a>
+			{% endif %}
 		</td>
 	</tr>
 	{% endfor %}
@@ -30,10 +39,14 @@
 	<tr>
 		<td>
 			<a href='/assignment/{{ assign.assignment_id }}'>{{ assign.name }}</a>
-			<br><strong>Due on: {{ assign.end_date }}</strong><br>
-			{# else if user.type == 'teacher' or user.type=='ta' and n < assign.due #}
-			<a href='{{ course.course_id }}/'></a>
-				{# endif #}
+			<br><strong>Due on: {{ assign.end }}</strong><br>
+			{% if user.student and assign.late %}
+			<a class='btn' href='/assignment/submit/{{ assign.assignment_id }}'>
+				Submit Assignment</a>
+			{% elif user.teacher %}
+			<a class='btn' href='/assignment/edit/{{ assign.assignment_id }}'>
+				<i class='material-icons'>edit</i> assignment</a>
+			{% endif %}
 		</td>
 	</tr>
 	{% endfor %}

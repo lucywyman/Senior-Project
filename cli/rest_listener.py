@@ -1848,7 +1848,7 @@ def test(
     """
     server_address = (bind, port)
     # conf option later!
-    cvars = "dbname=postgres user=postgres password=killerkat5"
+    cvars = "dbname=postgres user=pguser password=pguser"
     testerCount = 4
     #herald_init returns a q
     q = rest_extend.herald_init(testerCount)
@@ -1947,7 +1947,7 @@ if __name__ == '__main__':
 
     # http.server.test is an internal http.server function
     # https://hg.python.org/cpython/file/3.4/Lib/http/server.py
-    http.server.test(
+    test(
         HandlerClass=handler,
         ServerClass=ThreadingHTTPServer,
         port=args.port,

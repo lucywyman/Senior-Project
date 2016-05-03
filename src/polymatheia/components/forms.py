@@ -8,8 +8,8 @@ TERMS = (
         )
 
 DEPTS = (
-        ('CS', 'Computer Science'),
-        ('ECE', 'Electrical Computer Engineering')
+        ('cs', 'Computer Science'),
+        ('ece', 'Electrical Computer Engineering')
         )
 
 TYPES = (
@@ -34,7 +34,7 @@ class User(forms.Form):
             widget=forms.PasswordInput)
 
 class Course(forms.Form):
-    course_num = forms.IntegerField(label='CRN', required=True)
+    num = forms.IntegerField(label='CRN', required=True)
     name = forms.CharField(max_length=255, label='Course name', required=True)
     term = forms.ChoiceField(choices=TERMS)
     year = forms.DateField()
@@ -43,21 +43,25 @@ class Course(forms.Form):
 class Assignment(forms.Form):
     name = forms.CharField(label='Assignment name', max_length=255, 
             required=True)
-    course_id = forms.CharField(max_length=255, required=True)
-    #begin = forms.DateTimeField(label='Beginning date (MM/DD/YYYY HH:MM:SS)', 
-    #end = forms.DateTimeField(label='Due date (MM/DD/YYYY HH:MM:SS)', 
-    #instructions = forms.CharField
+    begin = forms.DateTimeField(label='Beginning date (MM/DD/YY HH:MM:SS)', 
+            required=True)
+    end = forms.DateTimeField(label='Due date (MM/DD/YY HH:MM:SS)', 
+        required=True)
+    instructions = forms.CharField
     limit = forms.IntegerField
     level = forms.ChoiceField(choices=FEEDBACK)
     #late = forms.BooleanField(required=True)
 
 class Test(forms.Form):
-    test_case = forms.IntegerField(required=True, label='Test name')
+    name = forms.CharField(required=True, label='Test name')
     points = forms.IntegerField(required=True)
-    time_limit = forms.IntegerField(required=True)
-    assignment = forms.CharField(max_length=255, required=True)
-    result = forms.BooleanField(required=True)
+    time = forms.IntegerField(required=True)
+    filepath = forms.FileField(required=True)
 
 class Submission(forms.Form):
     sfile = forms.FileField(required=True)
     comments = forms.CharField(required=True)
+
+class TA(forms.Form):
+    ta = forms.CharField(label='TA Name', max_length=255,
+            required=True)

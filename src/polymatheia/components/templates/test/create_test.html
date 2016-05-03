@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Create a Test</h2>
+<h4 class='error'>{{ error }}</h4>
+<form action="/test/create" method="post"  enctype="multipart/form-data">
+	{% csrf_token %}
+	{{ form.as_table }}   
+	<br>
+	<label for='assignment-id'>Assignment name:</label>
+	<select id='assignment-id' name='assignment-id'>
+		{% for assign in assignments %}
+		<option value="{{ assign.assignment_id }}">
+		{{ assign.name }} ({{ assign.term }} {{ assign.year }})
+		</option>
+		{% endfor %}
+	</select>
+	<input class='btn' type="submit" value="Create" />
+</form>
+{% endblock %}

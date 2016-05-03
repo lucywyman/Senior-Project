@@ -4,6 +4,7 @@ from django.conf import settings
 from django.template import RequestContext
 from django.core.context_processors import csrf
 from polymatheia.components.forms import *
+from polymatheia.components.views.common import *
 import json, requests, urlparse
 from datetime import datetime
 
@@ -16,45 +17,59 @@ def create_assignment(request):
         obj = {}
         for i in request.POST:
             if i != 'csrfmiddlewaretoken':
-                if i == 'course_id':
-                    obj['course-id'] = [request.POST[i]]
-                else:
-                    obj[i] = [request.POST[i]]
+                obj[i] = [request.POST[i]]
         a_obj = requests.post(api_ip+'assignment/add', json=obj,
-                auth=udata)
+                auth=udata, verify=False)
         if a_obj.status_code == 200:
-            return render_to_response('assignment/created.html')
+            return render_to_response('edited.html', {'name':'Assignment', 
+                'action':'created'})
         else:
-            error = a_obj.status_code + " error. Please try again."
+            error = str(a_obj.status_code) + " error. Please try again."
+    courses = get_courses(request) 
     form = Assignment()
     return render_to_response('assignment/create_assignment.html', 
-            {'form':form, 'error':error}, RequestContext(request))
-
-def created_assignment(request):
-    return render_to_response('assignment/created.html')
+            {'form':form, 'error':error, 'courses':courses}, 
+            RequestContext(request))
 
 def assignment(request):
     udata = (request.session.get('user'), request.session.get('pw'))
     if request.method == 'POST':
         a_obj = requests.post(api_ip+'assignment/submit', json=request.POST,
-                auth=udata)
+                auth=udata, verify=False)
         return HttpResponseRedirect('/assignment/submitted')
+    user = get_courses(request)
     assign_id = request.path[12:]
     assignment_data = {'assignment-id':[assign_id]}
     a_obj = requests.get(api_ip+'assignment/view', json=assignment_data,
-            auth=udata)
+            auth=udata, verify=False)
     assign = (a_obj.json() if a_obj.status_code == 200 else [])
+    assign = assign[0]
     form = Submission()
     return render_to_response('assignment/assignment.html', 
-            {'assignment':assign, 'form':form})
+            {'assignment':assign, 'form':form, 'user':user[0]})
 
 def edit_assignment(request):
-    if request.method == 'POST':
-        a_obj = requests.post(api_ip + 'assignment/add', json=request.POST)
-        return HttpResponseRedirect('/assignment/edited')
+    if not check_auth:
+        return HttpResponseRedirect('/login')
+    udata = (request.session.get('user'), request.session.get('pw'))
+    error = ''
     assign_id = request.path[17:] 
     assignment_data = {'assignment-id':[assign_id]}
-    a_obj = requests.get(api_ip+'assignment/view', json=assignment_data)
+    if request.method == 'POST':
+        obj = {}
+        for i in request.POST:
+            if i != 'csrfmiddlewaretoken':
+                obj[i] = [request.POST[i]]
+        obj['assignment-id'] = assign_id
+        a_obj = requests.post(api_ip+'assignment/update', json=obj,
+                auth=udata, verify=False)
+        if a_obj.status_code == 200:
+            return render_to_response('assignment/updated.html')
+        else:
+            error = str(a_obj.status_code) + " error. Please try again."
+    courses = get_courses(request)
+    a_obj = requests.get(api_ip+'assignment/view', json=assignment_data, 
+            auth=udata, verify=False)
     a = a_obj.json()
     a = a[0]
     ## Format data for form population
@@ -62,9 +77,17 @@ def edit_assignment(request):
     end_time = datetime.strptime(a['end_date'], '%m/%d/%y %H:%M:%S')
     level = FEEDBACK[a['feedback_level']-1][1]
     form = Assignment(initial={'name':a['name'], 
-        #'begin_date':begin_time,
-        #'end_date':end_time,
-        #'submission_limit':a['submission_limit'],
+            'begin_date':begin_time,
+            'end_date':end_time,
+            'submission_limit':a['submission_limit'],
             'feedback_level':level})
     return render_to_response('assignment/edit_assignment.html', 
-            {'assignment':a,'form':form}, RequestContext(request))
+            {'assignment':a,'form':form,'error':error,'courses':courses}, 
+            RequestContext(request))
+
+def delete_assignment(request):
+    if not check_auth:
+        return HttpResponseRedirect('/login')
+    udata = (request.session.get('user'), request.session.get('pw'))
+    error = ''
+    assign_id = request.path[21:]

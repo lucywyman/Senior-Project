@@ -6,6 +6,12 @@
 <form action="/assignment/create" method="post">
 	{% csrf_token %}
 	{{ form.as_table }}   
+	<label for='course-id'>Course name:</label>
+	<select id='course-id' name="course-id">
+		{% for course in courses %}
+		<option value="{{ course.course_id }}">{{ course.dept}} {{ course.num }}{{ course.name }} ({{ course.term }} {{ course.year }})</option>
+		{% endfor %}
+	</select>
 	<input class='btn' type="submit" value="Create" />
 </form>
 {% endblock %}

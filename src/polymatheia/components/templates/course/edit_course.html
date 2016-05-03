@@ -2,10 +2,9 @@
 
 {% block content %}
 <h2>Edit {{ course.name }}</h2>
-<form action="/course/edit/" method="post">
+<form action="/course/edit/{{ course.course_id }}" method="post">
 	{% csrf_token %}
-	{{ form }}
-	<br>
+	{{ form.as_table }}
 	<input class='btn' type="submit" value="Submit" />
 </form>
 {% endblock %}

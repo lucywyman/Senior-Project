@@ -3,16 +3,22 @@
 {% block content %}
 <h2>{{ assignment.name }}</h2>
 <h4>Due on: {{ assignment.end_date }}</h4>
-{% if user.type == 'teacher' %}
-<a class='btn' href='assignments/create'>Create Assignment</a>
+{% if user.teacher %}
+<a class='btn' href='assignment/create' alt='Create assignment'>
+	<i class='material-icons'>add</i></a>
+<a class='btn' href='assignment/edit/{{ assignment.assignment_id }}' alt='Edit assignment'>
+	<i class='material-icons'>create</i></a>
+<a class='btn' href='assignment/delete/{{ assignment.assignment_id }}' alt='Delete assignment'>
+	<i class='material-icons'>delete</i></a>
 {% endif %}
 <p>Assigned on: {{ assignment.begin_date }}</p>
 <p>Submission limit: {{ assignment.submission_limit }}</p>
-<!--<p>{{ assign.instructions }}</p>-->
+{% if user.student %}
 <form action="/assignment/submit" method="post">
 	{% csrf_token %}
 	{{ form.as_table }}   
 	<input class='btn' type="submit" value="Submit" />
 </form>
+{% endif %}
 
 {% endblock %}
