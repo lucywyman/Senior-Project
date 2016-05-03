@@ -76,13 +76,13 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         # create cursor for querying db
         cur = conn.cursor()
 
-        uid = self.basic_auth()
+        self.uid = self.basic_auth()
         # end response if authorization failed
-        if not uid:
+        if not self.uid:
             self.logger.info("END")
             return
 
-        auth_level = self.get_auth_level(uid)
+        auth_level = self.get_auth_level(self.uid)
         # end response if unable to determine level
         if not auth_level:
             self.logger.info("END")
@@ -490,13 +490,13 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         # create cursor for querying db
         cur = conn.cursor()
 
-        uid = self.basic_auth()
+        self.uid = self.basic_auth()
         # end response if authorization failed
-        if not uid:
+        if not self.uid:
             self.logger.info("END")
             return
 
-        auth_level = self.get_auth_level(uid)
+        auth_level = self.get_auth_level(self.uid)
         # end response if unable to determine level
         if not auth_level:
             self.logger.info("END")
@@ -512,7 +512,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             # auth_level
             if subcommand=='as':
 
-                self.logged_in(data, uid, auth_level)
+                self.logged_in(data, self.uid, auth_level)
 
                 self.logger.info("END")
                 return
@@ -528,7 +528,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                         UPDATE users
                         SET auth=%s
                         WHERE user_id=%s
-                        """, (hash, uid)
+                        """, (hash, self.uid)
                         )
                 except:
                     self.send_error(
@@ -538,7 +538,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                         )
                     raise
                 else:
-                    self.logged_in(data, uid, auth_level)
+                    self.logged_in(data, self.uid, auth_level)
 
                 self.logger.info("END")
                 return
@@ -719,6 +719,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 data['tags'][0] = cur.fetchone()['tag_id']
             elif command == 'test':
                 table = 'tests'
+                data['teacher'] = [self.uid]
 
 
             filepath = data.pop('filepath', None)
@@ -776,14 +777,14 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 cur.execute(query, data)
                 ret = cur.fetchone()['submission_id']
 
-                delpath, fpath, temppath = self.get_path(
-                    ret, fn, uid, aid
+                delpath, fpath, subpath = self.get_path(
+                    ret, fn, self.uid, aid
                     )
 
-                move(temppath, fpath)
+                move(subpath, fpath)
 
                 # call tester
-                if self.submit(ret):
+                if self.submit(ret) == 0:
                     self.logger.debug(
                         "Submission successfully sent to tester!"
                         )
@@ -801,7 +802,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 fn = os.path.basename(fileitem.filename)
 
                 delpath, fpath, temppath = self.get_path(
-                    ret, fn, uid
+                    ret, fn, self.uid
                     )
 
                 move(temppath, fpath)
@@ -809,6 +810,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 # if assignment-id was set, link new test to that assignment
                 if aid:
                     data['assignment-id'] = [aid]
+                    data['test-id'] = [ret]
                     self.test_link('test', 'link', data)
 
                     if data == None:
@@ -828,7 +830,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 cur.execute("""
                     INSERT INTO teachers_teach_courses (teacher_id, course_id)
                     VALUES (%s, %s)
-                    """, (uid, ret)
+                    """, (self.uid, ret)
                     )
 
             elif command == 'assignment':
@@ -843,7 +845,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     UPDATE assignments
                     SET teacher_id=%s
                     WHERE assignment_id=%s
-                    """, (uid, ret)
+                    """, (self.uid, ret)
                     )
 
                 # create first version of assignment
@@ -865,7 +867,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     UPDATE common_errors
                     SET teacher_id=%s
                     WHERE ce_id=%s
-                    """, (uid, ret)
+                    """, (self.uid, ret)
                     )
             else:
                 try:
@@ -977,7 +979,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 ret = data[idkey]
 
                 delpath, fpath, temppath = self.get_path(
-                    ret, fn, uid
+                    ret, fn, self.uid
                     )
 
                 # Clear test directory before uploading new file
@@ -1024,13 +1026,13 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         # create cursor for querying db
         cur = conn.cursor()
 
-        uid = self.basic_auth()
+        self.uid = self.basic_auth()
         # end response if authorization failed
-        if not uid:
+        if not self.uid:
             self.logger.info("END")
             return
 
-        auth_level = self.get_auth_level(uid)
+        auth_level = self.get_auth_level(self.uid)
         # end response if unable to determine level
         if not auth_level:
             self.logger.info("END")
@@ -1143,7 +1145,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
                 ret = data['test-id']
                 delpath, fpath, temppath = self.get_path(
-                    ret, '', uid
+                    ret, '', self.uid
                     )
 
                 if sym_safe:
@@ -1314,7 +1316,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             fn = os.path.basename(fileitem.filename)
 
             delpath, fpath, temppath = self.get_path(
-                    '', fn, uid
+                    '', fn, self.uid
                     )
 
             with open(temppath, 'wb') as f:
@@ -1505,7 +1507,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
     def submit(self, id):
 
-        herald(self.server.q,id)
+        rest_extend.herald(self.server.q,id)
         return 0
 
     ##  s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
@@ -1803,11 +1805,16 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             )
 
         paths = [delpath, fpath, temppath, subpath]
+        path_names = ["delpath", "fpath", "temppath", "subpath"]
 
         for num, path in enumerate(paths):
             if path:
                 paths[num] = os.path.normpath(path)
-                os.makedirs(os.path.dirname(path), exist_ok=True)
+                res = os.makedirs(path, exist_ok=True)
+                self.logger.debug(
+                    "Creating {0}: {1}, Result: {2}"
+                    .format(path_names[num], path, res)
+                    )
 
         delpath, fpath, temppath, subpath = paths
 
