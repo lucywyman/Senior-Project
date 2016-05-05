@@ -1,21 +1,15 @@
 import django.forms as forms
 
 TERMS = (
-        ('W', 'Winter'),
-        ('Sp', 'Spring'),
-        ('Su', 'Summer'),
-        ('F', 'Fall')
+        ('winter', 'Winter'),
+        ('spring', 'Spring'),
+        ('summer', 'Summer'),
+        ('fall', 'Fall')
         )
 
 DEPTS = (
         ('cs', 'Computer Science'),
         ('ece', 'Electrical Computer Engineering')
-        )
-
-TYPES = (
-        ('P', 'Professor'),
-        ('TA', 'TA'),
-        ('S', 'Student')
         )
 FEEDBACK = (
         ('1', 0),

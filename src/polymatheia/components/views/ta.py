@@ -32,7 +32,7 @@ def create_ta(request):
             RequestContext(request))
 
 def edit_ta(request):
-    pass
+
 
 def ta(request):
     pass

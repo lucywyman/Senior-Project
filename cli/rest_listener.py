@@ -1016,7 +1016,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         path = self.parse_path()
 
         # end response if path is wrong length
-        if self.path_check(path, 2):
+        if not self.path_check(path, 2):
             self.logger.info("END")
             return
 

@@ -36,17 +36,23 @@ def assignment(request):
     if request.method == 'POST':
         a_obj = requests.post(api_ip+'assignment/submit', json=request.POST,
                 auth=udata, verify=False)
-        return HttpResponseRedirect('/assignment/submitted')
+        # TODO return test results here
     user = get_courses(request)
     assign_id = request.path[12:]
     assignment_data = {'assignment-id':[assign_id]}
     a_obj = requests.get(api_ip+'assignment/view', json=assignment_data,
             auth=udata, verify=False)
     assign = (a_obj.json() if a_obj.status_code == 200 else [])
-    assign = assign[0]
+    t_obj = requests.get(api_ip+'test/view', json=assignment_data,
+            auth=udata, verify=False)
+    if t_obj.status_code == 200:
+        t = t_obj.json()
+    else:
+        t = [[]]
     form = Submission()
     return render_to_response('assignment/assignment.html', 
-            {'assignment':assign, 'form':form, 'user':user[0]})
+            {'assignment':assign[0], 'form':form, 'user':user[0], 
+                'tests':t})
 
 def edit_assignment(request):
     if not check_auth:
@@ -86,8 +92,21 @@ def edit_assignment(request):
             RequestContext(request))
 
 def delete_assignment(request):
-    if not check_auth:
-        return HttpResponseRedirect('/login')
     udata = (request.session.get('user'), request.session.get('pw'))
-    error = ''
-    assign_id = request.path[21:]
+    assignment_id = request.path[19:]
+    assignment_data = {'assignment-id':[assignment_id]}
+    if request.method == 'POST':
+        c_obj = requests.delete(api_ip+'assignment/delete', json=assignment_data, 
+                auth=udata, verify=False)
+        if c_obj.status_code == 200:
+            return render_to_response('edited.html', {'name':'Assignment', 
+                'action':'deleted'})
+        else:
+            error = str(r_obj.status_code) + " error. Please try again"
+    c_obj = requests.get(api_ip+'assignment/view', json=assignment_data, auth=udata,
+            verify=False)
+    c = (c_obj.json() if c_obj.status_code == 200 else [])
+    u = get_courses(request)
+    return render_to_response('assignment/delete_assignment.html',
+            {'assignment':c[0], 'user':u[0]},
+            context_instance=RequestContext(request))

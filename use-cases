@@ -6,7 +6,7 @@ x Teacher can view assignment
 x Student can view assignment
 TA can view assignment
 x Teacher can update assignment
-Teacher can delete assignment
+x Teacher can delete assignment
 
 CE:
 Teacher can add ce
@@ -20,7 +20,7 @@ x Teacher can view course
 x Student can view course
 TA can view course
 x Teacher can update course
-Teacher can delete course
+x Teacher can delete course
 
 Grades:
 Teacher can update grades
@@ -57,9 +57,9 @@ Teacher can view TA
 Teacher can delete TA
 
 Test:
-Teacher can add test
-Teacher can view test
-Teacher can update test
+x Teacher can add test
+x Teacher can view test
+x Teacher can update test
 Teacher can delete test
 Teacher can link test to assignment
 Teacher can unlink test to assignment

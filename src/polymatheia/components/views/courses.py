@@ -31,9 +31,6 @@ def create_course(request):
     form = Course()
     return render(request, 'course/create_course.html', {'form':form})
 
-def created_course(request):
-    return render_to_response('course/created.html')
-
 def course_list(request):
     if not check_auth(request):
         return HttpResponseRedirect('/login')
@@ -91,19 +88,19 @@ def course(request):
 def edit_course(request):
     if not check_auth(request):
         return HttpResponseRedirect('/login')
-    udata = (request.session.get('user'), 
-            request.session.get('pw'))
+    udata = (request.session.get('user'), request.session.get('pw'))
+    course_id = request.path[13:]
     if request.method == 'POST':
         obj = {}
         for i in request.POST:
             if i != 'csrfmiddlewaretoken':
                 obj[i] = [request.POST[i]]
-        obj['course-id'] = request.path[13:] 
+        obj['course-id'] = [course_id]
         c_obj = requests.post(api_ip + 'course/update', json=obj, 
                 auth=udata, verify=False)
         if c_obj.status_code == 200:
             return render_to_response('edited.html', {'name':'Course',
-                'aciont':'updated'})
+                'action':'updated'})
         else:
             error = str(a_obj.status_code)+' error. Please try again'
     course_data = {'course-id':[course_id]}
@@ -121,4 +118,24 @@ def edit_course(request):
         'dept':dept})
     return render_to_response('course/edit_course.html', 
             {'form':form, 'course':c},
+            context_instance=RequestContext(request))
+
+def delete_course(request):
+    udata = (request.session.get('user'), request.session.get('pw'))
+    course_id = request.path[15:]
+    course_data = {'course-id':[course_id]}
+    if request.method == 'POST':
+        c_obj = requests.delete(api_ip+'course/delete', json=course_data, 
+                auth=udata, verify=False)
+        if c_obj.status_code == 200:
+            return render_to_response('edited.html', {'name':'Course', 
+                'action':'deleted'})
+        else:
+            error = str(r_obj.status_code) + " error. Please try again"
+    c_obj = requests.get(api_ip+'course/view', json=course_data, auth=udata,
+            verify=False)
+    c = (c_obj.json() if c_obj.status_code == 200 else [])
+    u = get_courses(request)
+    return render_to_response('course/delete_course.html',
+            {'course':c[0], 'user':u[0]},
             context_instance=RequestContext(request))

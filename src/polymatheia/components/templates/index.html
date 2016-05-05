@@ -28,10 +28,12 @@
 	<tr>
 		<td>
 			<a href='/course/{{ course.course_id }}'>
-				{{ course.dept }} {{ course.num }} {{ course.name }}</a>
+				{{ course.dept_name }} {{ course.course_num }} {{ course.name }} ({{ course.term }} {{ course.year}})</a>
 			{% if user.teacher %}
-			<br><a href='course/edit/{{ course.course_id}}' class='btn'>
+			<br><a href='/course/edit/{{ course.course_id}}' class='btn'>
 				<i class='material-icons'>edit</i> course</a>
+			<a href='/course/delete/{{ course.course_id}}' class='btn'>
+				<i class='material-icons'>delete</i> course</a>
 			{% endif %}
 		</td>
 		<td>
@@ -47,6 +49,8 @@
 			{% else %}
 			<a class='btn' href='/assignment/edit/{{ assign.assignment_id }}/'>
 				<i class='material-icons'>edit</i> assignment</a>
+			<a class='btn' href='/assignment/delete/{{ assign.assignment_id }}/'>
+				<i class='material-icons'>delete</i> assignment</a>
 			{% endif %}
 			{% endfor %}
 		</td>

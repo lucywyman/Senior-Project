@@ -3,7 +3,8 @@
 {% block content %}
 <h2>Courses</h2>
 {% if user.teacher %}
-<a class='btn' href='course/create'>Create Course</a>
+<a class='btn' href='course/create'>
+	<i class='material-icons'>add</i> course</a>
 {% endif %}
 <table class='course-table border highlight responsive'>
 	<tr class='course-header'>
@@ -13,7 +14,12 @@
 	{% for course in courses %}
 	<tr>
 		<td><a href='/course/{{ course.course_id }}'>
-				{{ course.dept }} {{ course.num}} {{ course.name }}</a></td>
+				{{ course.dept }} {{ course.num}} {{ course.name }}</a>
+			<br><a href='/course/edit/{{ course.course_id }}'>
+				<i class='material-icons'>edit</i> course</a>
+			<br><a href='/course/delete/{{ course.course_id }}'>
+				<i class='material-icons'>delete</i> course</a>
+		</td>
 		<td>
 			{% for assign in upcoming %}
 			<p>{{ assign.name }}</p>
@@ -27,6 +33,8 @@
 			{% elif user.teacher %}
 			<a class='btn' href='/assignment/edit/{{ assign.assignment_id }}'>
 				<i class='material-icons'>edit</i> assignment</a>
+			<a class='btn' href='/assignment/delete/{{ assign.assignment_id }}'>
+				<i class='material-icons'>delete</i> assignment</a>
 			{% endif %}
 			{% endfor %}
 		</td>

@@ -19,8 +19,6 @@ def create_test(request):
             if i != 'csrfmiddlewaretoken':
                 obj[i] = [request.POST[i]]
         files = {"file": request.FILES['filepath'].read()}
-        #raise Exception(files)
-        #files = {"file": open(request.FILES['filepath'], 'rb')}
         t_obj = requests.post(api_ip+'test/add', data=obj, auth=udata, 
                 files=files, verify=False)
         if t_obj.status_code == 200:
@@ -44,45 +42,60 @@ def create_test(request):
 
 def test(request):
     udata = (request.session.get('user'), request.session.get('pw'))
-    test_id = request.path[10:]
-    if request.method == 'POST':
-        # TODO Run tests and display results
-        blee = 'blah'
+    test_id = request.path[6:]
     test_data = {'test-id':[test_id]}
     t_obj = requests.get(api_ip+'test/view', json=test_data,
             auth=udata, verify=False)
     test = (t_obj.json() if t_obj.status_code == 200 else [])
-    form = Submission()
-    return render_to_response('test/test.html', 
-            {'test':assign, 'form':form})
+    u = get_courses(request)
+    return render_to_response('test/test.html', {'test':test[0], 'user':u[0]})
 
 def edit_test(request):
     udata = (request.session.get('user'), request.session.get('pw'))
-    test_id = request.path[10:]
+    test_id = request.path[11:]
     if request.method == 'POST':
         obj = {}
         for i in request.POST:
             if i != 'csrfmiddlewaretoken':
                 obj[i] = [request.POST[i]]
+        files = {"file": request.FILES['filepath'].read()}
         obj['test-id'] = test_id
-        a_obj = requests.post(api_ip+'test/update', json=obj,
-                auth=udata, verify=False)
-        if a_obj.status_code == 200:
-            return render_to_response('edited.html', {'name':'Test',
-                'action':'updated'})
+        t_obj = requests.post(api_ip+'test/update', data=obj, auth=udata, 
+                files=files, verify=False)
+        if t_obj.status_code == 200:
+            return render_to_response('edited.html', {'name':'Test', 
+                'action':'created'})
         else:
-            error = str(a_obj.status_code) + " error. Please try again."
-    test_data = {'test-id':[assign_id]}
+            error = t_obj.status_code + " error. Please try again."
+    test_data = {'test-id':[test_id]}
     t_obj = requests.get(api_ip+'test/view', json=test_data, auth=udata,
             verify=False)
-    a = t_obj.json()
-    a = a[0]
-    form = Test(initial={})
+    t = t_obj.json()
+    t = t[0]
+    form = Test(initial={
+        'name':t['test_name'],
+        'points':t['points'],
+        'time':t['time_limit']
+        })
     return render_to_response('test/edit_test.html', 
-            {'test':a,'form':form}, RequestContext(request))
+            {'test':t,'form':form}, RequestContext(request))
 
 def delete_test(request):
     udata = (request.session.get('user'), request.session.get('pw'))
+    test_id = request.path[15:]
+    test_data = {'test-id':[test_id]}
     if request.method == 'POST':
-        return render_to_response('edited.html', {'name':'Test', 'action':
-            'deleted'})
+        c_obj = requests.delete(api_ip+'test/delete', json=test_data, 
+                auth=udata, verify=False)
+        if c_obj.status_code == 200:
+            return render_to_response('edited.html', {'name':'Test', 
+                'action':'deleted'})
+        else:
+            error = str(r_obj.status_code) + " error. Please try again"
+    c_obj = requests.get(api_ip+'test/view', json=test_data, auth=udata,
+            verify=False)
+    c = (c_obj.json() if c_obj.status_code == 200 else [])
+    u = get_courses(request)
+    return render_to_response('test/delete_test.html',
+            {'test':c[0], 'user':u[0]},
+            context_instance=RequestContext(request))

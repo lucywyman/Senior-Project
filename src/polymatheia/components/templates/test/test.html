@@ -1,14 +1,17 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>{{ test.name }}</h2>
-{% if user.type == 'teacher' %}
-<a class='btn' href='tests/create'><i class='material-icons'>add</i></a>
+<h2>{{ test.test_name }}</h2>
+{% if user.teacher %}
+<a class='btn' href='/test/edit/{{ test.test_id }}'>
+	<i class='material-icons'>edit</i></a>
+<a class='btn' href='/test/delete/{{ test.test_id }}'>
+	<i class='material-icons'>delete</i></a>
 {% endif %}
-<form action="/test/submit" method="post">
-	{% csrf_token %}
-	{{ form.as_table }}   
-	<input class='btn' type="submit" value="Run Test" />
-</form>
+
+<ul>
+	<li><strong>Points</strong>{{ test.points }}</li>
+	<li><strong>Time limit</strong>{{ test.test_limit }}</li>
+</ul>
 
 {% endblock %}
