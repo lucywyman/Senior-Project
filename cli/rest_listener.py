@@ -34,7 +34,8 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
     def __init__(self, *args, **kwargs):
 
-
+        self.uid = None
+    
         # create logger for RESTfulHandler
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
@@ -1016,12 +1017,13 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         path = self.parse_path()
 
         # end response if path is wrong length
-        if self.path_check(path, 2):
+        if not self.path_check(path, 2):
             self.logger.info("END")
             return
 
         command = path[0]
         subcommand = path[1]
+        self.logger.debug("Command: {}, Subcommand: {}".format(command,subcommand))
 
         # create cursor for querying db
         cur = conn.cursor()
@@ -1045,7 +1047,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             return
 
         data = self.get_data()[0]
-
+        self.logger.debug("Data: {}".format(data))
 
 
         if subcommand == 'delete':
