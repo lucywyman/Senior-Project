@@ -34,7 +34,8 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
     def __init__(self, *args, **kwargs):
 
-
+        self.uid = None
+    
         # create logger for RESTfulHandler
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
@@ -97,6 +98,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         data = self.get_data()[0]
 
 
+        # build list of attributes to select and tables to join
         select = []
         tables = []
         for row in sql[command][subcommand]['required']:
@@ -111,14 +113,16 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             tmp[command_dict.options[key]['key']] = data[key]
 
 
+        # empty out data dictionary and fill with renamed data keys
         data = {}
         for key in tmp:
             data[key] = tmp[key]
 
 
-        tmp = data.keys()
+        # check for applicable optional attributes in data and
+        # update select and table appropriately
         for key, value in sql[command][subcommand]['optional'].items():
-            if any(i in key for i in tmp):
+            if any(i in key for i in data.keys()):
                 for row in value:
                     if row[0] not in tables:
                         tables += [row[0]]
@@ -126,7 +130,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
 
         # This list comphresion filters out any joins involving user
-        # that do not join to the allowed table
+        # that do not join to the allowed table.
         if 'allowed' in sql[command][subcommand]:
             for row in sql[command][subcommand]['allowed']:
                 if row[1] not in tables:
@@ -134,6 +138,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         self.logger.debug(tables)
 
 
+        # Generate list of joins
         tmp = db_graph.generate_joins(
             db_graph.graph,
             sql[command][subcommand]['table'],
@@ -237,11 +242,10 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
 
 
-        #print(join_set)
-        #print("-----")
+
         # This algorithm is designed to keep going over possible
         # joins until a pass is made where no joins are used.
-        # This allows us to assume that list of joins is unordered
+        # This allows us to assume that the list of joins is unordered
         # and as long as one new join is made each pass, that
         # opens the oppurtunity for new joins to be made in the
         # following pass
@@ -425,6 +429,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         for k in data:
             data[k] = data[k][0]
 
+        # execute query
         self.logger.info(query)
         self.logger.debug(data)
         cur.execute(query, data)
@@ -441,6 +446,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         self.send_header('Content-type', 'application/json')
         self.end_headers()
 
+        # transform datetime objects to strings for transmission
         for entry in result:
             if 'submission_date' in entry:
                 entry['submission_date'] = (
@@ -460,7 +466,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     pass
 
 
-        #print(json.dumps(result, indent=2))
+        # send result as json string
         result = json.dumps(result)
 
         self.wfile.write(bytes(result, 'UTF-8'))
@@ -469,7 +475,46 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
 
     def do_POST(self):
-        """Serve a POST request"""
+        """Serve a POST request.
+        
+        Most database insertions and changes are done through POST requests.
+        
+        The basic organization is:
+            Preparation
+                Get path, user id, authorization level etc.
+            Login Command and link/unlink Subcommand
+                The login command and link/unlink subcommands are handled
+                seperately from the rest of the commands/subcommands
+                because they do not fit the same pattern.
+            
+            Add and Update Subcommands
+                Add and update each have their own if block, each of  
+                which is further divided into if blocks for each command.
+                I took this approach since the code for each subcommand
+                is relative similar across the set of commands.
+                
+                Preprocessing
+                    Preprocessing consists mostly of specifying which table to
+                    target, and fixing any problems with the data, such as
+                    changing a user name to a user id.
+                
+                Query Building
+                    The query is built based on preprocessing selections and
+                    available data.
+                    
+                    NOTE: User supplied data is securely inserted using module
+                    supplied method, in order to prevent injection attacks.
+                
+                Query Execution
+                    Any commands requiring processing beyond query execution
+                    are handled here. If the command didn't require cleanup
+                    then the query is simply executed
+            
+        
+        """
+        #####################
+        # Preparation Section
+        #####################
         self.logger.info("START")
 
         path = self.parse_path()
@@ -505,6 +550,9 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         data, fileitem = self.get_data()
 
 
+        ###################
+        # Login Section
+        ###################
         if command=='login':
             # login as user
             # at this point the user has already been authenticated
@@ -550,11 +598,13 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             self.logger.info("END")
             return
 
+            
+        ######################
+        # Link/Unlink Section
+        ######################
         if subcommand == 'link' or subcommand == 'unlink':
             table = None
 
-            # TODO - this should really be done as one transaction
-            # to avoid race conditions
             if command == 'test':
 
                 data = self.test_link(command, subcommand, data)
@@ -568,8 +618,12 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         # TODO - add logic to replace test update with test add
         # if test is already being used by a version.
 
+        ###################
+        # Add Section
+        ###################
         if subcommand == 'add':
             table = None
+            aid = None
 
             if command == 'assignment':
                 table = 'assignments'
@@ -627,6 +681,8 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
             elif command == 'ce':
                 table = 'common_errors'
+                
+                
             elif command == 'course':
                 table = 'courses'
                 if 'dept' in data:
@@ -670,6 +726,8 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     """, (data['ta'][0],)
                     )
                 data['ta'][0] = cur.fetchone()['user_id']
+                
+                
             elif command == 'student':
                 table = 'students_take_courses'
                 # convert onids to user_ids
@@ -681,9 +739,16 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     """, (data['student'][0],)
                     )
                 data['student'][0] = cur.fetchone()['user_id']
+                
+                
             elif command == 'submission':
                 table = 'submissions'
-                print(data)
+            
+                # Assignment-id needs to be removed from the data set before
+                # the query is built, since version_id is tracked, not 
+                # assignment-id
+                aid = data.pop('assignment-id', None)[0]
+                
                 cur.execute("""
                     SELECT MAX(versions.version_id) AS max_version
                     FROM versions
@@ -693,6 +758,8 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     )
                 data['version']= []
                 data['version'].append(cur.fetchone()['max_version'])
+                
+                
             elif command == 'ta':
                 if 'course-id' in data:
                     table = 'tas_assist_in_courses'
@@ -704,6 +771,8 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     """, (data['ta'][0],)
                     )
                 data['ta'][0] = cur.fetchone()['user_id']
+                
+                
             elif command == 'tag':
                 table = 'assignments_have_tags'
                 # TODO - insert ignore tags before getting tag_id
@@ -714,24 +783,24 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     WHERE tags.text=%s
                     """, (data['tags'][0],)
                     )
-                # TODO - only want to show teacher's own assignments
-                # join to assignments to teachers and filter by name
+
                 data['tags'][0] = cur.fetchone()['tag_id']
+                
+                
             elif command == 'test':
                 table = 'tests'
                 data['teacher'] = [self.uid]
+                
+                if 'assignment-id' in data.keys():
+                    aid = data.pop('assignment-id', None)[0]
 
 
+            ######################################
+            # Add Query Building Section
+            ######################################
             filepath = data.pop('filepath', None)
-            aid = None
-
-            # Assignment-id needs to be removed from the data set before the
-            # query is built, since version_id is tracked, not assignment-id
-            if command == 'submission':
-                aid = data.pop('assignment-id', None)[0]
-            elif command == 'test' and 'assignment-id' in data.keys():
-                aid = data.pop('assignment-id', None)[0]
-
+            
+            
             length = len(data)
             keys = data.keys()
 
@@ -772,16 +841,27 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             self.logger.debug(query)
             self.logger.debug(data)
 
+
+            ######################################
+            # Add Query Execution Section
+            ######################################
             if command == 'submission':
-                fn = os.path.basename(fileitem.filename)
+                # After a new submission is added, we need to
+                # move the submission from its temporary location
+                # and call the tester on it.
+                
+                # add submission
                 cur.execute(query, data)
+                
+                # move submission
+                fn = os.path.basename(fileitem.filename)
                 ret = cur.fetchone()['submission_id']
 
-                delpath, fpath, subpath = self.get_path(
+                delpath, subpath, temppath = self.get_path(
                     ret, fn, self.uid, aid
                     )
 
-                move(subpath, fpath)
+                move(temppath, subpath)
 
                 # call tester
                 if self.submit(ret) == 0:
@@ -790,6 +870,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                         )
                 else:
                     self.logger.debug("Submission to tester failed!")
+                    
 
             elif command == 'test':
 
@@ -876,13 +957,20 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     self.logger.exception("IntegrityError exception caught")
 
 
-        idkey = None
+        ######################################
+        # Update Subcommand Section
+        ######################################
         if subcommand == 'update':
+            idkey = None
+            table = None
+            
             if command == 'assignment':
                 idkey = 'assignment-id'
                 table = 'assignments'
                 #TODO implement tags
-                #TODO add teacher_id behind the scenes
+                
+                data['teacher'] = [self.uid]
+                
                 if 'begin' in data:
                     data['begin'][0] = datetime.strptime(
                         data['begin'][0], '%x %X'
@@ -891,9 +979,13 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     data['end'][0] = datetime.strptime(
                         data['end'][0], '%x %X'
                         )
+                        
+                        
             elif command == 'ce':
                 idkey = 'ce-id'
                 table = 'common_errors'
+                
+                
             elif command == 'course':
                 idkey = 'course-id'
                 table = 'courses'
@@ -905,6 +997,8 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                         """, (data['dept'][0],)
                         )
                     data['dept'][0] = cur.fetchone()['dept_id']
+                    
+                    
             elif command == 'grade' or command == 'submission':
                 #TODO - how is this affected by edge case where multiple
                 # students create one submission? Also students submission
@@ -942,11 +1036,16 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     data.pop('assignment-id')
                     data.pop('student')
                 table = 'submissions'
+                
+                
             elif command == 'test':
                 idkey = 'test-id'
                 table = 'tests'
 
 
+            ######################################
+            # Update Query Building Section
+            ######################################
             filepath = data.pop('filepath', None)
 
             # -1 is because an update command must include an idkey
@@ -973,8 +1072,15 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             # How to deal with when multiple values available?
             for k in data:
                 data[k] = data[k][0]
-
+                
+            
+            ######################################
+            # Update Query Execution Section
+            ######################################
             if command == 'test':
+                # TODO - Add logic to do test add instead of test
+                # update if test is linked to any versions.
+            
                 fn = os.path.basename(fileitem.filename)
                 ret = data[idkey]
 
@@ -1022,6 +1128,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
         command = path[0]
         subcommand = path[1]
+        self.logger.debug("Command: {}, Subcommand: {}".format(command,subcommand))
 
         # create cursor for querying db
         cur = conn.cursor()
@@ -1045,7 +1152,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             return
 
         data = self.get_data()[0]
-
+        self.logger.debug("Data: {}".format(data))
 
 
         if subcommand == 'delete':
@@ -1630,7 +1737,16 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         self.wfile.write(bytes(response, 'UTF-8'))
 
     def test_link(self, command, subcommand, data):
-
+        
+        
+        # TODO - this should really be done as one transaction
+        # to avoid possible race conditions
+        # easiest solution may be to open new database connection with
+        # out setting autocommit on it
+        # the global connection object (conn) is shared by all threads, so
+        # turning off autocommit temporarily might have unintended results
+        
+        
         # create cursor for querying db
         cur = conn.cursor()
 
@@ -1765,7 +1881,8 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 subcommand
                 )
             )
-        # add test
+            
+        # link test
         if subcommand == 'link':
 
             cur.execute("""
@@ -1774,6 +1891,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 """, (data['version'][0], data['test-id'][0])
                 )
 
+        # unlink test
         elif subcommand == 'unlink':
 
             cur.execute("""
@@ -1785,7 +1903,26 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         data.pop('old-version', None)
         return data
 
+        
     def get_path(self, id, filename, uid, aid=None):
+        """ Build commonly used paths.
+        
+        A small set of paths are used regulary with different
+        arguments. This helper function formats, normalizes and
+        returns this path set. The directories for said paths are
+        also created if they do not yet exist.
+        
+        delpath: delete path, location of file to be deleted
+        
+        fpath: file path, location where test file is stored
+        
+        temppath: temporary path, location where user submitted
+            files are stored until moved to final locations.
+        
+        subpath: submission path, the location where assignment
+            submissions are stored.
+
+        """
 
         subpath = None
         delpath = config['Directories']['testdir'].format(
