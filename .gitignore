@@ -44,3 +44,5 @@ src/results/
 
 src/polymatheia/components/static/css/.sass-cache*
 *.pyc
+
+.sass-cache/*

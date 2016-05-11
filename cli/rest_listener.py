@@ -747,7 +747,6 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 # Assignment-id needs to be removed from the data set before
                 # the query is built, since version_id is tracked, not 
                 # assignment-id
-                aid = data.pop('assignment-id', None)[0]
                 
                 cur.execute("""
                     SELECT MAX(versions.version_id) AS max_version
@@ -756,6 +755,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     HAVING assignment_id=%s
                     """, (data['assignment-id'][0],)
                     )
+                aid = data.pop('assignment-id', None)[0]
                 data['version']= []
                 data['version'].append(cur.fetchone()['max_version'])
                 

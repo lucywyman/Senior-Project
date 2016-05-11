@@ -8349,4 +8349,12 @@ main {
 .btn, .btn-large {
   margin: 20px 10px; }
 
+.hidden {
+  display: none;
+  margin: 0px;
+  padding: 0px; }
+
+.adders {
+  margin: 10px 0px; }
+
 /*# sourceMappingURL=main.css.map */

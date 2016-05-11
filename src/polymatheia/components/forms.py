@@ -53,9 +53,5 @@ class Test(forms.Form):
     filepath = forms.FileField(required=True)
 
 class Submission(forms.Form):
-    sfile = forms.FileField(required=True)
+    subpath = forms.FileField(required=True)
     comments = forms.CharField(required=True)
-
-class TA(forms.Form):
-    ta = forms.CharField(label='TA Name', max_length=255,
-            required=True)

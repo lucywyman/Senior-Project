@@ -81,9 +81,12 @@ def course(request):
             upcoming.append(a)
         else:
             past.append(a)
+    sobj = requests.get(api_ip+'student/view', json=course_data, auth=udata,
+            verify=False)
+    students = (sobj.json() if sobj.status_code == 200 else [{}])
     return render_to_response('course/course.html', 
             {'course':course[0], 'upcoming':upcoming, 'past':past, 'a':a_obj,
-                'user':user[0]})
+                'user':user[0], 'students':students})
 
 def edit_course(request):
     if not check_auth(request):

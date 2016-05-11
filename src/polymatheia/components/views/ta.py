@@ -25,17 +25,31 @@ def create_ta(request):
                 'created'})
         else:
             error = t_obj.status_code + " error. Please try again."
-    form = TA()
     courses = get_courses(request)
+    ta_obj = requests.get(api_ip+'ta/view', json={}, auth=udata, verify=False)
+    tas = ta_obj.json()
+    uniq = []
+    for ta in tas:
+        if ta['ta_id'] in uniq:
+            tas.remove(ta)
+        else:
+            uniq.append(ta['ta_id'])
     return render_to_response('ta/create_ta.html', 
-            {'form':form, 'error':error, 'courses':courses}, 
+            {'error':error, 'courses':courses, 'tas':tas}, 
             RequestContext(request))
 
-def edit_ta(request):
-
-
 def ta(request):
-    pass
+    if not check_auth(request):
+        return HttpResponseRedirect('/login')
+    udata = (request.session.get('user'), request.session.get('pw'))
+    ta_id = request.path[4:]
+    ta_data = {'ta':[ta_id]}
+    user = get_courses(request)
+    ta_obj = requests.get(api_ip+'ta/view', json=ta_data, auth=udata,
+            verify=False)
+    ta = (ta_obj.json() if ta_obj.status_code == 200 else []) 
+    return render_to_response('ta/ta.html', {'ta':ta, 'user':user[0], 
+        'name':ta[0]['ta']})
 
 def delete_ta(request):
     pass

@@ -29,7 +29,7 @@ TA can update grades
 Login:
 x Teacher can login
 x Student can login
-TA can login
+x TA can login
 x Teacher can logout
 x Student can logout
 TA can logout
@@ -38,14 +38,14 @@ TA can change password
 Student can change password
 
 Student:
-Teacher can add student to a class
-Teacher can view student
+x Teacher can add student to a class
+x Teacher can view student
 TA can view student
-Student can view student (?)
-Teacher can delete student
+x Student can view student
+? Teacher can delete student
 
 Submission:
-Student can add submission
+x Student can add submission
 Teacher can view submission
 TA can view submission
 Student can view submission
@@ -53,17 +53,13 @@ Student can update submission
 
 TA:
 Teacher can add TA
-Teacher can view TA
+x Teacher can view TA
 Teacher can delete TA
 
 Test:
 x Teacher can add test
 x Teacher can view test
 x Teacher can update test
-Teacher can delete test
+x Teacher can delete test
 Teacher can link test to assignment
 Teacher can unlink test to assignment
-
-To make modular:
-----------------
-* Return created page or make error

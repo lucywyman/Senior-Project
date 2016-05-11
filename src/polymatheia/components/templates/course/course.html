@@ -10,6 +10,8 @@
 	<i class='material-icons'>add</i> assignment</a>
 <a class='btn' href='/ta/create'>
 	<i class='material-icons'>add</i> ta</a>
+<a class='btn' href='/student/add'>
+	<i class='material-icons'>add</i> students</a>
 {% endif %}
 <table class='course-table border highlight responsive'>
 	<tr class='course-header'>
@@ -51,5 +53,12 @@
 	</tr>
 	{% endfor %}
 </table>
-
+{% if user.teacher %}
+<h4>Current students:</h4>
+<ul>
+	{% for s in students %}
+	<li><a href='/student/{{s.student }}'>{{ s.student }}</a></li>
+	{% endfor %}
+</ul>
+{% endif %}
 {% endblock %}

@@ -25,8 +25,7 @@ def index(request):
             c[0]['assignments'] = (aobj.json() if aobj.status_code == 200 else [])
             courses.append(c[0])
         return render_to_response('index.html', {'n':datetime.datetime.now(), 'user':user[0], 'courses':courses})
-    else:
-        return HttpResponseRedirect('/login')
+    return HttpResponseRedirect('/login')
 
 def about(request):
 	return render_to_response('about.html')
