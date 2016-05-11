@@ -35,7 +35,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
 
         self.uid = None
-    
+
         # create logger for RESTfulHandler
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
@@ -380,6 +380,26 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
         self.logger.debug("Length is: {0}".format(length))
 
+        # Limit results to what user is authorized to see
+        # i.e. A TA using course view will only see courses
+        # they are assisting in
+        if sql[command]['view']['limit'].get(auth_level, None):
+            query += "WHERE " + sql[command]['view']['limit'][auth_level]
+        else:
+            msg = (
+                "ERROR: Limit not found for {0} at auth_level: {1}"
+                .format(command, auth_level)
+                )
+            self.logger.debug(msg)
+            self.send_error(
+                        HTTPStatus.NOT_FOUND,
+                        msg
+                        )
+            self.end_headers()
+            self.logger.info("END")
+            return
+
+
         # if allowed table exists and is longer than one,
         # we need to use id numbers instead of onids
         condition = None
@@ -396,7 +416,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     tmp)
                 )
             if length > 0:
-                condition = " WHERE " + " AND ".join(
+                condition = " AND " + " AND ".join(
                     ["{0}.{1}=%({2})s".format(a[2], b[1], b[2])
                         for a in tmp for b in select
                         if (a[0]==b[0]) and (a[1]==b[3]) and (b[1]!=b[2])
@@ -410,7 +430,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     )
         else:
             if length > 0:
-                condition = " WHERE " + " AND ".join(
+                condition = " AND " + " AND ".join(
                     ["{0}.{1}=%({2})s".format(x[0], x[1], x[1]) for x
                         in select if (x[1] in data) and (x[1] == x[2])
                         ]
@@ -428,6 +448,9 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         # How to deal with when multiple values available?
         for k in data:
             data[k] = data[k][0]
+
+        # Set uid for limiting query results
+        data['uid'] = self.uid
 
         # execute query
         self.logger.info(query)
@@ -476,9 +499,9 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
     def do_POST(self):
         """Serve a POST request.
-        
+
         Most database insertions and changes are done through POST requests.
-        
+
         The basic organization is:
             Preparation
                 Get path, user id, authorization level etc.
@@ -486,31 +509,31 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 The login command and link/unlink subcommands are handled
                 seperately from the rest of the commands/subcommands
                 because they do not fit the same pattern.
-            
+
             Add and Update Subcommands
-                Add and update each have their own if block, each of  
+                Add and update each have their own if block, each of
                 which is further divided into if blocks for each command.
                 I took this approach since the code for each subcommand
                 is relative similar across the set of commands.
-                
+
                 Preprocessing
                     Preprocessing consists mostly of specifying which table to
                     target, and fixing any problems with the data, such as
                     changing a user name to a user id.
-                
+
                 Query Building
                     The query is built based on preprocessing selections and
                     available data.
-                    
+
                     NOTE: User supplied data is securely inserted using module
                     supplied method, in order to prevent injection attacks.
-                
+
                 Query Execution
                     Any commands requiring processing beyond query execution
                     are handled here. If the command didn't require cleanup
                     then the query is simply executed
-            
-        
+
+
         """
         #####################
         # Preparation Section
@@ -598,7 +621,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             self.logger.info("END")
             return
 
-            
+
         ######################
         # Link/Unlink Section
         ######################
@@ -681,8 +704,8 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
             elif command == 'ce':
                 table = 'common_errors'
-                
-                
+
+
             elif command == 'course':
                 table = 'courses'
                 if 'dept' in data:
@@ -726,8 +749,8 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     """, (data['ta'][0],)
                     )
                 data['ta'][0] = cur.fetchone()['user_id']
-                
-                
+
+
             elif command == 'student':
                 table = 'students_take_courses'
                 # convert onids to user_ids
@@ -739,16 +762,16 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     """, (data['student'][0],)
                     )
                 data['student'][0] = cur.fetchone()['user_id']
-                
-                
+
+
             elif command == 'submission':
                 table = 'submissions'
-            
+
                 # Assignment-id needs to be removed from the data set before
-                # the query is built, since version_id is tracked, not 
+                # the query is built, since version_id is tracked, not
                 # assignment-id
                 aid = data.pop('assignment-id', None)[0]
-                
+
                 cur.execute("""
                     SELECT MAX(versions.version_id) AS max_version
                     FROM versions
@@ -758,8 +781,8 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     )
                 data['version']= []
                 data['version'].append(cur.fetchone()['max_version'])
-                
-                
+
+
             elif command == 'ta':
                 if 'course-id' in data:
                     table = 'tas_assist_in_courses'
@@ -771,8 +794,8 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     """, (data['ta'][0],)
                     )
                 data['ta'][0] = cur.fetchone()['user_id']
-                
-                
+
+
             elif command == 'tag':
                 table = 'assignments_have_tags'
                 # TODO - insert ignore tags before getting tag_id
@@ -785,12 +808,12 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     )
 
                 data['tags'][0] = cur.fetchone()['tag_id']
-                
-                
+
+
             elif command == 'test':
                 table = 'tests'
                 data['teacher'] = [self.uid]
-                
+
                 if 'assignment-id' in data.keys():
                     aid = data.pop('assignment-id', None)[0]
 
@@ -799,8 +822,8 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             # Add Query Building Section
             ######################################
             filepath = data.pop('filepath', None)
-            
-            
+
+
             length = len(data)
             keys = data.keys()
 
@@ -849,10 +872,10 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 # After a new submission is added, we need to
                 # move the submission from its temporary location
                 # and call the tester on it.
-                
+
                 # add submission
                 cur.execute(query, data)
-                
+
                 # move submission
                 fn = os.path.basename(fileitem.filename)
                 ret = cur.fetchone()['submission_id']
@@ -870,7 +893,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                         )
                 else:
                     self.logger.debug("Submission to tester failed!")
-                    
+
 
             elif command == 'test':
 
@@ -954,6 +977,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 try:
                     cur.execute(query, data)
                 except psycopg2.IntegrityError:
+                    # TODO Send error message here.
                     self.logger.exception("IntegrityError exception caught")
 
 
@@ -963,14 +987,14 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         if subcommand == 'update':
             idkey = None
             table = None
-            
+
             if command == 'assignment':
                 idkey = 'assignment-id'
                 table = 'assignments'
                 #TODO implement tags
-                
+
                 data['teacher'] = [self.uid]
-                
+
                 if 'begin' in data:
                     data['begin'][0] = datetime.strptime(
                         data['begin'][0], '%x %X'
@@ -979,13 +1003,13 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     data['end'][0] = datetime.strptime(
                         data['end'][0], '%x %X'
                         )
-                        
-                        
+
+
             elif command == 'ce':
                 idkey = 'ce-id'
                 table = 'common_errors'
-                
-                
+
+
             elif command == 'course':
                 idkey = 'course-id'
                 table = 'courses'
@@ -997,8 +1021,8 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                         """, (data['dept'][0],)
                         )
                     data['dept'][0] = cur.fetchone()['dept_id']
-                    
-                    
+
+
             elif command == 'grade' or command == 'submission':
                 #TODO - how is this affected by edge case where multiple
                 # students create one submission? Also students submission
@@ -1036,8 +1060,8 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     data.pop('assignment-id')
                     data.pop('student')
                 table = 'submissions'
-                
-                
+
+
             elif command == 'test':
                 idkey = 'test-id'
                 table = 'tests'
@@ -1072,15 +1096,15 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             # How to deal with when multiple values available?
             for k in data:
                 data[k] = data[k][0]
-                
-            
+
+
             ######################################
             # Update Query Execution Section
             ######################################
             if command == 'test':
                 # TODO - Add logic to do test add instead of test
                 # update if test is linked to any versions.
-            
+
                 fn = os.path.basename(fileitem.filename)
                 ret = data[idkey]
 
@@ -1737,16 +1761,16 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         self.wfile.write(bytes(response, 'UTF-8'))
 
     def test_link(self, command, subcommand, data):
-        
-        
+
+
         # TODO - this should really be done as one transaction
         # to avoid possible race conditions
         # easiest solution may be to open new database connection with
         # out setting autocommit on it
         # the global connection object (conn) is shared by all threads, so
         # turning off autocommit temporarily might have unintended results
-        
-        
+
+
         # create cursor for querying db
         cur = conn.cursor()
 
@@ -1881,7 +1905,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 subcommand
                 )
             )
-            
+
         # link test
         if subcommand == 'link':
 
@@ -1903,22 +1927,22 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         data.pop('old-version', None)
         return data
 
-        
+
     def get_path(self, id, filename, uid, aid=None):
         """ Build commonly used paths.
-        
+
         A small set of paths are used regulary with different
         arguments. This helper function formats, normalizes and
         returns this path set. The directories for said paths are
         also created if they do not yet exist.
-        
+
         delpath: delete path, location of file to be deleted
-        
+
         fpath: file path, location where test file is stored
-        
+
         temppath: temporary path, location where user submitted
             files are stored until moved to final locations.
-        
+
         subpath: submission path, the location where assignment
             submissions are stored.
 
