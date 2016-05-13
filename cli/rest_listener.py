@@ -937,7 +937,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
                 # add current user as instructor for new course
                 ret = cur.fetchone()['course_id']
-                self.logger.debug("New CourseID: {0}".format(ret))
+                self.logger.debug("New CourseID {0}".format(ret))
                 cur.execute("""
                     INSERT INTO teachers_teach_courses (teacher_id, course_id)
                     VALUES (%s, %s)
@@ -2051,13 +2051,19 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 ta_id=%(ta_id)s
             """
 
+        name_to_uid_query = """
+            SELECT users.user_id
+            FROM users
+            WHERE users.username=%(name)s
+            """
+
         student_in_course_query = """
             SELECT *
             FROM students_take_courses
             WHERE
-                student_id=%(student_id)
+                student_id=%(student_id)s
                 AND
-                course_id=%(course_id)
+                course_id=%(course_id)s
             """
 
         submission_query_ta = """
@@ -2088,6 +2094,17 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 teachers_teach_courses.teacher_id=%(uid)s
                 AND
                 submissions.submission_id=%(submission)s
+            """
+
+        submission_query_student = """
+            SELECT assignments.course_id
+            FROM assignments
+            INNER JOIN students_take_courses
+                ON assignments.course_id=students_take_courses.course_id
+            WHERE
+                students_take_courses.student_id=%(uid)s
+                AND
+                assignments.assignment_id=%(assignment_id)s
             """
 
         test_query = """
@@ -2137,7 +2154,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                             )
                     elif assignment_id_result is None:
                         msg = (
-                            "AssignmentID {} is not owned by TeacherID: {}"
+                            "AssignmentID {} is not owned by TeacherID {}"
                             .format(
                                 data['assignment-id'][0],
                                 self.uid
@@ -2145,7 +2162,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                             )
                     elif test_id_result is None:
                         msg = (
-                            "TestID {} is not owned by TeacherID: {}"
+                            "TestID {} is not owned by TeacherID {}"
                             .format(
                                 data['test-id'][0],
                                 self.uid
@@ -2154,6 +2171,213 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     self.logger.info(msg)
                     self.abort_response(HTTPStatus.FORBIDDEN, msg)
                     return None
+
+
+        if subcommand == 'add':
+
+            if command == 'assignment':
+
+                if auth_level == 'teacher':
+                    # check for ownership of course
+                    cur.execute(
+                        course_query,
+                        {'uid':self.uid, 'course_id': data['course-id'][0]}
+                        )
+                    course_id_result = cur.fetchone()
+
+                    if course_id_result is None:
+                        msg = (
+                            "CourseID {} is not owned by TeacherID {}"
+                            .format(
+                                data['course-id'][0],
+                                self.uid
+                                )
+                            )
+                        self.logger.info(msg)
+                        self.abort_response(HTTPStatus.FORBIDDEN, msg)
+                        return None
+
+
+            elif command == 'ce':
+                pass
+
+
+            elif command == 'course':
+                pass
+
+            elif command == 'group':
+
+                # get student and ta user ids
+                cur.execute(name_to_uid_query, {'name': data['student'][0]})
+                student_id = cur.fetchone()['user_id']
+
+                cur.execute(name_to_uid_query, {'name': data['ta'][0]})
+                ta_id = cur.fetchone()['user_id']
+
+                if auth_level == 'teacher':
+                    # check for ownership of course
+                    cur.execute(
+                        course_query,
+                        {'uid': self.uid, 'course_id': data['course-id'][0]}
+                        )
+                    course_id_result = cur.fetchone()
+
+                    # check for student in course
+                    cur.execute(
+                        student_in_course_query,
+                        {'student_id': student_id, 'course_id': data['course-id'][0]}
+                        )
+                    student_in_course_result = cur.fetchone()
+
+                    # check for ta assisting in course
+                    cur.execute(
+                        ta_assists_query,
+                        {'course_id': data['course-id'][0], 'ta_id': ta_id}
+                        )
+                    ta_assists_result = cur.fetchone()
+
+                    if course_id_result is None:
+                        msg = (
+                            "CourseID {} is not owned by TeacherID {}"
+                            .format(
+                                data['course-id'][0],
+                                self.uid
+                                )
+                            )
+                        self.logger.info(msg)
+                        self.abort_response(HTTPStatus.FORBIDDEN, msg)
+                        return None
+
+                    if student_in_course_result is None:
+                        msg = (
+                            "StudentID {} is not in CourseID {}"
+                            .format(
+                                student_id,
+                                data['course-id'][0]
+                                )
+                            )
+                        self.logger.info(msg)
+                        self.abort_response(HTTPStatus.FORBIDDEN, msg)
+                        return None
+
+                    if ta_assists_result is None:
+                        msg = (
+                            "TA {} is not assigned to CourseID {}"
+                            .format(
+                                ta_id,
+                                data['course-id'][0]
+                                )
+                            )
+                        self.logger.info(msg)
+                        self.abort_response(HTTPStatus.FORBIDDEN, msg)
+                        return None
+
+
+            elif command == 'student':
+
+                if auth_level == 'teacher':
+                    # check for ownership of course
+                    cur.execute(
+                        course_query,
+                        {'uid':self.uid, 'course_id': data['course-id'][0]}
+                        )
+                    course_id_result = cur.fetchone()
+
+                    if course_id_result is None:
+                        msg = (
+                            "CourseID {} is not owned by TeacherID {}"
+                            .format(
+                                data['course-id'][0],
+                                self.uid
+                                )
+                            )
+                        self.logger.info(msg)
+                        self.abort_response(HTTPStatus.FORBIDDEN, msg)
+                        return None
+
+
+            elif command == 'submission':
+
+                # get course id
+                cur.execute("""
+                    SELECT course_id
+                    FROM assignments
+                    WHERE assignment_id=%s
+                    """, (data['assignment-id'][0],)
+                    )
+                course_id = cur.fetchone()
+                if course_id is not None:
+                    course_id = course_id['course_id']
+
+                # check for student in course
+                cur.execute(
+                    submission_query_student,
+                    {'uid': self.uid, 'assignment_id': data['assignment-id'][0], 'course_id': course_id}
+                    )
+                student_assignment_result = cur.fetchone()
+
+                if student_assignment_result is None:
+                    msg = (
+                        "StudentID {} is not in CourseID {} and can not submit to AssignmentID {}"
+                        .format(
+                            self.uid,
+                            course_id,
+                            data['assignment-id'][0]
+                            )
+                        )
+                    self.logger.info(msg)
+                    self.abort_response(HTTPStatus.FORBIDDEN, msg)
+                    return None
+
+
+            elif command == 'ta' and 'course-id' in data:
+
+                if auth_level == 'teacher':
+                    # check for ownership of course
+                    cur.execute(
+                        course_query,
+                        {'uid':self.uid, 'course_id': data['course-id'][0]}
+                        )
+                    course_id_result = cur.fetchone()
+
+                    if course_id_result is None:
+                        msg = (
+                            "CourseID {} is not owned by TeacherID {}"
+                            .format(
+                                data['course-id'][0],
+                                self.uid
+                                )
+                            )
+                        self.logger.info(msg)
+                        self.abort_response(HTTPStatus.FORBIDDEN, msg)
+                        return None
+
+
+            elif command == 'tag':
+                # TODO - Test this once adding tags is implemented
+                if auth_level == 'teacher':
+                    # check for ownership of course for assignment to be tagged
+                    cur.execute(
+                        assignment_query,
+                        {'uid':self.uid, 'course_id': data['assignment-id'][0]}
+                        )
+                    assignment_id_result = cur.fetchone()
+
+                    if assignment_id_result is None:
+                        msg = (
+                            "AssignmentID {} is not owned by TeacherID {}"
+                            .format(
+                                data['assignment-id'][0],
+                                self.uid
+                                )
+                            )
+                        self.logger.info(msg)
+                        self.abort_response(HTTPStatus.FORBIDDEN, msg)
+                        return None
+
+
+            elif command == 'test':
+                pass
 
 
         if subcommand == 'update' or subcommand == 'delete':
@@ -2169,7 +2393,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
                 if assignment_id_result is None:
                     msg = (
-                        "AssignmentID {} is not owned by TeacherID: {}"
+                        "AssignmentID {} is not owned by TeacherID {}"
                         .format(
                             data['assignment-id'][0],
                             self.uid
@@ -2191,7 +2415,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
                 if ce_id_result is None:
                     msg = (
-                        "CommonErrorID {} is not owned by TeacherID: {}"
+                        "CommonErrorID {} is not owned by TeacherID {}"
                         .format(
                             data['ce-id'][0],
                             self.uid
@@ -2212,7 +2436,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
                 if course_id_result is None:
                     msg = (
-                        "CourseID {} is not owned by TeacherID: {}"
+                        "CourseID {} is not owned by TeacherID {}"
                         .format(
                             data['course-id'][0],
                             self.uid
@@ -2235,7 +2459,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
                     if course_id_result is None:
                         msg = (
-                            "CourseID {} is not owned by TeacherID: {}"
+                            "CourseID {} is not owned by TeacherID {}"
                             .format(
                                 data['course-id'][0],
                                 self.uid
@@ -2328,7 +2552,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
                     if course_id_result is None:
                         msg = (
-                            "CourseID {} is not owned by TeacherID: {}"
+                            "CourseID {} is not owned by TeacherID {}"
                             .format(
                                 data['course-id'][0],
                                 self.uid
@@ -2350,7 +2574,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
                     if course_id_result is None:
                         msg = (
-                            "CourseID {} is not owned by TeacherID: {}"
+                            "CourseID {} is not owned by TeacherID {}"
                             .format(
                                 data['course-id'][0],
                                 self.uid
@@ -2372,7 +2596,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
                     if assignment_id_result is None:
                         msg = (
-                            "AssignmentID {} is not owned by TeacherID: {}"
+                            "AssignmentID {} is not owned by TeacherID {}"
                             .format(
                                 data['assignment-id'][0],
                                 self.uid
@@ -2394,7 +2618,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
                 if test_id_result is None:
                     msg = (
-                        "TestID {} is not owned by TeacherID: {}"
+                        "TestID {} is not owned by TeacherID {}"
                         .format(
                             data['test-id'][0],
                             self.uid
