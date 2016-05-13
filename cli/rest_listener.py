@@ -621,6 +621,8 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             self.logger.info("END")
             return
 
+        # check that current user is associated with data
+        # they are attempting to add/update
         if not self.uid_access_check(command, subcommand, auth_level, data):
             self.logger.info("END")
             return
@@ -1184,6 +1186,12 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
         data = self.get_data()[0]
         self.logger.debug("Data: {}".format(data))
+
+        # check that current user is associated with data
+        # they are attempting to delete
+        if not self.uid_access_check(command, subcommand, auth_level, data):
+            self.logger.info("END")
+            return
 
 
         if subcommand == 'delete':
@@ -2027,13 +2035,29 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
         course_query = """
             SELECT *
-            FROM courses
-            INNER JOIN teachers_teach_courses
-                ON courses.course_id=teachers_teach_courses.course_id
+            FROM teachers_teach_courses
             WHERE
-                teachers_teach_courses.teacher_id=%(uid)s
+                teacher_id=%(uid)s
                 AND
-                courses.course_id=%(course_id)s
+                course_id=%(course_id)s
+            """
+
+        ta_assists_query = """
+            SELECT *
+            FROM tas_assist_in_courses
+            WHERE
+                course_id=%(course_id)s
+                AND
+                ta_id=%(ta_id)s
+            """
+
+        student_in_course_query = """
+            SELECT *
+            FROM students_take_courses
+            WHERE
+                student_id=%(student_id)
+                AND
+                course_id=%(course_id)
             """
 
         submission_query_ta = """
@@ -2065,7 +2089,6 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 AND
                 submissions.submission_id=%(submission)s
             """
-
 
         test_query = """
             SELECT * FROM tests
@@ -2133,7 +2156,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     return None
 
 
-        if subcommand == 'update':
+        if subcommand == 'update' or subcommand == 'delete':
 
             if command == 'assignment':
 
@@ -2198,6 +2221,29 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     self.logger.info(msg)
                     self.abort_response(HTTPStatus.FORBIDDEN, msg)
                     return None
+
+
+            elif command == 'group':
+
+                if auth_level == 'teacher':
+                    # check for ownership of course
+                    cur.execute(
+                        course_query,
+                        {'uid':self.uid, 'course_id': data['course-id'][0]}
+                        )
+                    course_id_result = cur.fetchone()
+
+                    if course_id_result is None:
+                        msg = (
+                            "CourseID {} is not owned by TeacherID: {}"
+                            .format(
+                                data['course-id'][0],
+                                self.uid
+                                )
+                            )
+                        self.logger.info(msg)
+                        self.abort_response(HTTPStatus.FORBIDDEN, msg)
+                        return None
 
 
             elif command == 'grade' or command == 'submission':
@@ -2270,6 +2316,73 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     return None
 
 
+            elif command == 'student':
+
+                if auth_level == 'teacher':
+                    # check for ownership of course
+                    cur.execute(
+                        course_query,
+                        {'uid':self.uid, 'course_id': data['course-id'][0]}
+                        )
+                    course_id_result = cur.fetchone()
+
+                    if course_id_result is None:
+                        msg = (
+                            "CourseID {} is not owned by TeacherID: {}"
+                            .format(
+                                data['course-id'][0],
+                                self.uid
+                                )
+                            )
+                        self.logger.info(msg)
+                        self.abort_response(HTTPStatus.FORBIDDEN, msg)
+                        return None
+
+            elif command == 'ta' and 'course-id' in data:
+
+                if auth_level == 'teacher':
+                    # check for ownership of course
+                    cur.execute(
+                        course_query,
+                        {'uid':self.uid, 'course_id': data['course-id'][0]}
+                        )
+                    course_id_result = cur.fetchone()
+
+                    if course_id_result is None:
+                        msg = (
+                            "CourseID {} is not owned by TeacherID: {}"
+                            .format(
+                                data['course-id'][0],
+                                self.uid
+                                )
+                            )
+                        self.logger.info(msg)
+                        self.abort_response(HTTPStatus.FORBIDDEN, msg)
+                        return None
+
+            elif command == 'tag':
+
+                if auth_level == 'teacher':
+                    # check for ownership of assignment
+                    cur.execute(
+                        assignment_query,
+                        {'uid':self.uid, 'assignment_id': data['assignment-id'][0]}
+                        )
+                    assignment_id_result = cur.fetchone()
+
+                    if assignment_id_result is None:
+                        msg = (
+                            "AssignmentID {} is not owned by TeacherID: {}"
+                            .format(
+                                data['assignment-id'][0],
+                                self.uid
+                                )
+                            )
+                        self.logger.info(msg)
+                        self.abort_response(HTTPStatus.FORBIDDEN, msg)
+                        return None
+
+
             elif command == 'test':
 
                 # check that Teacher owns test
@@ -2290,6 +2403,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     self.logger.info(msg)
                     self.abort_response(HTTPStatus.FORBIDDEN, msg)
                     return None
+
 
         self.logger.debug(
             "UID {} passed uid_auth_check for {}/{}"
