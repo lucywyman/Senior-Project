@@ -602,8 +602,8 @@ commands = {
         "view":     {
             "access":   {
                 "teacher":  True,
-                "ta":       False,
-                "student":  False,
+                "ta":       True,
+                "student":  True,
                 },
 
             "required": [],
