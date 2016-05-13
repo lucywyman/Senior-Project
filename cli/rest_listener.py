@@ -570,7 +570,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             self.logger.info("END")
             return
 
-        data, fileitem = self.get_data()
+        data, fileitems = self.get_data()
 
 
         ###################
@@ -883,15 +883,16 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 # add submission
                 cur.execute(query, data)
 
-                # move submission
-                fn = os.path.basename(fileitem.filename)
-                ret = cur.fetchone()['submission_id']
+                # move submission files
+                for id, fileitem in enumerate(fileitems):
+                    fn = os.path.basename(fileitem.filename)
+                    ret = cur.fetchone()['submission_id']
 
-                delpath, subpath, temppath = self.get_path(
-                    ret, fn, self.uid, aid
-                    )
+                    delpath, subpath, temppath = self.get_path(
+                        ret, fn, self.uid, aid
+                        )
 
-                move(temppath, subpath)
+                    move(temppath, subpath)
 
                 # call tester
                 if self.submit(ret) == 0:
@@ -909,14 +910,15 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 ret = cur.fetchone()['test_id']
                 self.logger.debug("TestID: {0}".format(ret))
 
-                # Move test file to appropriate location
-                fn = os.path.basename(fileitem.filename)
+                # Move test files to appropriate location
+                for id, fileitem in enumerate(fileitems):
+                    fn = os.path.basename(fileitem.filename)
 
-                delpath, fpath, temppath = self.get_path(
-                    ret, fn, self.uid
-                    )
+                    delpath, fpath, temppath = self.get_path(
+                        ret, fn, self.uid
+                        )
 
-                move(temppath, fpath)
+                    move(temppath, fpath)
 
                 # if assignment-id was set, link new test to that assignment
                 if aid:
@@ -1113,23 +1115,29 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 # TODO - Add logic to do test add instead of test
                 # update if test is linked to any versions.
 
-                if fileitem is not None:
-                    fn = os.path.basename(fileitem.filename)
+                if fileitems is not None:
+                    first_loop = True
                     ret = data[idkey]
 
-                    delpath, fpath, temppath = self.get_path(
-                        ret, fn, self.uid
-                        )
+                    for id, fileitem in enumerate(fileitems):
+                        fn = os.path.basename(fileitem.filename)
 
-                    # Clear test directory before uploading new file
-                    flist = [x for x in os.listdir(delpath)]
-                    for file in flist:
-                        os.remove(os.path.normpath(
-                            os.path.join(delpath, file)
+
+                        delpath, fpath, temppath = self.get_path(
+                            ret, fn, self.uid
                             )
-                        )
 
-                    move(temppath, fpath)
+                        # Clear test directory before uploading new files
+                        if first_loop:
+                            flist = [x for x in os.listdir(delpath)]
+                            for file in flist:
+                                os.remove(os.path.normpath(
+                                    os.path.join(delpath, file)
+                                    )
+                                )
+                            first_loop = False
+
+                        move(temppath, fpath)
 
             print(query)
             print(data)
@@ -1372,7 +1380,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
     def get_data(self):
 
         data = {}
-        fileitem = None
+        fileitems = None
 
         self.logger.debug("Headers: {0}".format(self.headers))
 
@@ -1406,11 +1414,11 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 environ={'REQUEST_METHOD':'POST',}
                          )
 
-            data, fileitem = self.process_form(form)
+            data, fileitems = self.process_form(form)
 
         self.logger.debug("Data: {0}".format(data))
-        self.logger.debug("FileItem: {0}".format(fileitem))
-        return data, fileitem
+        self.logger.debug("fileitems: {0}".format(fileitems))
+        return data, fileitems
 
     def process_form(self, form):
         variable = ""
@@ -1420,7 +1428,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         self.logger.debug("Form Keys: {0}".format(form.keys()))
         self.logger.debug("Processing Form Keys")
         for key in form.keys():
-            if key not in ['file', 'filepath']:
+            if not key.startswith('file'):
                 variable = str(key)
                 value = str(form.getvalue(variable))
                 self.logger.debug("Variable: {0}, value: {1}"
@@ -1449,36 +1457,54 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 if type(data[variable]) != type([]):
                     data[variable] = [str(value)]
 
-        fileitem = self.get_file(form)
+        fileitems = self.get_files(form)
 
-        return data, fileitem
+        return data, fileitems
 
-    def get_file(self, form):
+    def get_files(self, form):
 
-        self.logger.debug(cgi.print_form(form))
-        fileitem = form['file']
-
-        self.logger.debug("FileItem: {}".format(fileitem))
-
-        # Test if the file was uploaded
-        if fileitem is not None and fileitem.filename:
-            fn = os.path.basename(fileitem.filename)
-
-            delpath, fpath, temppath = self.get_path(
-                    '', fn, self.uid
+        # Clear temp directory before uploading new files
+        # We can't be certain the temp directory will be
+        # properly emptied after each transaction, since errors
+        # might cause unexpected aborts, but by emptying it at
+        # the start of each transaction we prevent possible
+        # buildups of temp files
+        delpath, fpath, temppath = self.get_path(
+            '', '', self.uid
+            )
+        flist = [x for x in os.listdir(temppath)]
+        for file in flist:
+            try:
+                os.remove(os.path.normpath(
+                    os.path.join(temppath, file)
                     )
-
-            with open(temppath, 'wb') as f:
-                f.write(fileitem.file.read())
-            self.logger.debug('File "' + fn + '" saved to {0}'
-                .format(temppath, fn)
                 )
-        else:
-            # multipart/form-data should only be used when uploading
-            # files. If there is no file, something went seriously wrong
-            self.logger.warning('Error: No file was uploaded!')
+            except IsADirectoryError:
+                self.logger.exception("Unexpected Directory in tempfile folder!")
 
-        return fileitem
+        fileitems = []
+        self.logger.debug(cgi.print_form(form))
+        for key in form.keys():
+            if key.startswith('file') and key != 'filepath':
+                fileitem = form[key]
+
+                self.logger.debug("Fileitem: {}".format(fileitems))
+
+                fn = os.path.basename(fileitem.filename)
+
+                delpath, fpath, temppath = self.get_path(
+                        '', fn, self.uid
+                        )
+
+                with open(temppath, 'wb') as f:
+                    f.write(fileitem.file.read())
+                self.logger.debug('File "' + fn + '" saved to {0}'
+                    .format(temppath, fn)
+                    )
+                fileitems += [fileitem]
+
+
+        return fileitems
 
     def basic_auth(self):
         """Verifies authorization and returns user_id on success.
