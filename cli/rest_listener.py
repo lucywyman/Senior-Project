@@ -621,6 +621,9 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             self.logger.info("END")
             return
 
+        if not self.uid_access_check(command, subcommand, auth_level, data):
+            self.logger.info("END")
+            return
 
         ######################
         # Link/Unlink Section
@@ -635,6 +638,8 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 if data == None:
                     self.logger.info("END")
                     return
+
+            # TODO - implment other links such as CE link
 
 
 
@@ -988,6 +993,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             idkey = None
             table = None
 
+
             if command == 'assignment':
                 idkey = 'assignment-id'
                 table = 'assignments'
@@ -1105,22 +1111,23 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 # TODO - Add logic to do test add instead of test
                 # update if test is linked to any versions.
 
-                fn = os.path.basename(fileitem.filename)
-                ret = data[idkey]
+                if fileitem is not None:
+                    fn = os.path.basename(fileitem.filename)
+                    ret = data[idkey]
 
-                delpath, fpath, temppath = self.get_path(
-                    ret, fn, self.uid
-                    )
-
-                # Clear test directory before uploading new file
-                flist = [x for x in os.listdir(delpath)]
-                for file in flist:
-                    os.remove(os.path.normpath(
-                        os.path.join(delpath, file)
+                    delpath, fpath, temppath = self.get_path(
+                        ret, fn, self.uid
                         )
-                    )
 
-                move(temppath, fpath)
+                    # Clear test directory before uploading new file
+                    flist = [x for x in os.listdir(delpath)]
+                    for file in flist:
+                        os.remove(os.path.normpath(
+                            os.path.join(delpath, file)
+                            )
+                        )
+
+                    move(temppath, fpath)
 
             print(query)
             print(data)
@@ -1790,65 +1797,6 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
         self.logger.debug("Version: {0}".format(data['version']))
 
-        # check for ownership of test and assignment
-        query = """
-            SELECT *
-            FROM assignments
-            WHERE teacher_id=%s AND assignment_id=%s
-            """
-        cur.execute(query, (self.uid, data['assignment-id'][0]))
-        assignment_id_result = cur.fetchone()
-
-        query = """
-            SELECT * FROM tests
-            WHERE teacher_id=%s AND test_id=%s
-            """
-        cur.execute(query, (self.uid, data['test-id'][0]))
-        test_id_result = cur.fetchone()
-
-        self.logger.debug(
-            "Assignment check: {}, Test check: {}"
-            .format(
-                bool(assignment_id_result),
-                bool(test_id_result)
-                )
-            )
-        if assignment_id_result is None or test_id_result is None:
-            if assignment_id_result is None and test_id_result is None:
-                msg = (
-                    "Neither AssignmentID {} or TestID {} are owned by "
-                    "TeacherID: {}"
-                    .format(
-                        data['assignment-id'][0],
-                        data['test-id'][0],
-                        self.uid
-                        )
-                    )
-            elif assignment_id_result is None:
-                msg = (
-                    "AssignmentID {} is not owned by TeacherID: {}"
-                    .format(
-                        data['assignment-id'][0],
-                        self.uid
-                        )
-                    )
-            elif test_id_result is None:
-                msg = (
-                    "TestID {} is not owned by TeacherID: {}"
-                    .format(
-                        data['test-id'][0],
-                        self.uid
-                        )
-                    )
-            self.logger.info(msg)
-            self.logger.info("Aborting...")
-            self.send_error(
-                HTTPStatus.FORBIDDEN,
-                msg
-                )
-            self.end_headers()
-            return None
-
 
         # check to see if target test is already linked or not linked
         # to current assignment version
@@ -2045,6 +1993,323 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             return delpath, subpath, temppath
         else:
             return delpath, fpath, temppath
+
+
+    def uid_access_check(self, command, subcommand, auth_level, data):
+        """ Check uid against command/subcommand.
+
+        Users should only be able to view/update/delete data
+        connected to them. For example a student should only
+        see courses they are enrolled in and a teacher should only
+        be able to delete their own courses.
+
+        Returns True on success and None on failure."""
+
+        # create cursor for querying db
+        cur = conn.cursor()
+
+        assignment_query = """
+            SELECT *
+            FROM assignments
+            INNER JOIN teachers_teach_courses
+                ON assignments.course_id=teachers_teach_courses.course_id
+            WHERE
+                teachers_teach_courses.teacher_id=%(uid)s
+                AND
+                assignments.assignment_id=%(assignment_id)s
+            """
+
+        ce_query = """
+            SELECT *
+            FROM common_errors
+            WHERE teacher_id=%(uid)s AND ce_id=%(ce_id)s
+            """
+
+        course_query = """
+            SELECT *
+            FROM courses
+            INNER JOIN teachers_teach_courses
+                ON courses.course_id=teachers_teach_courses.course_id
+            WHERE
+                teachers_teach_courses.teacher_id=%(uid)s
+                AND
+                courses.course_id=%(course_id)s
+            """
+
+        submission_query_ta = """
+            SELECT *
+            FROM submissions
+            INNER JOIN versions
+                ON submissions.version_id=versions.version_id
+            INNER JOIN assignments
+                ON versions.assignment_id=assignments.assignment_id
+            INNER JOIN tas_assist_in_courses
+                ON assignments.course_id=tas_assist_in_courses.course_id
+            WHERE
+                tas_assist_in_courses.ta_id=%(uid)s
+                AND
+                submissions.submission_id=%(submission)s
+            """
+
+        submission_query_teacher = """
+            SELECT *
+            FROM submissions
+            INNER JOIN versions
+                ON submissions.version_id=versions.version_id
+            INNER JOIN assignments
+                ON versions.assignment_id=assignments.assignment_id
+            INNER JOIN teachers_teach_courses
+                ON assignments.course_id=teachers_teach_courses.course_id
+            WHERE
+                teachers_teach_courses.teacher_id=%(uid)s
+                AND
+                submissions.submission_id=%(submission)s
+            """
+
+
+        test_query = """
+            SELECT * FROM tests
+            WHERE teacher_id=%(uid)s AND test_id=%(test_id)s
+            """
+
+
+
+
+
+        if subcommand == "link" or subcommand == "unlink":
+
+            if command == "test":
+
+                # check for ownership of test and assignment
+                cur.execute(
+                    assignment_query,
+                    {'uid':self.uid, 'assignment_id': data['assignment-id'][0]}
+                    )
+                assignment_id_result = cur.fetchone()
+
+
+                cur.execute(
+                    test_query,
+                    {'uid': self.uid, 'test_id': data['test-id'][0]}
+                    )
+                test_id_result = cur.fetchone()
+
+                self.logger.debug(
+                    "Assignment check: {}, Test check: {}"
+                    .format(
+                        bool(assignment_id_result),
+                        bool(test_id_result)
+                        )
+                    )
+                if assignment_id_result is None or test_id_result is None:
+                    if assignment_id_result is None and test_id_result is None:
+                        msg = (
+                            "Neither AssignmentID {} or TestID {} are owned by "
+                            "TeacherID: {}"
+                            .format(
+                                data['assignment-id'][0],
+                                data['test-id'][0],
+                                self.uid
+                                )
+                            )
+                    elif assignment_id_result is None:
+                        msg = (
+                            "AssignmentID {} is not owned by TeacherID: {}"
+                            .format(
+                                data['assignment-id'][0],
+                                self.uid
+                                )
+                            )
+                    elif test_id_result is None:
+                        msg = (
+                            "TestID {} is not owned by TeacherID: {}"
+                            .format(
+                                data['test-id'][0],
+                                self.uid
+                                )
+                            )
+                    self.logger.info(msg)
+                    self.abort_response(HTTPStatus.FORBIDDEN, msg)
+                    return None
+
+
+        if subcommand == 'update':
+
+            if command == 'assignment':
+
+                # check for ownership of assignment
+                cur.execute(
+                    assignment_query,
+                    {'uid':self.uid, 'assignment_id': data['assignment-id'][0]}
+                    )
+                assignment_id_result = cur.fetchone()
+
+                if assignment_id_result is None:
+                    msg = (
+                        "AssignmentID {} is not owned by TeacherID: {}"
+                        .format(
+                            data['assignment-id'][0],
+                            self.uid
+                            )
+                        )
+                    self.logger.info(msg)
+                    self.abort_response(HTTPStatus.FORBIDDEN, msg)
+                    return None
+
+
+            elif command == 'ce':
+
+                # check for ownership of common_error
+                cur.execute(
+                    ce_query,
+                    {'uid':self.uid, 'ce_id': data['ce-id'][0]}
+                    )
+                ce_id_result = cur.fetchone()
+
+                if ce_id_result is None:
+                    msg = (
+                        "CommonErrorID {} is not owned by TeacherID: {}"
+                        .format(
+                            data['ce-id'][0],
+                            self.uid
+                            )
+                        )
+                    self.logger.info(msg)
+                    self.abort_response(HTTPStatus.FORBIDDEN, msg)
+                    return None
+
+            elif command == 'course':
+
+                # check for ownership of course
+                cur.execute(
+                    course_query,
+                    {'uid':self.uid, 'course_id': data['course-id'][0]}
+                    )
+                course_id_result = cur.fetchone()
+
+                if course_id_result is None:
+                    msg = (
+                        "CourseID {} is not owned by TeacherID: {}"
+                        .format(
+                            data['course-id'][0],
+                            self.uid
+                            )
+                        )
+                    self.logger.info(msg)
+                    self.abort_response(HTTPStatus.FORBIDDEN, msg)
+                    return None
+
+
+            elif command == 'grade' or command == 'submission':
+
+                sub_id = None
+                if 'assignment-id' in data:
+                    # get student id from onid
+                    cur.execute("""
+                        SELECT users.user_id FROM users
+                        INNER JOIN students
+                        ON users.user_id=students.student_id
+                        WHERE users.username=%s
+                        """, (data['student'][0],)
+                        )
+                    student_id = cur.fetchone()['user_id']
+                    # use assignment-id and student-id to select
+                    # correct submission-id
+
+
+                    cur.execute("""
+                        SELECT MAX(S.submission_id)
+                        FROM submissions AS S
+                        INNER JOIN students_create_submissions AS C
+                        ON S.submission_id=C.submission_id
+                        INNER JOIN versions AS V
+                        ON S.version_id=V.version_id
+                        WHERE
+                            V.assignment_id=%s
+                            AND C.student_id=%s
+                        """, (data['assignment-id'][0], student_id,)
+                        )
+                    sub_id = []
+                    sub_id.append(cur.fetchone()['max'])
+                    sub_id = sub_id[0]
+
+
+                if sub_id is None:
+                    sub_id = data['submission'][0]
+
+                if auth_level == 'ta':
+                    query = submission_query_ta
+                    msg = (
+                            "TA {} is not assisting SubmissionID {}'s course"
+                            .format(
+                                self.uid,
+                                sub_id
+                                )
+                            )
+                elif auth_level == 'teacher':
+                    query = submission_query_teacher
+                    msg = (
+                            "TeacherID {} is not an instructor SubmissionID {}'s course"
+                            .format(
+                                self.uid,
+                                sub_id
+                                )
+                            )
+
+                # check that TA/teacher is assisting/teaching in the course that owns
+                # the assignment that owns the submission
+                cur.execute(
+                    query,
+                    {'uid':self.uid, 'submission': sub_id}
+                    )
+                submission_id_result = cur.fetchone()
+
+                if submission_id_result is None:
+                    self.logger.info(msg)
+                    self.abort_response(HTTPStatus.FORBIDDEN, msg)
+                    return None
+
+
+            elif command == 'test':
+
+                # check that Teacher owns test
+                cur.execute(
+                    test_query,
+                    {'uid': self.uid, 'test_id': data['test-id'][0]}
+                    )
+                test_id_result = cur.fetchone()
+
+                if test_id_result is None:
+                    msg = (
+                        "TestID {} is not owned by TeacherID: {}"
+                        .format(
+                            data['test-id'][0],
+                            self.uid
+                            )
+                        )
+                    self.logger.info(msg)
+                    self.abort_response(HTTPStatus.FORBIDDEN, msg)
+                    return None
+
+        self.logger.debug(
+            "UID {} passed uid_auth_check for {}/{}"
+            .format(
+                self.uid,
+                command,
+                subcommand
+                )
+            )
+        return True
+
+    def abort_response(self, http_error, msg):
+        self.logger.info("Aborting...")
+        self.send_error(
+            http_error,
+            msg
+            )
+        self.end_headers()
+        return
+
 
 
 class ThreadingHTTPServer(ThreadingMixIn, http.server.HTTPServer):
