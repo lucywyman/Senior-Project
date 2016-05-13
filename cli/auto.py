@@ -169,7 +169,7 @@ class AutoShell(cmd.Cmd):
 
         self.logger.info('Response: {0}'.format(response))
 
-        if response==None:
+        if response == None:
             self.logger.debug("No Resposnse")
             self.logger.debug("END")
             return
@@ -311,7 +311,7 @@ class AutoShell(cmd.Cmd):
 
                 if question and not query_yes_no(question):
                     self.logger.debug("Operation aborted.")
-                    return False
+                    return 'aborted'
 
                 self.logger.debug("DELETEing")
                 try:
@@ -325,6 +325,10 @@ class AutoShell(cmd.Cmd):
 
 
     def command_response(self, command, subcommand, response):
+
+        if subcommand == 'delete' and response == 'aborted':
+            print("*** Command Aborted")
+            return
 
         self.logger.info("Response Status Code: {0}"
             .format(response.status_code)
@@ -709,11 +713,23 @@ class AutoShell(cmd.Cmd):
 
         data = json
 
+        # Only print one row per submission_id
+        if command == 'submission' and subcommand == 'view':
+            id_list = []
+            temp_data = []
+            for id, row in enumerate(data):
+                if row['submission_id'] not in id_list:
+                    id_list += [row['submission_id']]
+                    temp_data += [data[id]]
+            data = temp_data
+
+
         cols = [
             x for x in sql_dict.sql[command][subcommand]['view_order']
             if x in data[0]
             ]
         self.logger.debug("Cols: {0}".format(cols))
+
 
 
         sort_order = [

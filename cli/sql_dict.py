@@ -1,3 +1,18 @@
+# These are the three most common query strings for limiting view output
+teacher_limit = """ courses.course_id IN (
+                SELECT course_id
+                FROM teachers_teach_courses
+                WHERE teacher_id=%(uid)s) """
+
+ta_limit =  """ courses.course_id IN (
+            SELECT course_id
+            FROM tas_assist_in_courses
+            WHERE ta_id=%(uid)s) """
+
+student_limit = """ courses.course_id IN (
+                SELECT course_id
+                FROM students_take_courses
+                WHERE student_id=%(uid)s) """
 sql = {
     "assignment": {
         "view": {
@@ -30,6 +45,12 @@ sql = {
             "view_order": ['dept_name', 'course_num', 'assignment_id', 'name', 'end_date','late_submission', 'submission_limit', 'feedback_level', 'course_id'],
 
             "sort_order": ['course_id', 'assignment_id'],
+
+            "limit": {
+                "teacher":  teacher_limit,
+                "ta":       ta_limit,
+                "student":  student_limit,
+                },
 
         },
     },
@@ -70,6 +91,12 @@ sql = {
 
             "sort_order": ['test_id', 'course_id', 'assignment_id', 'ce_id'],
 
+            "limit": {
+                "teacher":  """ common_errors.teacher_id=%(uid)s """,
+                "ta":       None,
+                "student":  None,
+                },
+
         },
     },
 
@@ -98,6 +125,12 @@ sql = {
             "view_order": ['course_id', 'dept_name', 'course_num', 'name', 'term', 'year', 'teacher' ],
 
             "sort_order": ['year', 'term', 'dept_name', 'course_num', 'course_id'],
+
+            "limit": {
+                "teacher":  teacher_limit,
+                "ta":       ta_limit,
+                "student":  student_limit,
+                },
 
         },
     },
@@ -129,6 +162,12 @@ sql = {
 
             "sort_order": ['dept_name', 'course_num', 'course_id', 'ta', 'student'],
 
+            "limit": {
+                "teacher":  teacher_limit,
+                "ta":       ta_limit,
+                "student":  student_limit,
+                },
+
         },
     },
 
@@ -158,13 +197,19 @@ sql = {
 
             "sort_order": ['dept_name', 'course_num', 'course_id', 'student'],
 
+            "limit": {
+                "teacher":  teacher_limit,
+                "ta":       ta_limit,
+                "student":  student_limit,
+                },
+
         },
     },
 
     "submission": {
         "view": {
 
-            "table":    'submissions_have_tests',
+            "table":    'submissions_have_results',
 
             "required": [
                 ['submissions', 'submission_id', 'submission_id'],
@@ -178,7 +223,7 @@ sql = {
                 ['submissions', 'grade', 'grade'],
                 ['courses', 'name', 'course_name'],
                 ['submissions', 'submission_date', 'submission_date'],
-                ['submissions_have_tests', 'result', 'result'],
+                ['submissions_have_results', 'results', 'results'],
                 ['users', 'username', 'student', 'students'],
                 ['courses', 'course_num', 'course_num'],
             ],
@@ -189,9 +234,18 @@ sql = {
                 ['users', 'students', 'su'],
             ],
 
-            "view_order": ['assignment_id', 'version_id', 'submission_id', 'submission_date', 'student', 'grade', 'assignment_name', 'dept_name', 'course_num'],
+            "view_order": ['assignment_id', 'version_id', 'submission_id', 'submission_date', 'student', 'grade', 'assignment_name', 'dept_name', 'course_num', 'results'],
 
             "sort_order": ['assignment_id', 'version_id', 'submission_id'],
+
+            "limit": {
+                "teacher":  teacher_limit,
+                "ta":       ta_limit,
+                "student":  """ submissions.submission_id IN (
+                            SELECT submission_id
+                            FROM students_create_submissions
+                            WHERE student_id=%(uid)s) """,
+                },
 
         },
     },
@@ -219,6 +273,12 @@ sql = {
             "view_order": ['course_id', 'dept_name', 'course_num', 'course_name', 'ta' ],
 
             "sort_order": ['course_id', 'ta'],
+
+            "limit": {
+                "teacher":  teacher_limit,
+                "ta":       ta_limit,
+                "student":  student_limit,
+                },
 
         },
     },
@@ -248,6 +308,12 @@ sql = {
             "view_order": ['assignment_id', 'assignment_name', 'text', 'course_id', 'dept_name', 'course_num', 'course_name'],
 
             "sort_order": ['course_id', 'assignment_id', 'text'],
+
+            "limit": {
+                "teacher":  teacher_limit,
+                "ta":       None,
+                "student":  None,
+                },
 
         },
     },
@@ -288,6 +354,12 @@ sql = {
             "view_order": ['test_id', 'test_name', 'points', 'time_limit', 'assignment_id', 'assignment_name', 'version_id', 'course_id', 'dept_name', 'course_num', 'course_name'],
 
             "sort_order": ['course_id', 'version_id', 'test_id'],
+
+            "limit": {
+                "teacher":  """ tests.teacher_id=%(uid)s """,
+                "ta":       None,
+                "student":  None,
+                },
 
         },
     },
