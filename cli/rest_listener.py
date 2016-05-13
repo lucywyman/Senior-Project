@@ -384,7 +384,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         # i.e. A TA using course view will only see courses
         # they are assisting in
         if sql[command]['view']['limit'].get(auth_level, None):
-            query += "WHERE " + sql[command]['view']['limit'][auth_level]
+            query += " WHERE " + sql[command]['view']['limit'][auth_level]
         else:
             msg = (
                 "ERROR: Limit not found for {0} at auth_level: {1}"
@@ -777,7 +777,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     FROM versions
                     GROUP BY versions.assignment_id
                     HAVING assignment_id=%s
-                    """, (data['assignment-id'][0],)
+                    """, (aid,)
                     )
                 data['version']= []
                 data['version'].append(cur.fetchone()['max_version'])
@@ -1440,7 +1440,10 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
     def get_file(self, form):
 
+        self.logger.debug(cgi.print_form(form))
         fileitem = form['file']
+
+        self.logger.debug("FileItem: {}".format(fileitem))
 
         # Test if the file was uploaded
         if fileitem is not None and fileitem.filename:
@@ -1787,6 +1790,65 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
         self.logger.debug("Version: {0}".format(data['version']))
 
+        # check for ownership of test and assignment
+        query = """
+            SELECT *
+            FROM assignments
+            WHERE teacher_id=%s AND assignment_id=%s
+            """
+        cur.execute(query, (self.uid, data['assignment-id'][0]))
+        assignment_id_result = cur.fetchone()
+
+        query = """
+            SELECT * FROM tests
+            WHERE teacher_id=%s AND test_id=%s
+            """
+        cur.execute(query, (self.uid, data['test-id'][0]))
+        test_id_result = cur.fetchone()
+
+        self.logger.debug(
+            "Assignment check: {}, Test check: {}"
+            .format(
+                bool(assignment_id_result),
+                bool(test_id_result)
+                )
+            )
+        if assignment_id_result is None or test_id_result is None:
+            if assignment_id_result is None and test_id_result is None:
+                msg = (
+                    "Neither AssignmentID {} or TestID {} are owned by "
+                    "TeacherID: {}"
+                    .format(
+                        data['assignment-id'][0],
+                        data['test-id'][0],
+                        self.uid
+                        )
+                    )
+            elif assignment_id_result is None:
+                msg = (
+                    "AssignmentID {} is not owned by TeacherID: {}"
+                    .format(
+                        data['assignment-id'][0],
+                        self.uid
+                        )
+                    )
+            elif test_id_result is None:
+                msg = (
+                    "TestID {} is not owned by TeacherID: {}"
+                    .format(
+                        data['test-id'][0],
+                        self.uid
+                        )
+                    )
+            self.logger.info(msg)
+            self.logger.info("Aborting...")
+            self.send_error(
+                HTTPStatus.FORBIDDEN,
+                msg
+                )
+            self.end_headers()
+            return None
+
 
         # check to see if target test is already linked or not linked
         # to current assignment version
@@ -1799,7 +1861,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         result = cur.fetchone()
 
         if subcommand == 'link' and result:
-            self.logger.debug(
+            msg = (
                 "Test {0} already linked to Assignment {1}, Version {2}."
                 " Cannot relink."
                 .format(
@@ -1808,22 +1870,17 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     data['version'][0]
                     )
                 )
+            self.logger.debug(msg)
             self.logger.debug("Aborting...")
             self.send_error(
                 HTTPStatus.FORBIDDEN,
-                "Test {0} already linked to Assignment {1}, Version {2}."
-                " Cannot relink."
-                .format(
-                    data['test-id'][0],
-                    data['assignment-id'][0],
-                    data['version'][0]
-                    )
+                msg
                 )
             self.end_headers()
             return None
 
         elif subcommand == 'unlink' and not result:
-            self.logger.debug(
+            msg = (
                 "Test {0} is not linked to Assignment {1}, Version {2}."
                 " Cannot unlink."
                 .format(
@@ -1832,16 +1889,11 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     data['version'][0]
                     )
                 )
+            self.logger.debug(msg)
             self.logger.debug("Aborting...")
             self.send_error(
                 HTTPStatus.FORBIDDEN,
-                "Test {0} is not linked to Assignment {1}, Version {2}."
-                " Cannot unlink."
-                .format(
-                    data['test-id'][0],
-                    data['assignment-id'][0],
-                    data['version'][0]
-                    )
+                msg
                 )
             self.end_headers()
             return None
