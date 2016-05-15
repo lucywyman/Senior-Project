@@ -18,7 +18,11 @@ def create_test(request):
         for i in request.POST:
             if i != 'csrfmiddlewaretoken':
                 obj[i] = [request.POST[i]]
-        files = {"file": request.FILES['tfile']}
+        files = {}
+        i = 0
+        for f in request.FILES.getlist('files'):
+            files['file'+str(i)] = f
+            i = i+1
         t_obj = requests.post(api_ip+'test/add', data=obj, auth=udata, 
                 files=files, verify=False)
         if t_obj.status_code == 200:

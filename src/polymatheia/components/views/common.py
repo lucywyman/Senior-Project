@@ -24,10 +24,10 @@ def get_courses(request):
                 json=user_info, auth=udata, verify=False)
         courses = user_obj.json()
     elif request.session['type'] == 'ta':
-        #user_info = {'ta-id':[request.session['user']]}
-        #user_obj = requests.get(api_ip+'course/view',
-        #    json=user_info, auth=udata, verify=False)
-        courses = [[]]
+        user_info = {'ta-id':[request.session['user']]}
+        user_obj = requests.get(api_ip+'ta/view',
+            json=user_info, auth=udata, verify=False)
+        courses = user_obj.json()
     else:
         user_info = {'teacher':[request.session['user']]}
         user_obj = requests.get(api_ip+'course/view',

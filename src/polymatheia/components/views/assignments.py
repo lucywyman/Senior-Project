@@ -49,13 +49,13 @@ def assignment(request):
         assignment_data['student'] = [request.session.get('user')]
         s_obj = requests.get(api_ip+'submission/view', json=assignment_data,
                 auth=udata, verify=False)
-        s = (s_obj if s_obj.status_code == 200 else [])
+        s = (s_obj.json() if s_obj.status_code == 200 else [])
+        raise Exception(s_obj.json())
     else:
         s = []
-    form = Submission()
     return render_to_response('assignment/assignment.html', 
-            {'assignment':assign[0], 'form':form, 'user':user[0], 
-                'tests':t, 'subs':s}, RequestContext(request))
+            {'assignment':assign[0], 'user':user[0], 'tests':t, 'subs':s}, 
+            RequestContext(request))
 
 def edit_assignment(request):
     if not check_auth:
@@ -120,7 +120,11 @@ def submit_assignment(request):
     assignment_data = {'assignment-id':[assignment_id]}
     if request.method == 'POST':
         obj = {'assignment-id': [assignment_id]}
-        files = {"file": request.FILES['sfile']}
+        files = {}
+        i = 0
+        for f in request.FILES.getlist('files'):
+            files['file'+str(i)] = f
+            i = i+1
         c_obj = requests.post(api_ip+'submission/add', data=obj, files=files,
                 auth=udata, verify=False)
         if c_obj.status_code == 200:
