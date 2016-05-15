@@ -244,10 +244,12 @@ class AutoShell(cmd.Cmd):
 
         if "filepath" in data:
             # TODO verify filepath - handle open failure gracefully
-            #TODO - handle multiples?
-            data['filepath'][0] = os.path.normpath(data['filepath'][0])
-            files = { "file": open(data['filepath'][0], 'rb') }
-            self.logger.debug("file is '{0}'".format(data['filepath'][0]))
+            files = {}
+            for id, file in enumerate(data['filepath']):
+                key_str = "file{}".format(id)
+                data['filepath'][id] = os.path.normpath(data['filepath'][id])
+                files[key_str] = open(data['filepath'][id], 'rb')
+                self.logger.debug("file{0} is '{1}'".format(id, data['filepath'][id]))
 
 
 
