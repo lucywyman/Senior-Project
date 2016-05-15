@@ -21,12 +21,11 @@ def student_add(request):
         for i in request.POST:
             if (pattern.match(i) or i == 'student') and request.POST[i] != '':
                 obj['student'].append(request.POST[i])
-        raise Exception(obj)
         a_obj = requests.post(api_ip+'student/add', json=obj,
                 auth=udata, verify=False)
         if a_obj.status_code == 200:
             return render_to_response('edited.html', {'name':'Students', 
-                'action':'added'})
+                'action':'added', 'user':request.session['courses']})
         else:
             error = str(a_obj.status_code) + " error. Please try again."
     r = [i for i in range(50)]
@@ -59,7 +58,7 @@ def delete_student(request):
                 auth=udata, verify=False)
         if s_obj.status_code == 200:
             return render_to_response('edited.html', {'name':'Student', 
-                'action':'deleted'})
+                'action':'deleted', 'user':request.session['courses']})
         else:
             error = str(s_obj.status_code) + " error. Please try again"
     s_obj = requests.get(api_ip+'student/view', json=student_data, auth=udata,

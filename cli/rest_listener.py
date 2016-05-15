@@ -1420,7 +1420,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         self.logger.debug("Form Keys: {0}".format(form.keys()))
         self.logger.debug("Processing Form Keys")
         for key in form.keys():
-            if key not in ['file', 'filepath']:
+            if key not in ['file', 'filepath', 'sfile', 'tfile']:
                 variable = str(key)
                 value = str(form.getvalue(variable))
                 self.logger.debug("Variable: {0}, value: {1}"
@@ -1454,7 +1454,6 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         return data, fileitem
 
     def get_file(self, form):
-
         self.logger.debug(cgi.print_form(form))
         fileitem = form['file']
 

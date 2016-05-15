@@ -18,12 +18,12 @@ def create_test(request):
         for i in request.POST:
             if i != 'csrfmiddlewaretoken':
                 obj[i] = [request.POST[i]]
-        files = {"file": request.FILES['filepath'].read()}
+        files = {"file": request.FILES['tfile']}
         t_obj = requests.post(api_ip+'test/add', data=obj, auth=udata, 
                 files=files, verify=False)
         if t_obj.status_code == 200:
             return render_to_response('edited.html', {'name':'Test', 
-                'action':'created'})
+                'action':'created', 'user':request.session['courses']})
         else:
             error = t_obj.status_code + " error. Please try again."
     courses = get_courses(request)
@@ -34,7 +34,7 @@ def create_test(request):
                 json=course_data, auth=udata, verify=False)
         if aobj.status_code == 200:
             a = aobj.json()
-            assignments.append(a[0])
+            assignments.extend(a)
     form = Test()
     return render_to_response('test/create_test.html', 
             {'form':form, 'error':error, 'assignments':assignments}, 
@@ -64,7 +64,7 @@ def edit_test(request):
                 files=files, verify=False)
         if t_obj.status_code == 200:
             return render_to_response('edited.html', {'name':'Test', 
-                'action':'created'})
+                'action':'created', 'user':request.session['courses']})
         else:
             error = t_obj.status_code + " error. Please try again."
     test_data = {'test-id':[test_id]}
@@ -89,7 +89,7 @@ def delete_test(request):
                 auth=udata, verify=False)
         if c_obj.status_code == 200:
             return render_to_response('edited.html', {'name':'Test', 
-                'action':'deleted'})
+                'action':'deleted', 'user':request.session['courses']})
         else:
             error = str(r_obj.status_code) + " error. Please try again"
     c_obj = requests.get(api_ip+'test/view', json=test_data, auth=udata,

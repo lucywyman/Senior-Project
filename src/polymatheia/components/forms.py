@@ -44,14 +44,8 @@ class Assignment(forms.Form):
     instructions = forms.CharField
     limit = forms.IntegerField
     level = forms.ChoiceField(choices=FEEDBACK)
-    #late = forms.BooleanField(required=True)
 
 class Test(forms.Form):
     name = forms.CharField(required=True, label='Test name')
     points = forms.IntegerField(required=True)
     time = forms.IntegerField(required=True)
-    filepath = forms.FileField(required=True)
-
-class Submission(forms.Form):
-    subpath = forms.FileField(required=True)
-    comments = forms.CharField(required=True)

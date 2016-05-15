@@ -25,7 +25,7 @@ def create_course(request):
                 auth=udata, verify=False)
         if c_obj.status_code == 200:
             return render_to_response('edited.html', {'name':'Course', 'action':
-                'created'})
+                'created', 'user':request.session['courses']})
         else:
             error = str(c_obj.status_code) + " error. Please try again."
     form = Course()
@@ -103,7 +103,7 @@ def edit_course(request):
                 auth=udata, verify=False)
         if c_obj.status_code == 200:
             return render_to_response('edited.html', {'name':'Course',
-                'action':'updated'})
+                'action':'updated', 'user':request.session['courses']})
         else:
             error = str(a_obj.status_code)+' error. Please try again'
     course_data = {'course-id':[course_id]}
@@ -132,7 +132,7 @@ def delete_course(request):
                 auth=udata, verify=False)
         if c_obj.status_code == 200:
             return render_to_response('edited.html', {'name':'Course', 
-                'action':'deleted'})
+                'action':'deleted', 'user':request.session['courses']})
         else:
             error = str(r_obj.status_code) + " error. Please try again"
     c_obj = requests.get(api_ip+'course/view', json=course_data, auth=udata,

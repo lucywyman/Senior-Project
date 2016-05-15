@@ -7,3 +7,4 @@ from tests import *
 from common import *
 from ta import *
 from students import *
+from errors import *

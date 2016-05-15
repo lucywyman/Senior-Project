@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 from django.core.context_processors import csrf
 from polymatheia.components.forms import *
+from polymatheia.components.views import get_courses
 import requests, json
 
 api_ip = settings.API_IP
@@ -21,6 +22,7 @@ def login_user(request):
         if login.status_code == 200:
             l_obj = login.json()
             request.session['type'] = l_obj['auth_level']
+            request.session['courses'] = get_courses(request)
             return HttpResponseRedirect('/')
         else:
             render_to_response('auth/login.html', 

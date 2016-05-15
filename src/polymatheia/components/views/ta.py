@@ -22,7 +22,7 @@ def create_ta(request):
                 verify=False)
         if t_obj.status_code == 200:
             return render_to_response('edited.html', {'name':'TA', 'action':
-                'created'})
+                'created', 'user':request.session['courses']})
         else:
             error = t_obj.status_code + " error. Please try again."
     courses = get_courses(request)

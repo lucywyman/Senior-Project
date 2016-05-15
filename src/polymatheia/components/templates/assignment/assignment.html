@@ -25,6 +25,12 @@
 </ul>
 {% endif %}
 {% if user.student %}
+<h4>Your Submissions:</h4>
+<ul>
+	{% for s in subs %}
+	<li><a href='submission/{{ s.submission_id }}'></a></li>
+	{% endfor %}
+</ul>
 <form action="/assignment/submit/{{ assignment.assignment_id }}" method="post" enctype="multipart/form-data">
 	{% csrf_token %}
 	{{ form.as_table }}   
