@@ -41,16 +41,12 @@ def assignment(request):
     assign = (a_obj.json() if a_obj.status_code == 200 else [])
     t_obj = requests.get(api_ip+'test/view', json=assignment_data,
             auth=udata, verify=False)
-    if t_obj.status_code == 200:
-        t = t_obj.json()
-    else:
-        t = [[]]
+    t = (t_obj.json() if t_obj.status_code == 200 else [[]])
     if request.session.get('type') == 'student':
         assignment_data['student'] = [request.session.get('user')]
         s_obj = requests.get(api_ip+'submission/view', json=assignment_data,
                 auth=udata, verify=False)
         s = (s_obj.json() if s_obj.status_code == 200 else [])
-        raise Exception(s_obj.json())
     else:
         s = []
     return render_to_response('assignment/assignment.html', 

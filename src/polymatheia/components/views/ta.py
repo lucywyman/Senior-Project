@@ -22,7 +22,7 @@ def create_ta(request):
                 verify=False)
         if t_obj.status_code == 200:
             return render_to_response('edited.html', {'name':'TA', 'action':
-                'created', 'user':request.session['courses']})
+                'added', 'user':request.session['courses']})
         else:
             error = t_obj.status_code + " error. Please try again."
     courses = get_courses(request)
@@ -49,7 +49,7 @@ def ta(request):
             verify=False)
     ta = (ta_obj.json() if ta_obj.status_code == 200 else []) 
     return render_to_response('ta/ta.html', {'ta':ta, 'user':user[0], 
-        'name':ta[0]['ta']})
+        'name':ta['ta']})
 
 def delete_ta(request):
     pass
