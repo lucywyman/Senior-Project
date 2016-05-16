@@ -790,6 +790,93 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 data['version'].append(cur.fetchone()['max_version'])
 
 
+                # check to see if submission is allowed
+                # get data about assignment
+                cur.execute("""
+                    SELECT submission_limit, begin_date, end_date, late_submission
+                    FROM assignments
+                    WHERE assignment_id=%s
+                    """, (aid,)
+                    )
+                result = cur.fetchone()
+
+                if not result:
+                    msg = (
+                        "AssignmentID {} is invalid. Please check ID number and try again."
+                        .format(aid)
+                        )
+                    self.logger.info(msg)
+                    self.abort_response(HTTPStatus.FORBIDDEN, msg)
+                    self.logger.info("END")
+                    return
+
+
+                submission_limit = result['submission_limit']
+                begin_date = result['begin_date']
+                end_date = result['end_date']
+                late_submission = result['late_submission']
+
+
+                # get number of submissions
+                cur.execute("""
+                    SELECT COUNT(*) as num_of_submissions
+                    FROM students_create_submissions
+                    INNER JOIN submissions
+                        ON students_create_submissions.submission_id = submissions.submission_id
+                    INNER JOIN versions
+                        ON submissions.version_id = versions.version_id
+                    WHERE
+                        versions.assignment_id = %(assignment_id)s
+                        AND
+                        students_create_submissions.student_id = %(student_id)s
+
+                    """, {'assignment_id': aid, 'student_id': self.uid}
+                    )
+                num_of_submissions = cur.fetchone().get('num_of_submissions', 0)
+
+                # check submission limit
+                if submission_limit > 0 and num_of_submissions >= submission_limit:
+                    msg = (
+                        "Submission Limit ({}) reached. No more submissions permitted."
+                        .format(submission_limit)
+                        )
+                    self.logger.info(msg)
+                    self.abort_response(HTTPStatus.FORBIDDEN, msg)
+                    self.logger.info("END")
+                    return
+
+                # check begin date
+                if datetime.now() < begin_date:
+                    # No reason to let the student know this assignment actually exists
+                    msg = (
+                        "AssignmentID {} is invalid. Please check ID number and try again."
+                        .format(aid)
+                        )
+                    self.logger.info(msg)
+                    self.abort_response(HTTPStatus.FORBIDDEN, msg)
+                    self.logger.info("END")
+                    return
+
+                # check end date
+                if datetime.now() > (end_date + timedelta(days=late_submission)):
+                    msg = (
+                        "Current time is {}. AssignmentID {} ended at {}. Late submission ended at {}. Submission refused."
+                        .format(
+                            datetime.strftime(datetime.now(), '%x %X'),
+                            aid,
+                            datetime.strftime(end_date, '%x %X'),
+                            datetime.strftime(
+                                end_date + timedelta(days=late_submission),
+                                '%x %X'
+                                )
+                            )
+                        )
+                    self.logger.info(msg)
+                    self.abort_response(HTTPStatus.FORBIDDEN, msg)
+                    self.logger.info("END")
+                    return
+
+
             elif command == 'ta':
                 if 'course-id' in data:
                     table = 'tas_assist_in_courses'
