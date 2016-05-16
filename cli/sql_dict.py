@@ -31,7 +31,7 @@ sql = {
                 ['depts', 'dept_name', 'dept_name'],
                 ['courses', 'course_num', 'course_num'],
                 ['courses', 'name', 'course_name'],
-                # fourth entry specifies witch table to join with
+                # fourth entry specifies which table to join with
                 ['users', 'user_id', 'teacher_id', 'teachers'],
                 ['users', 'username', 'teacher', 'teachers'],
             ],
@@ -42,7 +42,7 @@ sql = {
                 ['users', 'teachers', 'tchu'],
             ],
 
-            "view_order": ['dept_name', 'course_num', 'assignment_id', 'name', 'end_date','late_submission', 'submission_limit', 'feedback_level', 'course_id'],
+            "view_order": ['dept_name', 'course_num', 'assignment_id', 'name', 'begin_date', 'end_date','late_submission', 'submission_limit', 'feedback_level', 'course_id'],
 
             "sort_order": ['course_id', 'assignment_id'],
 
@@ -51,7 +51,6 @@ sql = {
                 "ta":       ta_limit,
                 "student":  student_limit,
                 },
-
         },
     },
 
@@ -79,6 +78,11 @@ sql = {
                 ],
 
                 ('test_id',): [
+                    ['tests', 'test_id', 'test_id'],
+                    ['tests', 'name', 'test_name'],
+                ],
+
+                ('ce_id',): [
                     ['tests', 'test_id', 'test_id'],
                     ['tests', 'name', 'test_name'],
                 ],
@@ -224,8 +228,10 @@ sql = {
                 ['courses', 'name', 'course_name'],
                 ['submissions', 'submission_date', 'submission_date'],
                 ['submissions_have_results', 'results', 'results'],
-                ['users', 'username', 'student', 'students'],
                 ['courses', 'course_num', 'course_num'],
+                ['assignments', 'feedback_level', 'feedback_level'],
+                ['users', 'username', 'student', 'students'],
+
             ],
 
             "optional": {},
@@ -234,7 +240,7 @@ sql = {
                 ['users', 'students', 'su'],
             ],
 
-            "view_order": ['assignment_id', 'version_id', 'submission_id', 'submission_date', 'student', 'grade', 'assignment_name', 'dept_name', 'course_num', 'results'],
+            "view_order": ['assignment_id', 'version_id', 'submission_id', 'submission_date', 'student', 'grade', 'assignment_name', 'dept_name', 'course_num'],
 
             "sort_order": ['assignment_id', 'version_id', 'submission_id'],
 
