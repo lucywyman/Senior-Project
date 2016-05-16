@@ -894,6 +894,13 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
                     move(temppath, subpath)
 
+                # add record of submission creation
+                cur.execute("""
+                    INSERT INTO students_create_submissions (student_id, submission_id)
+                    VALUES (%(student_id)s, %(submission_id)s)
+                    """, {'student_id': self.uid, 'submission_id': ret}
+                    )
+
                 # call tester
                 if self.submit(ret) == 0:
                     self.logger.debug(
