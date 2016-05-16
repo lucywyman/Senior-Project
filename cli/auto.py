@@ -149,6 +149,11 @@ class AutoShell(cmd.Cmd):
             print('\n*** Unauthorized: Please login first\n')
             self.onecmd("help login")
             return
+        elif command_dict.commands[command].get(args[0], None) is None:
+            print('\n*** Error: Subcommand {} not valid\n'.format(subcommand))
+            self.onecmd("help " + command)
+            self.logger.debug("END")
+            return
         elif not self.command_access(self.auth_level, command, args[0]):
             print("\n*** Unauthorized: {0} {1}\n".format(command, args[0]))
             self.logger.debug("END")
@@ -715,16 +720,6 @@ class AutoShell(cmd.Cmd):
 
         data = json
 
-        # Only print one row per submission_id
-        if command == 'submission' and subcommand == 'view':
-            id_list = []
-            temp_data = []
-            for id, row in enumerate(data):
-                if row['submission_id'] not in id_list:
-                    id_list += [row['submission_id']]
-                    temp_data += [data[id]]
-            data = temp_data
-
 
         cols = [
             x for x in sql_dict.sql[command][subcommand]['view_order']
@@ -828,8 +823,9 @@ def parse(arg):
 
 def parsekv(validkeys, args):
     data = {}
+    pattern = re.compile(r'''((?:[^,"']|"[^"]*"|'[^']*')+)''')
     for arg in args:
-        arg = arg.split('=')
+        arg = arg.split('=', 1)
 
         if len(arg)!=2:
             auto.logger.warning("'{0}' is not a valid key-value pair".format(arg))
@@ -841,7 +837,7 @@ def parsekv(validkeys, args):
             auto.logger.warning("'{0}' is not a valid key".format(arg))
             continue
 
-        value = value.split(',')
+        value = pattern.split(value)[1::2]
 
         data[key] = value
 
