@@ -156,7 +156,24 @@ commands = {
 
             "optional": [],
 
-            "help":     "Link selected common error(s) to selected test(s).",
+            "help":     "Link selected common error to selected test.",
+
+            },
+
+        "unlink":   {
+            "access":   {
+                "teacher":  True,
+                "ta":       False,
+                "student":  False,
+                },
+
+            "required": ['ce-id', 'test-id'],
+
+            "required2": [],
+
+            "optional": [],
+
+            "help":     "Unlink selected common error from selected test.",
 
             },
         },
