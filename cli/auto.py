@@ -136,7 +136,7 @@ class AutoShell(cmd.Cmd):
         self.logger.debug("Args split. Args='{0}'".format(args))
 
         if not args:
-            print("\n*** Error: Arguments not valid\n")
+            print("\nError: Arguments not valid\n")
             self.onecmd("help " + command)
             self.logger.debug("END")
             return
@@ -150,7 +150,7 @@ class AutoShell(cmd.Cmd):
             self.onecmd("help login")
             return
         elif command_dict.commands[command].get(args[0], None) is None:
-            print('\n*** Error: Subcommand {} not valid\n'.format(args[0]))
+            print('\n*** Error: Subcommand {} not valid\n'.format(subcommand))
             self.onecmd("help " + command)
             self.logger.debug("END")
             return
@@ -179,7 +179,7 @@ class AutoShell(cmd.Cmd):
             self.logger.debug("END")
             return
 
-        self.command_response(command, args, response)
+        self.command_response(command, args[0], response)
 
         self.logger.debug("END")
         return
@@ -269,7 +269,7 @@ class AutoShell(cmd.Cmd):
                     if kbhit():
                         print("Wait aborted. Check back later for test results using:")
                         print("\tsubmission view assignment-id={0}"
-                            .format(data['assignment-id'][0])
+                            .format(data['assignment-id'])
                             )
                         return None
 
@@ -331,11 +331,7 @@ class AutoShell(cmd.Cmd):
         return r
 
 
-    def command_response(self, command, args, response):
-
-        subcommand = args[0]
-
-        args = args[1:]
+    def command_response(self, command, subcommand, response):
 
         if subcommand == 'delete' and response == 'aborted':
             print("*** Command Aborted")
@@ -344,13 +340,6 @@ class AutoShell(cmd.Cmd):
         self.logger.info("Response Status Code: {0}"
             .format(response.status_code)
             )
-            
-        self.logger.debug(
-            "Command: {}, Subcommand: {}"
-            .format(command, subcommand)
-            )
-            
-        self.logger.debug("Arguments: {}".format(args))
 
         print()
 
@@ -375,34 +364,19 @@ class AutoShell(cmd.Cmd):
             else:
                 self.logger.debug("Data: {0}".format(data))
 
-            if command == 'login' and data != None:
+            if command=='login' and data!=None:
 
-                if subcommand == 'as':
+                if subcommand=='as':
                     self.auth_level = data['auth_level']
                     print("Logged in as '{0}' with authority level '{1}'\n"
                         .format(self.user, self.auth_level)
                         )
 
-                elif subcommand == 'update':
+                elif subcommand=='update':
                     self.auth_level = data['auth_level']
                     self.password = self.new_password
                     print('\nPassword successfully updated\n')
 
-                return
-
-            if command == 'submission' and data!=None:
-            
-                if ((subcommand == 'view' and 
-                    any('submission' in arg for arg in args)) or
-                    subcommand == 'add'):
-
-                    self.print_submission(
-                        command, subcommand, data
-                        )
-                else:
-                    self.print_response(
-                        command, subcommand, data
-                        )
                 return
 
             if data==None:
@@ -724,93 +698,6 @@ class AutoShell(cmd.Cmd):
                 print('\n**** Access denied\n')
         else:
             print('\n**** Command not found\n')
-
-
-    def print_submission(self, command, subcommand, data):
-
-        feedback_level = data[0]['feedback_level']
-
-        self.logger.info("Print Submission: {0}".format(data[0]['submission_id']))
-        self.logger.debug("Feedback Level: {0}".format(feedback_level))
-
-
-        syn_wrapper = textwrap.TextWrapper(
-            initial_indent='\t', width=80, subsequent_indent='\t\t'
-            )
-        wrapper = textwrap.TextWrapper(
-            initial_indent='\t', width=80, subsequent_indent='\t'
-            )
-
-        status_list = [
-            [('SubmissionID', 'submission_id'),
-                ('Submitted at', 'submission_date')],
-            [('Submitted by', 'student')],
-            [('Assignment', 'assignment_name'), ('ID', 'assignment_id'),
-                ('Version', 'version_id')],
-            [('Course', 'dept_name', 'course_num', 'course_name')],
-            [('Grade', 'grade')],
-            ]
-
-        status_string = ""
-        for row in status_list:
-
-            status_string += '\t'
-            for tup in row:
-                
-                if tup[0] == 'Course':
-                    status_string += (
-                        tup[0] + ': ' + data[0][tup[1]].upper() + ' ' +
-                        " ".join([str(data[0][x]) for x in tup[2:]])
-                        )
-                else:
-                    status_string += (
-                        tup[0] + ': ' +
-                        " ".join([str(data[0][x]) for x in tup[1:]])
-                        ) + ' '
-
-            status_string += '\n'
-
-
-
-
-        print()
-        print(status_string)
-        print()
-
-        if feedback_level >= 2:
-
-            # 'test_id': 7,
-            # 'common_errors': [
-                # {'ce_id': 1, 'ce_name': 'Off-by-one', 'ce_text': 'Check which number your array starts counting from. Various languages do 0 or 1.'},
-                # {'ce_id': 5, 'ce_name': 'Equality', 'ce_text': 'If all things are =, this will work'}
-                # ],
-            # 'test_name': 'bbtest',
-            # 'results':
-                # '{
-                    # "Errors": [],
-                    # "Grade": 1.0,
-                    # "Tests": [
-                        # {"message": "one equals one", "testNumber": 1, "weight": 1, "state": "ok "},
-                        # {"message": "one does not equal two", "testNumber": 2, "weight": 1, "state": "ok "},
-                        # {"message": "a true statement", "testNumber": 3, "weight": 1, "state": "ok "},
-                        # {"message": "testing works?", "testNumber": 4, "weight": 1, "state": "ok "}
-                        # ],
-                    # "TAP": "1..4# Basic tests\\nok  1 one equals one 1\\nok  2 one does not equal two 1\\nok  3 a true statement 1\\nok  4 testing works? 1\\n"
-                    # }'
-            for row in data:
-                row['results'] = json.loads(row['results'])
-
-                print('Test: ' + row['test_name'] + ' ID: ' + str(row['test_id'])),
-                print(json.dumps(row['results'], indent=4, sort_keys=True))
-                print()
-
-                if row['results']['Errors']:
-                    print(json.dumps(row['common_errors'], indent=4, sort_keys=True))
-
-        print()
-
-
-
 
     def auth_check_helper(self, help_target, key):
         """For print_help, to allow a single place
