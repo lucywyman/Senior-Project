@@ -1531,12 +1531,16 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 data = self.rfile.read(
                     int(self.headers.get('content-length'))
                     ).decode("UTF-8")
+                self.logger.debug(
+                    "Data: '{}', Content-length: {}"
+                    .format(data, self.headers.get('content-length'))
+                    )
                 data = json.loads(data)
                 self.logger.info("Data Loaded")
                 self.logger.debug("Data: {0}".format(data))
 
             except ValueError as e:
-                self.logger.info("ValueError: {0}".format(e.message))
+                self.logger.exception("DataLoad Error - ")
                 data = {}
 
             return data, None
