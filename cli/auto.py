@@ -800,12 +800,24 @@ class AutoShell(cmd.Cmd):
             for row in data:
                 row['results'] = json.loads(row['results'])
 
-                print('Test: ' + row['test_name'] + ' ID: ' + str(row['test_id'])),
-                print(json.dumps(row['results'], indent=4, sort_keys=True))
+                print('Test: ' + row['test_name'] + ', ID: ' + str(row['test_id'])),
                 print()
-
+                print(row['results']['TAP'])
+                print()
                 if row['results']['Errors']:
-                    print(json.dumps(row['common_errors'], indent=4, sort_keys=True))
+                    print('Errors')
+                    print()
+                    for item in row['results']['Errors']:
+                        print(item)
+                    print()
+                if ((row['results']['Errors'] or any(x['state'] == 'not ok' for x in row['results']['Tests']))
+                    and 'common_errors' in row and len(row['common_errors']) > 0):
+                    print('Common Errors on this test include:')
+                    print()
+                    for error in row['common_errors']:
+                        print(error['ce_name'])
+                        print(error['ce_text'])
+                        print()
 
         print()
 
