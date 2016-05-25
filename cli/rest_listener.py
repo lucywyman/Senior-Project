@@ -3064,37 +3064,37 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     temp_data += [result[id]]
             result = temp_data
 
-        # if user is a student, then what they can see is restricted
-        # by the assignment's feedback_level
-        if auth_level == 'student':
-                for row in result:
 
-                    # if feedback level is lower than 2, remove all
-                    # test results from feedback
-                    if row['feedback_level'] < 2:
-                        row.pop('test_name', None)
-                        row.pop('test_id', None)
-                        row.pop('results', None)
+        for row in result:
 
-                    # if feedback level is lower than 1, mask grade.
-                    if row['feedback_level'] < 1:
-                        row['grade'] = '***'
+            # if user is a student, then what they can see is restricted
+            # by the assignment's feedback_level
+            if auth_level == 'student':
+                # if feedback level is lower than 2, remove all
+                # test results from feedback
+                if row['feedback_level'] < 2:
+                    row.pop('test_name', None)
+                    row.pop('test_id', None)
+                    row.pop('results', None)
 
-                    # if feedback level is 2, add common error information:
-                    if row['feedback_level'] >= 2:
-                        cur.execute("""
-                            SELECT
-                                common_errors.ce_id,
-                                common_errors.name AS ce_name,
-                                common_errors.text as ce_text
-                            FROM common_errors
-                            INNER JOIN tests_have_common_errors
-                                ON tests_have_common_errors.ce_id = common_errors.ce_id
-                            WHERE tests_have_common_errors.test_id = %(test_id)s
-                            """, {'test_id': row['test_id']}
-                            )
-                        row['common_errors'] = cur.fetchall()
+                # if feedback level is lower than 1, mask grade.
+                if row['feedback_level'] < 1:
+                    row['grade'] = '***'
 
+            # if feedback level is 2 or user is not a student, add common error information:
+            if auth_level != 'student' or row['feedback_level'] >= 2:
+                cur.execute("""
+                    SELECT
+                        common_errors.ce_id,
+                        common_errors.name AS ce_name,
+                        common_errors.text as ce_text
+                    FROM common_errors
+                    INNER JOIN tests_have_common_errors
+                        ON tests_have_common_errors.ce_id = common_errors.ce_id
+                    WHERE tests_have_common_errors.test_id = %(test_id)s
+                    """, {'test_id': row['test_id']}
+                    )
+                row['common_errors'] = cur.fetchall()
 
         return data, result
 
