@@ -253,6 +253,92 @@ sql = {
                             WHERE student_id=%(uid)s) """,
                 },
 
+            "filter": {
+                "max":  """ submissions.submission_id IN (
+                        WITH sv
+                            AS (SELECT students_create_submissions.student_id,
+                                assignments.assignment_id,
+                                submissions.grade,
+                                submissions.submission_id,
+                                submissions.submission_date
+                        FROM    submissions
+                        INNER JOIN students_create_submissions
+                                ON submissions.submission_id =
+                                   students_create_submissions.submission_id
+                        INNER JOIN versions
+                                ON submissions.version_id = versions.version_id
+                        INNER JOIN assignments
+                                ON versions.assignment_id = assignments.assignment_id
+                        WHERE  submissions.grade = (
+                                    SELECT Max(s.grade)
+                                    FROM   submissions AS s
+                                    INNER JOIN students_create_submissions AS scs
+                                            ON s.submission_id = scs.submission_id
+                                    INNER JOIN versions AS v
+                                            ON s.version_id = v.version_id
+                                    INNER JOIN assignments AS a
+                                            ON v.assignment_id = a.assignment_id
+                                    WHERE   a.assignment_id = assignments.assignment_id
+                                            AND scs.student_id = students_create_submissions.student_id)
+                        )
+                        SELECT sv.submission_id
+                        FROM   sv
+                        WHERE  sv.submission_date >= (
+                                SELECT  Max(temp.submission_date)
+                                FROM    sv AS temp
+                                WHERE   temp.assignment_id = sv.assignment_id
+                                        AND temp.student_id = sv.student_id)
+                        )
+                        """,
+                "latest": """ submissions.submission_id IN (
+                        SELECT      submissions.submission_id
+                        FROM        submissions
+                        INNER JOIN  students_create_submissions
+                        ON          submissions.submission_id=students_create_submissions.submission_id
+                        INNER JOIN  versions
+                        ON          submissions.version_id=versions.version_id
+                        INNER JOIN  assignments
+                        ON          versions.assignment_id=assignments.assignment_id
+                        WHERE       submissions.submission_date = (
+                                            SELECT MAX(s.submission_date)
+                                            FROM submissions AS s
+                                            INNER JOIN students_create_submissions AS scs
+                                            ON         s.submission_id=scs.submission_id
+                                            INNER JOIN versions AS v
+                                            ON         s.version_id=v.version_id
+                                            INNER JOIN assignments AS a
+                                            ON         v.assignment_id=a.assignment_id
+                                            WHERE a.assignment_id=assignments.assignment_id
+                                                AND scs.student_id=students_create_submissions.student_id
+                            )
+                        )
+                        """,
+                "latestnotlate": """ submissions.submission_id IN (
+                        SELECT      submissions.submission_id
+                        FROM        submissions
+                        INNER JOIN  students_create_submissions
+                        ON          submissions.submission_id=students_create_submissions.submission_id
+                        INNER JOIN  versions
+                        ON          submissions.version_id=versions.version_id
+                        INNER JOIN  assignments
+                        ON          versions.assignment_id=assignments.assignment_id
+                        WHERE       submissions.submission_date = (
+                                            SELECT MAX(s.submission_date)
+                                            FROM submissions AS s
+                                            INNER JOIN students_create_submissions AS scs
+                                            ON         s.submission_id=scs.submission_id
+                                            INNER JOIN versions AS v
+                                            ON         s.version_id=v.version_id
+                                            INNER JOIN assignments AS a
+                                            ON         v.assignment_id=a.assignment_id
+                                            WHERE a.assignment_id=assignments.assignment_id
+                                                AND scs.student_id=students_create_submissions.student_id
+                                                AND s.submission_date <= assignments.end_date
+                            )
+                        )
+                        """,
+            },
+
         },
     },
 
