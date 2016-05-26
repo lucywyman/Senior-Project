@@ -97,6 +97,12 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
         data = self.get_data()[0]
 
+        # filter keyword requires special handling
+        # remove from general data
+        filter = None
+        if 'filter' in data.keys():
+            filter = data.pop('filter')[0]
+
 
         # build list of attributes to select and tables to join
         select = []
@@ -430,7 +436,27 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             self.logger.info("END")
             return
 
+        # If a filter was requested, add filter
+        if filter is not None:
+            self.logger.debug("Filter is: '{}'".format(filter))
+            if sql[command]['view']['filter'].get(filter, None):
+                query += " AND " + sql[command]['view']['filter'][filter]
+            else:
+                msg = (
+                    "ERROR: Filter '{0}' not found for {1} view"
+                    .format(filter, command)
+                    )
+                self.logger.debug(msg)
+                self.send_error(
+                            HTTPStatus.NOT_FOUND,
+                            msg
+                            )
+                self.end_headers()
+                self.logger.info("END")
+                return
 
+        # Add WHERE conditions
+        #
         # if allowed table exists and is longer than one,
         # we need to use id numbers instead of onids
         condition = None
