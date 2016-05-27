@@ -1039,10 +1039,12 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 # add submission
                 cur.execute(query, data)
 
+                ret = cur.fetchone()['submission_id']
+
                 # move submission files
                 for id, fileitem in enumerate(fileitems):
                     fn = os.path.basename(fileitem.filename)
-                    ret = cur.fetchone()['submission_id']
+
 
                     delpath, subpath, temppath = self.get_path(
                         ret, fn, self.uid, aid
