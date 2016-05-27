@@ -65,85 +65,88 @@ class testerThread (threading.Thread):
                 config['Directories']['testdir']
                 .format(test_id=int(test['test_id']))
                 )
-
-            # why was this 'with os.listdir(testpath)[0] as file:'?
-            # with is for opening files
-            # here we are working with a list of files from a directory
-            for file in os.listdir(testpath):
-                test['testFile'] = os.path.normpath(os.path.join(testpath, file))
-                # right now we only support one file per test or submission,
-                # so we break after the first iteration of the loop
-                # written in loop form because eventually we would like tobytes
-                # support multiple files
-                break;
-            for file in os.listdir(subpath):
-                test['subFile'] = os.path.normpath(os.path.join(subpath, file))
-                break;
+            test['testPath'] = testpath;
+            test['subPath'] = subpath;
+            # I've commented out these 13 lines because we now support
+            # multiple files. It's been moved to the copy section of
+            # runProtected
+            ## why was this 'with os.listdir(testpath)[0] as file:'?
+            ## with is for opening files
+            ## here we are working with a list of files from a directory
+            #for file in os.listdir(testpath):
+            #    test['testFile'] = os.path.normpath(os.path.join(testpath, file))
+            #    # right now we only support one file per test or submission,
+            #    # so we break after the first iteration of the loop
+            #    # written in loop form because eventually we would like tobytes
+            #    # support multiple files
+            #    break;
+            #for file in os.listdir(subpath):
+            #    test['subFile'] = os.path.normpath(os.path.join(subpath, file))
+            #    break;
 
         print(tests)
 
         return tests
 
+    # Helper function for runProtected.
+    # Moves all the files in srcdir
+    # to userpath, given them 777 perms.
+    # Expected use is for test files,
+    # submission files, interface files
+    def copyPerm(self,srcdir,userpath):
+        for file in os.listdir(srcdir):
+            srcfile = os.path.normpath(os.path.join(srcdir,file))
+
+
+            if os.path.isfile(srcfile):
+                shutil.copy(srcfile,userpath)
+                os.chmod(os.path.join(userpath,file),0o0777)
+            else:
+                print("Skipped: '{}'".format(srcfile))
+
+
+
     #function to execute test
     def runProtected(self,files,sub_ID):
 
         print("{} running {}".format(self.username, files))
-        # obsolete since plan is to store in db now?
-        # resultpath = os.path.normpath(
-            # config['Directories']['resultdir'].format(
-                # assignment_id=files['assignment_id'],
-                # submission_id=files['submission_id']
-                # )
-            # )
+        ##obsolete since plan is to store in db now?
+        # back to using result path!
+        resultpath = os.path.normpath(
+            config['Directories']['resultdir'].format(
+                assignment_id=files['assignment_id'],
+                submission_id=files['submission_id']
+                )
+            )
 
-        # if not os.path.exists(resultpath):
-            # os.makedirs(resultpath)
-            
+
         userpath = os.path.normpath(
             config['Directories']['userdir'].format(
                 username=self.username
                 )
             )
 
+        uid = getpwnam(self.username)[2]
+        gid = getpwnam(self.username)[3]
+
+        if not os.path.exists(resultpath):
+            os.makedirs(resultpath)
+            os.chown(resultpath, uid, gid)
+
         if not os.path.exists(userpath):
             os.makedirs(userpath)
+            os.chown(userpath, uid, gid)
 
-        print('subfile: {0}, {1}'.format(files['subFile'],userpath))
-        shutil.copy(files['subFile'],userpath)
-        shutil.copy(files['testFile'],userpath)
-        shutil.copy(
-            os.path.normpath(os.path.join(
-                config['Directories']['srcdir'],
-                'interfaces/py_test_osu.py'
-                )
-            ),
-            userpath
-        )
-        
+        print('subdir: {0}, {1}'.format(files['subPath'],userpath))
+        # Generate interface files path
+        interfaceDir = os.path.normpath(os.path.join(config['Directories']['srcdir'],'interfaces'))
+        # File moves and permissions
+        self.copyPerm(files['testPath'],userpath)
+        self.copyPerm(files['subPath'],userpath)
+        self.copyPerm(interfaceDir,userpath)
 
-        uid = getpwnam(self.username)[2]
-        
-        os.chmod(
-            os.path.join(
-                userpath,
-                os.path.split(files['subFile'])[-1]
-                ),
-            0o0777
-            )
-        os.chmod(
-            os.path.join(
-                userpath,
-                os.path.split(files['testFile'])[-1]
-                ),
-            0o0777
-            )    
-        os.chmod(
-            os.path.join(
-                userpath,
-                './py_test_osu.py'
-                ),
-            0o0777
-            )
+
+
         # TODO change from submission id to test-id. Output already in specific submission folder
         # test id more useful
         # [
@@ -152,13 +155,22 @@ class testerThread (threading.Thread):
                     # str(files['submission_id']),
                     # str(files['test_id'])
                 # ],
-                
-        exec_string = "{0} {1} {2} {3}".format(
-            os.path.normpath(os.path.join(userpath, 'test.py')),
-            self.cvars,
-            str(files['submission_id']),
-            str(files['test_id'])
+        #
+        #exec_string = "{0} {1} {2} {3}".format(
+        #    os.path.normpath(os.path.join(userpath, 'test.py')),
+        #    self.cvars,
+        #    str(files['submission_id']),
+        #    str(files['test_id'])
+        #    )
+
+        # another new exec_string! for make files
+        exec_string = "make -C {0} runtest SUBID={1!s} TESTID={2!s} RESULTDIR={3!s}".format(
+            os.path.normpath(userpath),
+            files['submission_id'],
+            files['test_id'],
+            resultpath
             )
+        print("Exec_string: '{}'".format(exec_string))
         try:
             print("running process")
             result = subprocess.check_output(
@@ -167,33 +179,22 @@ class testerThread (threading.Thread):
                 timeout=5,
                 shell=True
                 )
-            # changed error to retcode. is that right?
             retcode = 0
         except subprocess.CalledProcessError as e:
             result = e.output
             retcode = e.returncode
-        
-        os.unlink(
-            os.path.join(
-                userpath,
-                os.path.split(files['subFile'])[-1]
-                )
-            )
-        os.unlink(
-            os.path.join(
-                userpath,
-                os.path.split(files['testFile'])[-1]
-                )
-            )
-        os.unlink(
-            os.path.join(
-                userpath,
-                './py_test_osu.py'
-                )
-            )
+
+        for file in os.listdir(userpath):
+            pfile = os.path.normpath(os.path.join(userpath,file))
+            try:
+                if os.path.isfile(pfile):
+                    os.unlink(pfile)
+                elif os.path.isdir(pfile): shutil.rmtree(pfile)
+            except Exception as e:
+                print(e)
 
         print("returning from runProtected")
-        return result, retcode
+        return result, retcode, resultpath
 
     def run(self):
         while 1:
@@ -201,18 +202,40 @@ class testerThread (threading.Thread):
             print("task started")
             files = self.query(sub_ID)
             for row in files:
-                result,retcode = self.runProtected(row,sub_ID)
+                result,retcode,resultpath = self.runProtected(row,sub_ID)
                 if(retcode!=0):
                     cur = self.conn.cursor()
                     cur.execute("""
                         INSERT INTO submissions_have_results (submission_id, test_id, results)
                         VALUES (%s, %s, %s)
-                        """, (row['submission_id'], row['test_id'], '{{"TAP":"","Tests":[],"Errors":[{0},{1}],"Grade":"-1"}}'.format(retcode, result))
+                        """, (row['submission_id'], row['test_id'], '{{"TAP":"","Tests":[],"Errors":[{0},"{1}"],"Grade":"-1"}}'.format(retcode, result.decode('utf-8')))
                         )
                     cur.close()
-                    
+
                 else:
                     print(result)
+                    # first try opening the file
+                    try:
+                      resfile = open(os.path.normpath(os.path.join(resultpath,str(row['test_id']))),'r')
+                      # then try parsing it
+                      try:
+                        jres = json.load(resfile)
+                      # if parse fails, record
+                      except Exception as e:
+                        print(e)
+                        jres = json.loads('{{"TAP":"","Tests":[],"Errors":[{0},{1},"Output JSON Corrupt"],"Grade":"-1"}}'.format(retcode, result))
+                    # if opening fails, record it
+                    except Exception as e:
+                      print(e)
+                      jres = json.loads('{{"TAP":"","Tests":[],"Errors":[{0},{1},"Output file could not be opened"],"Grade":"-1"}}'.format(retcode, result))
+                    # whatever happened grabbing the output file, put the resulting json in the DB
+                    cur = self.conn.cursor()
+                    cur.execute("""
+                        INSERT INTO submissions_have_results (submission_id, test_id, results)
+                        VALUES (%s, %s, %s)
+                        """, (row['submission_id'], row['test_id'], json.dumps(jres))
+                        )
+                    cur.close()
 
             print("task done")
             self.q.task_done()
@@ -230,10 +253,10 @@ def change_user(username):
     print(uid,gid)
 
     def set_ids():
-    
+
         uid = getpwnam(username)[2]
         gid = getpwnam(username)[3]
-        
+
         os.setuid(uid)
         os.setgid(gid)
 
