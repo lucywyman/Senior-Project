@@ -344,12 +344,12 @@ class AutoShell(cmd.Cmd):
         self.logger.info("Response Status Code: {0}"
             .format(response.status_code)
             )
-            
+
         self.logger.debug(
             "Command: {}, Subcommand: {}"
             .format(command, subcommand)
             )
-            
+
         self.logger.debug("Arguments: {}".format(args))
 
         print()
@@ -391,8 +391,8 @@ class AutoShell(cmd.Cmd):
                 return
 
             if command == 'submission' and data!=None:
-            
-                if ((subcommand == 'view' and 
+
+                if ((subcommand == 'view' and
                     any('submission' in arg for arg in args)) or
                     subcommand == 'add'):
 
@@ -756,7 +756,7 @@ class AutoShell(cmd.Cmd):
 
             status_string += '\t'
             for tup in row:
-                
+
                 if tup[0] == 'Course':
                     status_string += (
                         tup[0] + ': ' + data[0][tup[1]].upper() + ' ' +
@@ -777,29 +777,18 @@ class AutoShell(cmd.Cmd):
         print(status_string)
         print()
 
-        if feedback_level >= 2:
+        for row in data:
+            self.logger.debug("Row: '{}'".format(row))
 
-            # 'test_id': 7,
-            # 'common_errors': [
-                # {'ce_id': 1, 'ce_name': 'Off-by-one', 'ce_text': 'Check which number your array starts counting from. Various languages do 0 or 1.'},
-                # {'ce_id': 5, 'ce_name': 'Equality', 'ce_text': 'If all things are =, this will work'}
-                # ],
-            # 'test_name': 'bbtest',
-            # 'results':
-                # '{
-                    # "Errors": [],
-                    # "Grade": 1.0,
-                    # "Tests": [
-                        # {"message": "one equals one", "testNumber": 1, "weight": 1, "state": "ok "},
-                        # {"message": "one does not equal two", "testNumber": 2, "weight": 1, "state": "ok "},
-                        # {"message": "a true statement", "testNumber": 3, "weight": 1, "state": "ok "},
-                        # {"message": "testing works?", "testNumber": 4, "weight": 1, "state": "ok "}
-                        # ],
-                    # "TAP": "1..4# Basic tests\\nok  1 one equals one 1\\nok  2 one does not equal two 1\\nok  3 a true statement 1\\nok  4 testing works? 1\\n"
-                    # }'
-            for row in data:
-                row['results'] = json.loads(row['results'])
-
+            try:
+                # Setting strict=False allows control characters inside
+                # of strings. This allows easier parsing of JSON results.
+                # Unknown if this has any potential side effects.
+                row['results'] = json.loads(row['results'], strict=False)
+            except ValueError:
+                print("Invalid JSON, printing unformatted results string\n")
+                print(row['results'])
+            else:
                 print('Test: ' + row['test_name'] + ', ID: ' + str(row['test_id'])),
                 print()
                 print(row['results']['TAP'])
