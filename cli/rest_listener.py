@@ -25,7 +25,7 @@ import ssl
 import queue
 import rest_extend
 import configparser
-
+import time
 
 # private file with HTTP response codes
 from HTTPStatus import HTTPStatus
@@ -96,6 +96,12 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             return
 
         data = self.get_data()[0]
+
+        # filter keyword requires special handling
+        # remove from general data
+        filter = None
+        if 'filter' in data.keys():
+            filter = data.pop('filter')[0]
 
 
         # build list of attributes to select and tables to join
@@ -184,6 +190,37 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     'user_id'
                 ]
                 )
+
+
+        # For ce (common errors) command, remove teachers
+        # path from ce to tests, and force use of
+        # tests_have_common_errors path
+        if command == 'ce':
+            not_allowed = ['teachers']
+            if any('teachers' in row for row in tmp):
+                tmp = [x for x in tmp
+                    if (x[0] not in not_allowed)
+                    and (x[1] not in not_allowed)
+                    ]
+                tmp.insert(
+                    0,
+                    [
+                        'common_errors',
+                        'tests_have_common_errors',
+                        'ce_id',
+                        'ce_id'
+                    ]
+                    )
+                tmp.insert(
+                    0,
+                    [
+                        'tests_have_common_errors',
+                        'tests',
+                        'test_id',
+                        'test_id'
+                    ]
+                    )
+
 
         join_set = ([x for x in tmp
             if (any(y[0] for y in tmp if (y[0]=='users' or y[1]=='users')))
@@ -399,7 +436,27 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             self.logger.info("END")
             return
 
+        # If a filter was requested, add filter
+        if filter is not None:
+            self.logger.debug("Filter is: '{}'".format(filter))
+            if sql[command]['view']['filter'].get(filter, None):
+                query += " AND " + sql[command]['view']['filter'][filter]
+            else:
+                msg = (
+                    "ERROR: Filter '{0}' not found for {1} view"
+                    .format(filter, command)
+                    )
+                self.logger.debug(msg)
+                self.send_error(
+                            HTTPStatus.NOT_FOUND,
+                            msg
+                            )
+                self.end_headers()
+                self.logger.info("END")
+                return
 
+        # Add WHERE conditions
+        #
         # if allowed table exists and is longer than one,
         # we need to use id numbers instead of onids
         condition = None
@@ -458,7 +515,14 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         cur.execute(query, data)
 
         result = cur.fetchall()
-        self.logger.debug(result)
+        self.logger.debug("Original Results: {}".format(result))
+
+        # Process results
+        if command == 'submission' and subcommand == 'view':
+            data, result = self.feedback_limit_process(data, result, auth_level)
+
+
+        self.logger.debug("Processed Results: {}".format(result))
 
         if result:
             self.send_response(HTTPStatus.OK)
@@ -641,8 +705,13 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     self.logger.info("END")
                     return
 
-            # TODO - implment other links such as CE link
+            elif command == 'ce':
 
+                data = self.ce_link(command, subcommand, data)
+
+                if data == None:
+                    self.logger.info("END")
+                    return
 
 
         # TODO - add logic to replace test update with test add
@@ -790,6 +859,93 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 data['version'].append(cur.fetchone()['max_version'])
 
 
+                # check to see if submission is allowed
+                # get data about assignment
+                cur.execute("""
+                    SELECT submission_limit, begin_date, end_date, late_submission
+                    FROM assignments
+                    WHERE assignment_id=%s
+                    """, (aid,)
+                    )
+                result = cur.fetchone()
+
+                if not result:
+                    msg = (
+                        "AssignmentID {} is invalid. Please check ID number and try again."
+                        .format(aid)
+                        )
+                    self.logger.info(msg)
+                    self.abort_response(HTTPStatus.FORBIDDEN, msg)
+                    self.logger.info("END")
+                    return
+
+
+                submission_limit = result['submission_limit']
+                begin_date = result['begin_date']
+                end_date = result['end_date']
+                late_submission = result['late_submission']
+
+
+                # get number of submissions
+                cur.execute("""
+                    SELECT COUNT(*) as num_of_submissions
+                    FROM students_create_submissions
+                    INNER JOIN submissions
+                        ON students_create_submissions.submission_id = submissions.submission_id
+                    INNER JOIN versions
+                        ON submissions.version_id = versions.version_id
+                    WHERE
+                        versions.assignment_id = %(assignment_id)s
+                        AND
+                        students_create_submissions.student_id = %(student_id)s
+
+                    """, {'assignment_id': aid, 'student_id': self.uid}
+                    )
+                num_of_submissions = cur.fetchone().get('num_of_submissions', 0)
+
+                # check submission limit
+                if submission_limit > 0 and num_of_submissions >= submission_limit:
+                    msg = (
+                        "Submission Limit ({}) reached. No more submissions permitted."
+                        .format(submission_limit)
+                        )
+                    self.logger.info(msg)
+                    self.abort_response(HTTPStatus.FORBIDDEN, msg)
+                    self.logger.info("END")
+                    return
+
+                # check begin date
+                if datetime.now() < begin_date:
+                    # No reason to let the student know this assignment actually exists
+                    msg = (
+                        "AssignmentID {} is invalid. Please check ID number and try again."
+                        .format(aid)
+                        )
+                    self.logger.info(msg)
+                    self.abort_response(HTTPStatus.FORBIDDEN, msg)
+                    self.logger.info("END")
+                    return
+
+                # check end date
+                if datetime.now() > (end_date + timedelta(days=late_submission)):
+                    msg = (
+                        "Current time is {}. AssignmentID {} ended at {}. Late submission ended at {}. Submission refused."
+                        .format(
+                            datetime.strftime(datetime.now(), '%x %X'),
+                            aid,
+                            datetime.strftime(end_date, '%x %X'),
+                            datetime.strftime(
+                                end_date + timedelta(days=late_submission),
+                                '%x %X'
+                                )
+                            )
+                        )
+                    self.logger.info(msg)
+                    self.abort_response(HTTPStatus.FORBIDDEN, msg)
+                    self.logger.info("END")
+                    return
+
+
             elif command == 'ta':
                 if 'course-id' in data:
                     table = 'tas_assist_in_courses'
@@ -883,10 +1039,12 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 # add submission
                 cur.execute(query, data)
 
+                ret = cur.fetchone()['submission_id']
+
                 # move submission files
                 for id, fileitem in enumerate(fileitems):
                     fn = os.path.basename(fileitem.filename)
-                    ret = cur.fetchone()['submission_id']
+
 
                     delpath, subpath, temppath = self.get_path(
                         ret, fn, self.uid, aid
@@ -906,8 +1064,10 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     self.logger.debug(
                         "Submission successfully sent to tester!"
                         )
+                    self.logger.info("END")
+                    return
                 else:
-                    self.logger.debug("Submission to tester failed!")
+                    self.logger.debug("Submission timedout!")
 
 
             elif command == 'test':
@@ -1399,12 +1559,16 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 data = self.rfile.read(
                     int(self.headers.get('content-length'))
                     ).decode("UTF-8")
+                self.logger.debug(
+                    "Data: '{}', Content-length: {}"
+                    .format(data, self.headers.get('content-length'))
+                    )
                 data = json.loads(data)
                 self.logger.info("Data Loaded")
                 self.logger.debug("Data: {0}".format(data))
 
             except ValueError as e:
-                self.logger.info("ValueError: {0}".format(e.message))
+                self.logger.exception("DataLoad Error - ")
                 data = {}
 
             return data, None
@@ -1690,6 +1854,149 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
     def submit(self, id):
 
         rest_extend.herald(self.server.q,id)
+
+        cur = conn.cursor()
+
+        # get list of tests
+        cur.execute("""
+            SELECT versions_have_tests.test_id
+            FROM submissions
+            INNER JOIN versions_have_tests
+                ON submissions.version_id = versions_have_tests.version_id
+            WHERE submissions.submission_id = %s
+            """, (id,)
+            )
+        tmp = cur.fetchall()
+        test_set = set([row['test_id'] for row in tmp])
+
+
+
+        # NOTE: This query was generated by submitting
+        #   a submission view command with a submission parameter
+        #   TODO: If the query generating code in do_GET was moved
+        #     into functions, this query could be dynamically
+        #     generated, avoiding maintenance issues.
+        results_query = """
+            SELECT DISTINCT
+                su.username AS student, tests.name AS test_name,
+                assignments.name AS assignment_name,
+                courses.name AS course_name, submissions.submission_id,
+                students_create_submissions.student_id, tests.test_id,
+                versions.version_id, assignments.assignment_id,
+                depts.dept_name, submissions.grade, submissions.submission_date,
+                submissions_have_results.results, courses.course_num,
+                assignments.feedback_level
+                FROM submissions_have_results
+                INNER JOIN tests
+                    ON submissions_have_results.test_id=tests.test_id
+                INNER JOIN submissions
+                    ON submissions_have_results.submission_id=submissions.submission_id
+                INNER JOIN students_create_submissions
+                    ON submissions.submission_id=students_create_submissions.submission_id
+                INNER JOIN versions
+                    ON submissions.version_id=versions.version_id
+                INNER JOIN students
+                    ON students_create_submissions.student_id=students.student_id
+                INNER JOIN teachers
+                    ON tests.teacher_id=teachers.teacher_id
+                INNER JOIN assignments
+                    ON versions.assignment_id=assignments.assignment_id
+                INNER JOIN courses
+                    ON assignments.course_id=courses.course_id
+                INNER JOIN depts
+                    ON courses.dept_id=depts.dept_id
+                INNER JOIN users AS su
+                    ON su.user_id=students.student_id
+                WHERE submissions.submission_id=%s
+                """
+
+        test_check_query = """
+            SELECT test_id
+            FROM submissions_have_results
+            WHERE submission_id=%s
+            """
+
+        time_interval = 0.2 # seconds
+        max_time = 2.0 * 60.0 # minutes * seconds per minute
+        timeout = max_time/time_interval
+        time_count = 0
+
+        self.logger.debug(
+            "Entering polling loop. Timeout set to {} seconds."
+            .format(max_time)
+            )
+        # poll to see if results for all tests are available
+        while True:
+            time.sleep(time_interval)
+            time_count += 1
+
+            if time_count > timeout:
+                return 1
+
+            cur.execute(
+                test_check_query,
+                (id,)
+                )
+
+            tmp = cur.fetchall()
+            submission_test_set = set([row['test_id'] for row in tmp])
+
+            if submission_test_set == test_set:
+                break
+
+        # create data and result lists, then process
+        data = {'submission_id': [str(id)]}
+
+
+        cur.execute(
+                results_query,
+                (id,)
+                )
+        result = cur.fetchall()
+
+        self.logger.debug("Original Results: {}".format(result))
+
+        # Process results
+        data, result = self.feedback_limit_process(data, result, 'student')
+
+        self.logger.debug("Processed Results: {}".format(result))
+
+        if result:
+            self.send_response(HTTPStatus.OK)
+
+        else:
+            self.send_response(HTTPStatus.NO_CONTENT)
+
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+
+        # transform datetime objects to strings for transmission
+        for entry in result:
+            if 'submission_date' in entry:
+                entry['submission_date'] = (
+                    entry['submission_date'].strftime('%x %X')
+                    )
+            if 'begin_date' in entry:
+                try:
+                    entry['begin_date'] = (
+                        entry['begin_date'].strftime('%x %X')
+                        )
+                except:
+                    pass
+            if 'end_date' in entry:
+                try:
+                    entry['end_date'] = entry['end_date'].strftime('%x %X')
+                except:
+                    pass
+
+
+        # send result as json string
+        result = json.dumps(result)
+
+        self.wfile.write(bytes(result, 'UTF-8'))
+
+        self.logger.info("END")
+
         return 0
 
     ##  s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
@@ -1969,6 +2276,36 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         return data
 
 
+
+    def ce_link(self, command, subcommand, data):
+
+
+        # create cursor for querying db
+        cur = conn.cursor()
+
+        # link common error and test
+        if subcommand == 'link':
+
+            cur.execute("""
+                INSERT INTO tests_have_common_errors (ce_id, test_id)
+                VALUES (%(ce_id)s, %(test_id)s)
+                """, {'ce_id': data['ce-id'][0], 'test_id': data['test-id'][0]}
+                )
+
+        # unlink common error and test
+        elif subcommand == 'unlink':
+
+            cur.execute("""
+                DELETE FROM tests_have_common_errors
+                WHERE
+                    ce_id = %(ce_id)s AND test_id = %(test_id)s
+                """, {'ce_id': data['ce-id'][0], 'test_id': data['test-id'][0]}
+                )
+
+        return data
+
+
+
     def get_path(self, id, filename, uid, aid=None):
         """ Build commonly used paths.
 
@@ -2190,6 +2527,61 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                             "AssignmentID {} is not owned by TeacherID {}"
                             .format(
                                 data['assignment-id'][0],
+                                self.uid
+                                )
+                            )
+                    elif test_id_result is None:
+                        msg = (
+                            "TestID {} is not owned by TeacherID {}"
+                            .format(
+                                data['test-id'][0],
+                                self.uid
+                                )
+                            )
+                    self.logger.info(msg)
+                    self.abort_response(HTTPStatus.FORBIDDEN, msg)
+                    return None
+
+
+            if command == 'ce':
+
+                # check for ownership of ce and test
+                cur.execute(
+                    ce_query,
+                    {'uid':self.uid, 'ce_id': data['ce-id'][0]}
+                    )
+                ce_id_result = cur.fetchone()
+
+
+                cur.execute(
+                    test_query,
+                    {'uid': self.uid, 'test_id': data['test-id'][0]}
+                    )
+                test_id_result = cur.fetchone()
+
+                self.logger.debug(
+                    "CommonError check: {}, Test check: {}"
+                    .format(
+                        bool(ce_id_result),
+                        bool(test_id_result)
+                        )
+                    )
+                if ce_id_result is None or test_id_result is None:
+                    if ce_id_result is None and test_id_result is None:
+                        msg = (
+                            "Neither CommonErrorID {} or TestID {} are owned by "
+                            "TeacherID: {}"
+                            .format(
+                                data['ce-id'][0],
+                                data['test-id'][0],
+                                self.uid
+                                )
+                            )
+                    elif ce_id_result is None:
+                        msg = (
+                            "CommonErrorID {} is not owned by TeacherID {}"
+                            .format(
+                                data['ce-id'][0],
                                 self.uid
                                 )
                             )
@@ -2680,6 +3072,59 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             )
         self.end_headers()
         return
+
+
+    def feedback_limit_process(self, data, result, auth_level):
+
+        cur = conn.cursor()
+
+        # If a specific submission_id is not given then we
+        # are looking at a list of submissions with abreviated
+        # information, and only want to see one row per submission_id.
+        # This loop filters out extra rows created by linking tests
+        # to submissions
+        if 'submission_id' not in data:
+            id_list = []
+            temp_data = []
+            for id, row in enumerate(result):
+                if row['submission_id'] not in id_list:
+                    id_list += [row['submission_id']]
+                    temp_data += [result[id]]
+            result = temp_data
+
+
+        for row in result:
+
+            # if user is a student, then what they can see is restricted
+            # by the assignment's feedback_level
+            if auth_level == 'student':
+                # if feedback level is lower than 2, remove all
+                # test results from feedback
+                if row['feedback_level'] < 2:
+                    row.pop('test_name', None)
+                    row.pop('test_id', None)
+                    row.pop('results', None)
+
+                # if feedback level is lower than 1, mask grade.
+                if row['feedback_level'] < 1:
+                    row['grade'] = '***'
+
+            # if feedback level is 2 or user is not a student, add common error information:
+            if auth_level != 'student' or row['feedback_level'] >= 2:
+                cur.execute("""
+                    SELECT
+                        common_errors.ce_id,
+                        common_errors.name AS ce_name,
+                        common_errors.text as ce_text
+                    FROM common_errors
+                    INNER JOIN tests_have_common_errors
+                        ON tests_have_common_errors.ce_id = common_errors.ce_id
+                    WHERE tests_have_common_errors.test_id = %(test_id)s
+                    """, {'test_id': row['test_id']}
+                    )
+                row['common_errors'] = cur.fetchall()
+
+        return data, result
 
 
 

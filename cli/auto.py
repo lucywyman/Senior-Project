@@ -136,7 +136,7 @@ class AutoShell(cmd.Cmd):
         self.logger.debug("Args split. Args='{0}'".format(args))
 
         if not args:
-            print("\nError: Arguments not valid\n")
+            print("\n*** Error: Arguments not valid\n")
             self.onecmd("help " + command)
             self.logger.debug("END")
             return
@@ -148,6 +148,11 @@ class AutoShell(cmd.Cmd):
         elif not self.auth_level:
             print('\n*** Unauthorized: Please login first\n')
             self.onecmd("help login")
+            return
+        elif command_dict.commands[command].get(args[0], None) is None:
+            print('\n*** Error: Subcommand {} not valid\n'.format(args[0]))
+            self.onecmd("help " + command)
+            self.logger.debug("END")
             return
         elif not self.command_access(self.auth_level, command, args[0]):
             print("\n*** Unauthorized: {0} {1}\n".format(command, args[0]))
@@ -174,7 +179,7 @@ class AutoShell(cmd.Cmd):
             self.logger.debug("END")
             return
 
-        self.command_response(command, args[0], response)
+        self.command_response(command, args, response)
 
         self.logger.debug("END")
         return
@@ -264,7 +269,7 @@ class AutoShell(cmd.Cmd):
                     if kbhit():
                         print("Wait aborted. Check back later for test results using:")
                         print("\tsubmission view assignment-id={0}"
-                            .format(data['assignment-id'])
+                            .format(data['assignment-id'][0])
                             )
                         return None
 
@@ -326,7 +331,11 @@ class AutoShell(cmd.Cmd):
         return r
 
 
-    def command_response(self, command, subcommand, response):
+    def command_response(self, command, args, response):
+
+        subcommand = args[0]
+
+        args = args[1:]
 
         if subcommand == 'delete' and response == 'aborted':
             print("*** Command Aborted")
@@ -335,6 +344,13 @@ class AutoShell(cmd.Cmd):
         self.logger.info("Response Status Code: {0}"
             .format(response.status_code)
             )
+
+        self.logger.debug(
+            "Command: {}, Subcommand: {}"
+            .format(command, subcommand)
+            )
+
+        self.logger.debug("Arguments: {}".format(args))
 
         print()
 
@@ -359,19 +375,34 @@ class AutoShell(cmd.Cmd):
             else:
                 self.logger.debug("Data: {0}".format(data))
 
-            if command=='login' and data!=None:
+            if command == 'login' and data != None:
 
-                if subcommand=='as':
+                if subcommand == 'as':
                     self.auth_level = data['auth_level']
                     print("Logged in as '{0}' with authority level '{1}'\n"
                         .format(self.user, self.auth_level)
                         )
 
-                elif subcommand=='update':
+                elif subcommand == 'update':
                     self.auth_level = data['auth_level']
                     self.password = self.new_password
                     print('\nPassword successfully updated\n')
 
+                return
+
+            if command == 'submission' and data!=None:
+
+                if ((subcommand == 'view' and
+                    any('submission' in arg for arg in args)) or
+                    subcommand == 'add'):
+
+                    self.print_submission(
+                        command, subcommand, data
+                        )
+                else:
+                    self.print_response(
+                        command, subcommand, data
+                        )
                 return
 
             if data==None:
@@ -694,6 +725,94 @@ class AutoShell(cmd.Cmd):
         else:
             print('\n**** Command not found\n')
 
+
+    def print_submission(self, command, subcommand, data):
+
+        feedback_level = data[0]['feedback_level']
+
+        self.logger.info("Print Submission: {0}".format(data[0]['submission_id']))
+        self.logger.debug("Feedback Level: {0}".format(feedback_level))
+
+
+        syn_wrapper = textwrap.TextWrapper(
+            initial_indent='\t', width=80, subsequent_indent='\t\t'
+            )
+        wrapper = textwrap.TextWrapper(
+            initial_indent='\t', width=80, subsequent_indent='\t'
+            )
+
+        status_list = [
+            [('SubmissionID', 'submission_id'),
+                ('Submitted at', 'submission_date')],
+            [('Submitted by', 'student')],
+            [('Assignment', 'assignment_name'), ('ID', 'assignment_id'),
+                ('Version', 'version_id')],
+            [('Course', 'dept_name', 'course_num', 'course_name')],
+            [('Grade', 'grade')],
+            ]
+
+        status_string = ""
+        for row in status_list:
+
+            status_string += '\t'
+            for tup in row:
+
+                if tup[0] == 'Course':
+                    status_string += (
+                        tup[0] + ': ' + data[0][tup[1]].upper() + ' ' +
+                        " ".join([str(data[0][x]) for x in tup[2:]])
+                        )
+                else:
+                    status_string += (
+                        tup[0] + ': ' +
+                        " ".join([str(data[0][x]) for x in tup[1:]])
+                        ) + ' '
+
+            status_string += '\n'
+
+
+
+
+        print()
+        print(status_string)
+        print()
+
+        for row in data:
+            self.logger.debug("Row: '{}'".format(row))
+
+            try:
+                # Setting strict=False allows control characters inside
+                # of strings. This allows easier parsing of JSON results.
+                # Unknown if this has any potential side effects.
+                row['results'] = json.loads(row['results'], strict=False)
+            except ValueError:
+                print("Invalid JSON, printing unformatted results string\n")
+                print(row['results'])
+            else:
+                print('Test: ' + row['test_name'] + ', ID: ' + str(row['test_id'])),
+                print()
+                print(row['results']['TAP'])
+                print()
+                if row['results']['Errors']:
+                    print('Errors')
+                    print()
+                    for item in row['results']['Errors']:
+                        print(item)
+                    print()
+                if ((row['results']['Errors'] or any(x['state'] == 'not ok' for x in row['results']['Tests']))
+                    and 'common_errors' in row and len(row['common_errors']) > 0):
+                    print('Common Errors on this test include:')
+                    print()
+                    for error in row['common_errors']:
+                        print(error['ce_name'])
+                        print(error['ce_text'])
+                        print()
+
+        print()
+
+
+
+
     def auth_check_helper(self, help_target, key):
         """For print_help, to allow a single place
         for exceptions to auth checking
@@ -714,16 +833,6 @@ class AutoShell(cmd.Cmd):
         self.logger.debug("Data: {0}".format(json))
 
         data = json
-
-        # Only print one row per submission_id
-        if command == 'submission' and subcommand == 'view':
-            id_list = []
-            temp_data = []
-            for id, row in enumerate(data):
-                if row['submission_id'] not in id_list:
-                    id_list += [row['submission_id']]
-                    temp_data += [data[id]]
-            data = temp_data
 
 
         cols = [
@@ -828,8 +937,9 @@ def parse(arg):
 
 def parsekv(validkeys, args):
     data = {}
+    pattern = re.compile(r'''((?:[^,"']|"[^"]*"|'[^']*')+)''')
     for arg in args:
-        arg = arg.split('=')
+        arg = arg.split('=', 1)
 
         if len(arg)!=2:
             auto.logger.warning("'{0}' is not a valid key-value pair".format(arg))
@@ -841,7 +951,7 @@ def parsekv(validkeys, args):
             auto.logger.warning("'{0}' is not a valid key".format(arg))
             continue
 
-        value = value.split(',')
+        value = pattern.split(value)[1::2]
 
         data[key] = value
 

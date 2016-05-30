@@ -156,7 +156,24 @@ commands = {
 
             "optional": [],
 
-            "help":     "Link selected common error(s) to selected test(s).",
+            "help":     "Link selected common error to selected test.",
+
+            },
+
+        "unlink":   {
+            "access":   {
+                "teacher":  True,
+                "ta":       False,
+                "student":  False,
+                },
+
+            "required": ['ce-id', 'test-id'],
+
+            "required2": [],
+
+            "optional": [],
+
+            "help":     "Unlink selected common error from selected test.",
 
             },
         },
@@ -538,7 +555,7 @@ commands = {
 
             "required2": [],
 
-            "optional": ['assignment-id', 'student', 'submission'],
+            "optional": ['assignment-id', 'student', 'submission', 'filter'],
 
             "help":     "View selected assignment submission, all submissions for a selected assignment, or all submissions for a selected assignment and student. Students can only select/view their own submissions. Shows any available feedback, including grades.",
 
@@ -950,6 +967,10 @@ options = {
     "filepath":     {
             "type":     "file",
             "help":     "Filepath of file to be used.",
+            },
+    "filter":     {
+            "type":     "string",
+            "help":     "Filters submission view results by assignment. 'max': shows highest scores. 'latest': shows most recent submission. 'latestnotlate': shows most recent not late submission.",
             },
     "first":     {
             "type":     "str",

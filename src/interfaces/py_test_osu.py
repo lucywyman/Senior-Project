@@ -1,8 +1,7 @@
 import operator
 import json
 import sys
-import psycopg2
-import psycopg2.extras
+import os
 
 class test_suite:
     def __init__(self):
@@ -16,16 +15,10 @@ class test_suite:
         self.weightTotal = 0
         self.weightAcc = 0
         self.jsonRet = json.loads('{"TAP":"","Tests":[],"Errors":[],"Grade":""}')
-        self._connectVars = ''
-        self.testID = 0
-        self._connectVars = "{0} {1} {2}".format(sys.argv[1], sys.argv[2], sys.argv[3])
-        self.sub_ID = sys.argv[4]
-        self.test_ID = sys.argv[5]
-        sys.argv[1] = "You shouldn't be looking at this."
-        sys.argv[2] = 0
-        sys.argv[3] = 0
-        sys.argv[4] = 0
-        sys.argv[5] = 0
+
+        self.sub_ID = sys.argv[1]
+        self.test_ID = sys.argv[2]
+        self.output = sys.argv[3]
 
     #Helper functions
     def ok(self,message,weight):
@@ -54,15 +47,8 @@ class test_suite:
           self.jsonRet['Errors'].append("More tests declared than executed.")
       self.jsonRet['TAP'] = self.TAPstring
       self.jsonRet['Grade'] = self.weightAcc/self.weightTotal
-      conn = psycopg2.connect(self._connectVars, cursor_factory= psycopg2.extras.RealDictCursor)
-      conn.autocommit = True
-      cur = conn.cursor()
-      cur.execute("""
-        INSERT INTO submissions_have_results (submission_id, test_id, results)
-        VALUES (%s, %s, %s)
-        """, (self.sub_ID, self.test_ID, json.dumps(self.jsonRet))
-        )
-      cur.close()
+      resfile = open(os.path.normpath(os.path.join(self.output,str(self.test_ID))),'w')
+      json.dump(self.jsonRet,resfile)
 
     #Testing functions
     def assert_equals(self,actual,expected,message,weight=1):

@@ -31,7 +31,7 @@ sql = {
                 ['depts', 'dept_name', 'dept_name'],
                 ['courses', 'course_num', 'course_num'],
                 ['courses', 'name', 'course_name'],
-                # fourth entry specifies witch table to join with
+                # fourth entry specifies which table to join with
                 ['users', 'user_id', 'teacher_id', 'teachers'],
                 ['users', 'username', 'teacher', 'teachers'],
             ],
@@ -42,7 +42,7 @@ sql = {
                 ['users', 'teachers', 'tchu'],
             ],
 
-            "view_order": ['dept_name', 'course_num', 'assignment_id', 'name', 'end_date','late_submission', 'submission_limit', 'feedback_level', 'course_id'],
+            "view_order": ['dept_name', 'course_num', 'assignment_id', 'name', 'begin_date', 'end_date','late_submission', 'submission_limit', 'feedback_level', 'course_id'],
 
             "sort_order": ['course_id', 'assignment_id'],
 
@@ -51,7 +51,6 @@ sql = {
                 "ta":       ta_limit,
                 "student":  student_limit,
                 },
-
         },
     },
 
@@ -79,6 +78,11 @@ sql = {
                 ],
 
                 ('test_id',): [
+                    ['tests', 'test_id', 'test_id'],
+                    ['tests', 'name', 'test_name'],
+                ],
+
+                ('ce_id',): [
                     ['tests', 'test_id', 'test_id'],
                     ['tests', 'name', 'test_name'],
                 ],
@@ -224,8 +228,10 @@ sql = {
                 ['courses', 'name', 'course_name'],
                 ['submissions', 'submission_date', 'submission_date'],
                 ['submissions_have_results', 'results', 'results'],
-                ['users', 'username', 'student', 'students'],
                 ['courses', 'course_num', 'course_num'],
+                ['assignments', 'feedback_level', 'feedback_level'],
+                ['users', 'username', 'student', 'students'],
+
             ],
 
             "optional": {},
@@ -234,7 +240,7 @@ sql = {
                 ['users', 'students', 'su'],
             ],
 
-            "view_order": ['assignment_id', 'version_id', 'submission_id', 'submission_date', 'student', 'grade', 'assignment_name', 'dept_name', 'course_num', 'results'],
+            "view_order": ['assignment_id', 'version_id', 'submission_id', 'submission_date', 'student', 'grade', 'assignment_name', 'dept_name', 'course_num'],
 
             "sort_order": ['assignment_id', 'version_id', 'submission_id'],
 
@@ -246,6 +252,92 @@ sql = {
                             FROM students_create_submissions
                             WHERE student_id=%(uid)s) """,
                 },
+
+            "filter": {
+                "max":  """ submissions.submission_id IN (
+                        WITH sv
+                            AS (SELECT students_create_submissions.student_id,
+                                assignments.assignment_id,
+                                submissions.grade,
+                                submissions.submission_id,
+                                submissions.submission_date
+                        FROM    submissions
+                        INNER JOIN students_create_submissions
+                                ON submissions.submission_id =
+                                   students_create_submissions.submission_id
+                        INNER JOIN versions
+                                ON submissions.version_id = versions.version_id
+                        INNER JOIN assignments
+                                ON versions.assignment_id = assignments.assignment_id
+                        WHERE  submissions.grade = (
+                                    SELECT Max(s.grade)
+                                    FROM   submissions AS s
+                                    INNER JOIN students_create_submissions AS scs
+                                            ON s.submission_id = scs.submission_id
+                                    INNER JOIN versions AS v
+                                            ON s.version_id = v.version_id
+                                    INNER JOIN assignments AS a
+                                            ON v.assignment_id = a.assignment_id
+                                    WHERE   a.assignment_id = assignments.assignment_id
+                                            AND scs.student_id = students_create_submissions.student_id)
+                        )
+                        SELECT sv.submission_id
+                        FROM   sv
+                        WHERE  sv.submission_date >= (
+                                SELECT  Max(temp.submission_date)
+                                FROM    sv AS temp
+                                WHERE   temp.assignment_id = sv.assignment_id
+                                        AND temp.student_id = sv.student_id)
+                        )
+                        """,
+                "latest": """ submissions.submission_id IN (
+                        SELECT      submissions.submission_id
+                        FROM        submissions
+                        INNER JOIN  students_create_submissions
+                        ON          submissions.submission_id=students_create_submissions.submission_id
+                        INNER JOIN  versions
+                        ON          submissions.version_id=versions.version_id
+                        INNER JOIN  assignments
+                        ON          versions.assignment_id=assignments.assignment_id
+                        WHERE       submissions.submission_date = (
+                                            SELECT MAX(s.submission_date)
+                                            FROM submissions AS s
+                                            INNER JOIN students_create_submissions AS scs
+                                            ON         s.submission_id=scs.submission_id
+                                            INNER JOIN versions AS v
+                                            ON         s.version_id=v.version_id
+                                            INNER JOIN assignments AS a
+                                            ON         v.assignment_id=a.assignment_id
+                                            WHERE a.assignment_id=assignments.assignment_id
+                                                AND scs.student_id=students_create_submissions.student_id
+                            )
+                        )
+                        """,
+                "latestnotlate": """ submissions.submission_id IN (
+                        SELECT      submissions.submission_id
+                        FROM        submissions
+                        INNER JOIN  students_create_submissions
+                        ON          submissions.submission_id=students_create_submissions.submission_id
+                        INNER JOIN  versions
+                        ON          submissions.version_id=versions.version_id
+                        INNER JOIN  assignments
+                        ON          versions.assignment_id=assignments.assignment_id
+                        WHERE       submissions.submission_date = (
+                                            SELECT MAX(s.submission_date)
+                                            FROM submissions AS s
+                                            INNER JOIN students_create_submissions AS scs
+                                            ON         s.submission_id=scs.submission_id
+                                            INNER JOIN versions AS v
+                                            ON         s.version_id=v.version_id
+                                            INNER JOIN assignments AS a
+                                            ON         v.assignment_id=a.assignment_id
+                                            WHERE a.assignment_id=assignments.assignment_id
+                                                AND scs.student_id=students_create_submissions.student_id
+                                                AND s.submission_date <= assignments.end_date
+                            )
+                        )
+                        """,
+            },
 
         },
     },
