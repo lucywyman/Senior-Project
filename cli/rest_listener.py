@@ -854,7 +854,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     HAVING assignment_id=%s
                     """, (aid,)
                     )
-                aid = data.pop('assignment-id', None)[0]
+                #aid = data.pop('assignment-id', None)[0]
                 data['version']= []
                 data['version'].append(cur.fetchone()['max_version'])
 
