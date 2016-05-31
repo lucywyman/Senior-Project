@@ -902,7 +902,7 @@ try:
     from msvcrt import kbhit, getch
 except:
     import termios, fcntl, sys, os
-    def kbhit(t):
+    def kbhit():
         fd = sys.stdin.fileno()
 
         oldterm = termios.tcgetattr(fd)
