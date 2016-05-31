@@ -131,11 +131,11 @@ class testerThread (threading.Thread):
 
         if not os.path.exists(resultpath):
             os.makedirs(resultpath)
-            os.chown(resultpath, uid, gid)
+        os.chown(resultpath, uid, gid)
 
         if not os.path.exists(userpath):
             os.makedirs(userpath)
-            os.chown(userpath, uid, gid)
+        os.chown(userpath, uid, gid)
 
         print('subdir: {0}, {1}'.format(files['subPath'],userpath))
         # Generate interface files path
@@ -164,11 +164,12 @@ class testerThread (threading.Thread):
         #    )
 
         # another new exec_string! for make files
-        exec_string = "make -C {0} runtest SUBID={1!s} TESTID={2!s} RESULTDIR={3!s}".format(
+        exec_string = "make -C {0} runtest SUBID={1!s} TESTID={2!s} RESULTDIR={3!s} CPATH={4!s}".format(
             os.path.normpath(userpath),
             files['submission_id'],
             files['test_id'],
-            resultpath
+            resultpath,
+            os.path.normpath(userpath)
             )
         print("Exec_string: '{}'".format(exec_string))
         try:
