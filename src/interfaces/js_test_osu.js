@@ -68,7 +68,7 @@ test_suite.prototype.assert_equals = function(actual,expected,message,weight,typ
       this.ok(message,weight);
     }
     else{
-      this.notok(message,weight)
+      this.notok(message,weight);
     }
   }
 }
@@ -90,7 +90,7 @@ test_suite.prototype.assert_not_equals = function(actual,expected,message,weight
       this.ok(message,weight);
     }
     else{
-      this.notok(message,weight)
+      this.notok(message,weight);
     }
   }
 }
