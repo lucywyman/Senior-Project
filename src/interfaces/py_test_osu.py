@@ -24,6 +24,7 @@ class test_suite:
     def ok(self,message,weight):
         self.testCount += 1
         self.testsRemain -= 1
+        self.weightAcc += weight
         if(self.testsRemain < 0):
             print('# Exceeded declared test count for this "describe"!')
             self.jsonRet['Errors'].append("Exceeded declared test count for a describe.")
@@ -55,7 +56,6 @@ class test_suite:
         self.weightTotal += weight
         if(operator.eq(actual,expected)):
             self.ok(message,weight)
-            self.weightAcc += weight
         else:
             self.notok(message,weight)
 
@@ -63,7 +63,6 @@ class test_suite:
         self.weightTotal += weight
         if(operator.ne(actual,unexpected)):
             self.ok(message,weight)
-            self.weightAcc += weight
         else:
             self.notok(message,weight)
 
@@ -74,13 +73,11 @@ class test_suite:
             self.notok(message,weight)
         except:
             self.ok(message,weight)
-            self.weightAcc += weight
 
     def expect(self,passed,message,weight=1):
         self.weightTotal += weight
         if(passed):
             self.ok(message,weight)
-            self.weightAcc += weight
         else:
             self.notok(message,weight)
 
@@ -89,5 +86,6 @@ class test_suite:
         self.TAPstring += str(self.testCount + 1) + '..' + str(self.testCount + tests)
         self.TAPstring += '# ' + message + '\n'
         self.testsRemain = tests
+
     def it(self,message):
         self.TAPstring += '# ' + message
