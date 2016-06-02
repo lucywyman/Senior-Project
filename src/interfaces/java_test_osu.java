@@ -93,6 +93,7 @@ public class java_test_osu{
         jRet.put("TAP", this.TAPstring);
         jRet.put("Grade", String.valueOf(grade));
         jRet.put("Tests", this.tests);
+        jRet.put("Errors", this.errors);
 
         //write out
         Path outputFile = Paths.get(this.output, String.valueOf(this.test_ID));
