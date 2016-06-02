@@ -2,10 +2,11 @@
 #include "dummy.hpp"
 #include <string>
 
+
 int main(int argc, char* argv[]){
   
     // args 0-2: submission_ID, test_ID and output directory
-    test_suite test (std::stoi(argv[1]), std::stoi(argv[2]), argv[3]);
+    test_suite test (argv[1], argv[2], argv[3]);
     
     test.describe("Basic tests",12);
 

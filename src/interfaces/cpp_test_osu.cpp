@@ -21,22 +21,26 @@ namespace patch
         stm << n ;
         return stm.str() ;
     }
+
+    int stoi(const std::string& s) {
+        std::istringstream str(s);
+        int i;
+        str >> i;
+        return i;
+    }
 }
 
 
-
-
-
-test_suite::test_suite(int sID, int tID, std::string op) {
+test_suite::test_suite(const std::string sID, const std::string tID, const std::string op) {
 
     testCount = 0;
     testsRemain = 0;
     TAPstring = "";
     weightTotal = 0;
     weightAcc = 0;
-    
-    sub_ID     = sID;
-    test_ID    = tID;
+
+    sub_ID     = patch::stoi(sID);
+    test_ID    = patch::stoi(tID);
     output     = op;
     parser.parse("{\"TAP\":\"\",\"Tests\":[],\"Errors\":[],\"Grade\":\"\"}", jsonRet);
 }
@@ -135,4 +139,3 @@ std::string test_suite::path_join(std::string dir, std::string file) {
     result = temp + file;
     return result;
 }
-

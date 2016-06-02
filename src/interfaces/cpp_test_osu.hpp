@@ -7,7 +7,7 @@ class test_suite
 {
 
     public:
-        test_suite(int sID, int tID, std::string op);
+        test_suite(const std::string sID, const std::string tID, const std::string op);
         void ok(const std::string message, int weight);
         void notok(const std::string message, int weight);
         void logj(std::string ok, int testNumber, const std::string message, int weight);
