@@ -43,6 +43,9 @@ void _logj(char* ok, int testNumber, char* message, float weight, _testStats* t)
   t->TAPstring = strcat(t->TAPstring,buf);
   t->TAPstring = strcat(t->TAPstring," ");
   t->TAPstring = strcat(t->TAPstring,message);
+  t->TAPstring = strcat(t->TAPstring," ");
+  snprintf(buf,16,"%f",weight);
+  t->TAPstring = strcat(t->TAPstring,buf);
   t->TAPstring = strcat(t->TAPstring,"\\n");
 }
 
