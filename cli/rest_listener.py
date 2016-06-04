@@ -520,6 +520,9 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         # Process results
         if command == 'submission' and subcommand == 'view':
             data, result = self.feedback_limit_process(data, result, auth_level)
+            for sub in result:
+                if sub.get("submission_id"):
+                    sub["max"] = self.grade(sub["submission_id"])
 
 
         self.logger.debug("Processed Results: {}".format(result))
@@ -1944,8 +1947,12 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             if submission_test_set == test_set:
                 break
 
-        # create data and result lists, then process
-        data = {'submission_id': [str(id)]}
+        # Grade submission results and update database
+        total_points = self.grade(id, update=True)
+
+
+        # create data and result lists, then filter
+        data = {'submission_id': [str(id)], "max": total_points}
 
 
         cur.execute(
@@ -1956,7 +1963,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
         self.logger.debug("Original Results: {}".format(result))
 
-        # Process results
+        # Filter results
         data, result = self.feedback_limit_process(data, result, 'student')
 
         self.logger.debug("Processed Results: {}".format(result))
@@ -2015,6 +2022,121 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
     ##      return 1
     ##
     ##  return 0
+
+    def grade(self, submission_id, update=False):
+
+        cur = conn.cursor()
+
+        results_query = """
+            SELECT submission_id, test_id, results
+            FROM submissions_have_results
+            WHERE submission_id = %s
+            """
+
+        points_query = """
+            SELECT points
+            FROM tests
+            WHERE test_id = %s
+            """
+
+        grade_update_query = """
+            UPDATE submissions
+            SET grade = %(grade)s
+            WHERE submission_id = %(submission_id)s
+            """
+
+        self.logger.debug(
+            "Begin Grading for Submission: {}"
+            .format(submission_id)
+            )
+
+        total_points = 0
+        received_points = 0
+
+        cur.execute(results_query, (submission_id,))
+
+        # An assignment can have any number of tests
+        for test in cur.fetchall():
+            try:
+                test["results"] = json.loads(test["results"], strict=False)
+            except ValueError:
+                if update:
+                    cur.execute(
+                        grade_update_query,
+                        {"grade": -1, "submission_id": submission_id}
+                        )
+                self.logger.debug(
+                "End Grading - Error: TestID {} had invalid JSON results: {}"
+                .format(test["test_id"], test["results"])
+                )
+                return -1
+            
+            if (test["results"].get("Grade", None) is None 
+                or float(test["results"]["Grade"]) < 0):
+                
+                self.logger.debug(
+                    "Error - Grade was '{}'"
+                    .format(test["results"].get("Grade", None))
+                    )
+                if update:
+                    cur.execute(
+                        grade_update_query,
+                        {"grade": -1, "submission_id": submission_id}
+                        )
+                self.logger.debug(
+                "End Grading - Error: TestID {} failed to run properly."
+                .format(test["test_id"])
+                )
+                return -1
+            temp_max = 0
+            temp_points = 0
+
+            self.logger.debug("Grading TestID: {}".format(test["test_id"]))
+
+            # each test is composed of subtests
+            for subtest in test["results"]["Tests"]:
+                temp_max += float(subtest["weight"])
+                if subtest["state"] == "ok":
+                    temp_points += float(subtest["weight"])
+
+            # If a test has a point value set, we scale the summation
+            # of that test's subtests to match, otherwise we take the
+            # summation as is.
+            cur.execute(points_query, (test["test_id"],))
+            point_value = cur.fetchone().get("points", None)
+            if point_value is not None and point_value != 0:
+                received_points += temp_points/temp_max * point_value
+                total_points    += point_value
+                self.logger.debug(
+                    "Score: {}/{}"
+                    .format(
+                        temp_points/temp_max * point_value,
+                        point_value
+                        )
+                    )
+            else:
+                received_points += temp_points
+                total_points    += temp_max
+                self.logger.debug(
+                    "Score: {}/{}"
+                    .format(
+                        temp_points,
+                        temp_max
+                        )
+                    )
+        if update:
+            cur.execute(
+                grade_update_query,
+                {"grade": received_points, "submission_id": submission_id}
+                )
+        self.logger.debug(
+                    "Grading Complete, Total Score: {}/{}"
+                    .format(
+                        received_points,
+                        total_points
+                        )
+                    )
+        return total_points
 
 
     def create_user(self):
