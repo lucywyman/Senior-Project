@@ -240,7 +240,11 @@ sql = {
                 ['users', 'students', 'su'],
             ],
 
-            "view_order": ['assignment_id', 'version_id', 'submission_id', 'submission_date', 'student', 'grade', 'assignment_name', 'dept_name', 'course_num'],
+            # 'max' is the max number of points possible for a given assignment
+            # and calculated from submission results using self.grade() and
+            # inserted into results automatically by the API
+            # TODO - max might be better implemented as a DB function
+            "view_order": ['assignment_id', 'version_id', 'submission_id', 'submission_date', 'student', 'grade', 'max', 'assignment_name', 'dept_name', 'course_num'],
 
             "sort_order": ['assignment_id', 'version_id', 'submission_id'],
 
