@@ -637,8 +637,10 @@ class AutoShell(cmd.Cmd):
         if command_dict.commands.get(help_target):
 
             access_granted = False
+
             syn_wrapper = textwrap.TextWrapper(initial_indent='\t', width=80, subsequent_indent='\t\t')
             wrapper = textwrap.TextWrapper(initial_indent='\t\t', width=80, subsequent_indent='\t\t')
+            desc_wrapper = textwrap.TextWrapper(initial_indent='\t', width=80, subsequent_indent='\t')
 
             for key in command_dict.commands[help_target]:
                 if self.auth_check_helper(help_target, key):
@@ -653,6 +655,7 @@ class AutoShell(cmd.Cmd):
                 print()
                 print('SYNOPSIS')
                 print()
+
 
                 # print subcommands
                 for key in command_dict.commands[help_target]:
@@ -690,6 +693,8 @@ class AutoShell(cmd.Cmd):
 
                 print()
                 print('DESCRIPTION')
+                print()
+                print(desc_wrapper.fill(command_dict.command_desc[help_target]))
                 print()
 
                 for key in command_dict.commands[help_target]:

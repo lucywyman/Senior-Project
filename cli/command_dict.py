@@ -773,7 +773,7 @@ commands = {
 
             "optional": ['assignment-id', 'version', 'test-id'],
 
-            "help":     "View all tests [for selected assignment-id [and version number, defaults to highest if not given]]",
+            "help":     "View all tests [for selected assignment-id [and version number]]. NOTE: If the latest version of an assignment has no linked tests, it will not show up.",
 
             },
 
@@ -921,6 +921,29 @@ commands = {
         # },
     }
 
+command_desc = {
+    "assignment": "The assignment command is used for performing actions on individual assignments. Assignments are tied to courses and can have any number of tests linked to them.",
+
+    "ce": "The ce command stands for 'common errors'. Common errors can be linked to tests, and are viewable on test failure.",
+
+    "course": "The course command is used to create and modify individual courses. Courses are taught by instructors and have assignments associated with them.",
+
+    "grade": "The grade command is an alias for the submission command, but only supports 'grade update'.",
+
+    "group": "Students and TAs can be associated together using the group command.",
+
+    "login": "The login command is used for logging in as a specific user, creating new users, and updating passwords.",
+
+    "student": "The student command is used for associating students with individual courses.",
+
+    "submission": "The submission command allows students to make submissions and view their results, as well as allowing TAs and instructors to view and grade submissions.",
+
+    "ta": "The ta command allows instructors to give users TA authority and to add TAs to specific courses as a TA.",
+
+    "tag": "The tag command allows tags to be added to assignments.",
+
+    "test": "The test command is used to create and modify tests. Tests can have common errors (ce) linked to them and tests can be linked to assignments.",
+    }
 
 options = {
     "assignment-id":     {
