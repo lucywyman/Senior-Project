@@ -11,7 +11,7 @@ commands = {
 
             "required2": [],
 
-            "optional": ['begin', 'end', 'late', 'level', 'limit', 'name', 'tags'],
+            "optional": ['begin', 'end', 'late', 'level', 'limit', 'tags'],
 
             "help":     "Adds assignment to selected course with given values.",
 
@@ -956,8 +956,8 @@ options = {
             },
     "begin":     {
             "type":     "timestamp",
-            "help":     "Date assignment opens. Defaults to current date at 23:59 PM.",
-            "example":  "Format is mm/dd/yyyy hh:mm:ss. I.e. begin=\"9/3/10 5:03:00\".",
+            "help":     "Date assignment opens. Defaults to current date at 23:59 PM. Format is mm/dd/yy hh:mm:ss. I.e. begin=\"9/3/10 5:03:00\".",
+            "example":  "",
             "table":    "assignments",
             "key":      "begin_date",
             },
@@ -982,8 +982,8 @@ options = {
             },
     "end":     {
             "type":     "timestamp",
-            "help":     "Date assignment closes. Defaults to two weeks from current date at 11:59 PM.",
-            "example":  "Format is mm/dd/yyyy hh:mm:ss. I.e. end=\"9/3/10 5:03:00\".",
+            "help":     "Date assignment closes. Defaults to two weeks from current date at 11:59 PM. Format is mm/dd/yy hh:mm:ss. I.e. end=\"9/3/10 5:03:00\".",
+            "example":  "",
             "table":    "assignments",
             "key":      "end_date",
             },
