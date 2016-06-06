@@ -32,7 +32,7 @@ class test_suite {
             $this->jsonRet->Errors[] = "Exceeded declared test count for a describe.";
         }
 
-        $this->logj("ok ", $this->testCount, $message, $weight);
+        $this->logj("ok", $this->testCount, $message, $weight);
     }
 
     public function notok($message, $weight) {

@@ -28,7 +28,7 @@ class test_suite:
         if(self.testsRemain < 0):
             print('# Exceeded declared test count for this "describe"!')
             self.jsonRet['Errors'].append("Exceeded declared test count for a describe.")
-        self.logj('ok ',self.testCount,message,weight)
+        self.logj('ok',self.testCount,message,weight)
     def notok(self,message,weight):
         self.testCount += 1
         self.testsRemain -= 1

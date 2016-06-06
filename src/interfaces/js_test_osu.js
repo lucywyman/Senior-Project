@@ -54,7 +54,7 @@ test_suite.prototype.conclude = function() {
 test_suite.prototype.assert_equals = function(actual,expected,message,weight,type){
   weight = weight || 1;
   type = type || 'exact';
-  this.weighTotal += weight;
+  this.weightTotal += weight;
   if(type=='exact'){
     if(actual===expected){
       this.ok(message,weight);
@@ -76,7 +76,7 @@ test_suite.prototype.assert_equals = function(actual,expected,message,weight,typ
 test_suite.prototype.assert_not_equals = function(actual,expected,message,weight,type){
   weight = weight || 1;
   type = type || 'exact';
-  this.weighTotal += weight;
+  this.weightTotal += weight;
   if(type=='exact'){
     if(actual!==expected){
       this.ok(message,weight);
@@ -98,7 +98,7 @@ test_suite.prototype.assert_not_equals = function(actual,expected,message,weight
 //expects the thunk you'd like evaluated as a string
 test_suite.prototype.expect_error = function(message, module, thunk, weight){
   weight = weight || 1;
-  this.weighTotal += weight;
+  this.weightTotal += weight;
   try{
     eval(thunk);
     this.notok(message,weight);
@@ -110,7 +110,7 @@ test_suite.prototype.expect_error = function(message, module, thunk, weight){
 
 test_suite.prototype.expect = function(passed,message,weight){
   weight = weight || 1;
-  this.weighTotal += weight;
+  this.weightTotal += weight;
   if(passed){
     this.ok(message,weight);
   }
