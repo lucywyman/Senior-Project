@@ -1487,6 +1487,21 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             self.logger.debug(data)
             cur.execute(query, data)
 
+            # cleanup tas_assigned_students table when student or ta is
+            # removed from course. This must be done manually since the
+            # db_grapher can't handle a multicolumn foreign key properly
+            if command == 'student':
+                cur.execute("""
+                    DELETE FROM tas_assigned_students
+                    WHERE student_id=%(student)s and course_id=%(course-id)s
+                    """, data)
+            elif command == 'ta':
+                if 'course-id' in data:
+                    cur.execute("""
+                        DELETE FROM tas_assigned_students
+                        WHERE ta_id=%(ta)s and course_id=%(course-id)s
+                        """, data)
+
         self.send_response(HTTPStatus.OK)
         self.send_header('Content-type', 'application/json')
         self.end_headers()
@@ -1952,7 +1967,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
 
         # create data and result lists, then filter
-        data = {'submission_id': [str(id)], "max": total_points}
+        data = {'submission_id': [str(id)]}
 
 
         cur.execute(
@@ -1965,6 +1980,9 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
         # Filter results
         data, result = self.feedback_limit_process(data, result, 'student')
+
+        if result:
+            result[0]["max"] = total_points
 
         self.logger.debug("Processed Results: {}".format(result))
 
@@ -2070,10 +2088,10 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 .format(test["test_id"], test["results"])
                 )
                 return -1
-            
-            if (test["results"].get("Grade", None) is None 
+
+            if (test["results"].get("Grade", None) is None
                 or float(test["results"]["Grade"]) < 0):
-                
+
                 self.logger.debug(
                     "Error - Grade was '{}'"
                     .format(test["results"].get("Grade", None))
@@ -2084,9 +2102,9 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                         {"grade": -1, "submission_id": submission_id}
                         )
                 self.logger.debug(
-                "End Grading - Error: TestID {} failed to run properly."
-                .format(test["test_id"])
-                )
+                    "End Grading - Error: TestID {} failed to run properly."
+                    .format(test["test_id"])
+                    )
                 return -1
             temp_max = 0
             temp_points = 0
@@ -3270,9 +3288,9 @@ def test(
 
     """
     server_address = (bind, port)
-    # conf option later!
-    cvars = "dbname=postgres user=postgres password=killerkat5"
-    testerCount = 4
+    global db_conn
+    global config
+    testerCount = int(config['Tester']['num_testers'])
     #herald_init returns a q
     q = rest_extend.herald_init(testerCount)
     HandlerClass.protocol_version = protocol
@@ -3280,7 +3298,7 @@ def test(
 
     tthread = []
     for i in range(testerCount):
-        tthread.append(rest_extend.testerThread(i,q,cvars))
+        tthread.append(rest_extend.testerThread(i, q, db_conn))
         tthread[i].daemon = True
         tthread[i].start()
     # add ssl
