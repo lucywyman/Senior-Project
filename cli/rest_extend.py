@@ -141,8 +141,8 @@ class testerThread (threading.Thread):
         # Generate interface files path
         interfaceDir = os.path.normpath(os.path.join(config['Directories']['srcdir'],'interfaces'))
         # File moves and permissions
-        self.copyPerm(files['testPath'],userpath)
         self.copyPerm(files['subPath'],userpath)
+        self.copyPerm(files['testPath'],userpath)
         self.copyPerm(interfaceDir,userpath)
 
 
@@ -163,6 +163,23 @@ class testerThread (threading.Thread):
         #    str(files['test_id'])
         #    )
 
+        # Get time limit
+        time_limit = int(config['Tester']['run_time_limit'])
+
+        cur = self.conn.cursor()
+        cur.execute("""
+            SELECT time_limit
+            FROM tests
+            WHERE test_id=%s
+            """, (files['test_id'],)
+            )
+
+        test_time_limit = int(cur.fetchone().get("time_limit", 0))
+        cur.close()
+
+        if test_time_limit is not None and test_time_limit > 0:
+            time_limit = int(test_time_limit)
+
         # another new exec_string! for make files
         exec_string = "make -C {0} runtest SUBID={1!s} TESTID={2!s} RESULTDIR={3!s} CPATH={4!s}".format(
             os.path.normpath(userpath),
@@ -172,19 +189,30 @@ class testerThread (threading.Thread):
             os.path.normpath(userpath)
             )
         print("Exec_string: '{}'".format(exec_string))
+
+        # NOTE: calling setuid before setgid will result in an error if the new
+        # uid lacks authority to change the gid
+        def change_user():
+            os.setgid(gid)
+            os.setuid(uid)
+
         try:
             print("running process")
             result = subprocess.check_output(
                 exec_string,
-                preexec_fn = lambda: os.setuid(uid),
-                timeout=5,
-                shell=True
+                preexec_fn = change_user,
+                timeout = time_limit,
+                shell = True
                 )
             retcode = 0
         except subprocess.CalledProcessError as e:
             result = e.output
             retcode = e.returncode
 
+        # clean up any remaining processes
+        subprocess.call(["killall", "-KILL", "-u", self.username])
+
+        # clean up temporary files
         for file in os.listdir(userpath):
             pfile = os.path.normpath(os.path.join(userpath,file))
             try:
@@ -241,30 +269,12 @@ class testerThread (threading.Thread):
             print("task done")
             self.q.task_done()
 
+
+
+
+
 # functions for herald
 # Init returns the FIFO queue; the python Queue object is threadsafe!
-
-def change_user(username):
-
-    from pwd import getpwnam
-
-    print("Username is: {}".format(username))
-    uid = getpwnam(username)[2]
-    gid = getpwnam(username)[3]
-    print(uid,gid)
-
-    def set_ids():
-
-        uid = getpwnam(username)[2]
-        gid = getpwnam(username)[3]
-
-        os.setuid(uid)
-        os.setgid(gid)
-
-    print("returning preexec_fn")
-    return set_ids
-
-
 def herald_init(testers):
 
     global config
@@ -272,9 +282,11 @@ def herald_init(testers):
     config.read('general.cfg')
 
     q = queue.Queue()
+
+    subprocess.call(["groupadd","testers"])
     for i in range(testers):
         subprocess.call(["userdel","-rf","tester"+str(i)+"user"])
-        subprocess.check_call(["useradd","-p","pass"+str(i),"tester"+str(i)+"user"])
+        subprocess.check_call(["useradd","-p","pass"+str(i),"tester"+str(i)+"user","-g","testers"])
     return q
 
 def herald(q,sub_ID):
