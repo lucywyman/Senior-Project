@@ -1071,6 +1071,12 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     return
                 else:
                     self.logger.debug("Submission timedout!")
+                    self.logger.info("END")
+                    self.send_error(
+                        HTTPStatus.REQUEST_TIMEOUT,
+                        "Process was terminated. It took too long to complete"
+                        )
+                    return
 
 
             elif command == 'test':
@@ -1934,14 +1940,44 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             WHERE submission_id=%s
             """
 
+        # Get time limit
+        global config
+        default_limit   = float(config['Tester']['run_time_limit'])
+        max_time_limit  = int(default_limit*60*len(test_set))
+        test_time_limit = 0
+
+        cur.execute("""
+            SELECT test_id, time_limit
+            FROM tests
+            WHERE test_id IN (%s)
+            """, (tuple(test_set),)
+            )
+
+        test_times      = cur.fetchall():
+        test_times_set  = set([row['test_id'] for row in test_times])
+
+        try:
+            for row in test_times:
+                test_time_limit += float(row.get("time_limit", 0))*60
+            for row in test_set - test_times_set:
+                test_time_limit += default_limit
+        except:
+            test_time_limit = 0
+
+
+        if test_time_limit is not None and test_time_limit > 0:
+            max_time_limit = int(test_time_limit)
+
+
         time_interval = 0.2 # seconds
-        max_time = 2.0 * 60.0 # minutes * seconds per minute
-        timeout = max_time/time_interval
+        # each test currently sleps for 5 seconds during execution
+        timeout = ((max_time_limit/time_interval)
+            + (5.0/time_interval*len(test_set)))
         time_count = 0
 
         self.logger.debug(
             "Entering polling loop. Timeout set to {} seconds."
-            .format(max_time)
+            .format(max_time_limit)
             )
         # poll to see if results for all tests are available
         while True:
@@ -1949,7 +1985,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             time_count += 1
 
             if time_count > timeout:
-                return 1
+                return "TimeOutError"
 
             cur.execute(
                 test_check_query,
@@ -2024,22 +2060,6 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
         return 0
 
-    ##  s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-    ##  try:
-    ##      s.connect(('127.0.0.1', 9000))     #'\0recvPort')):
-    ##  except:
-    ##      # TODO - handle errors instead
-    ##      raise
-    ##  else:
-    ##      msg = '{"sub_ID":' + str(id) + '}'
-    ##      self.logger.debug(msg)
-    ##      msg = msg.encode()
-    ##      self.logger.debug(msg)
-    ##      s.send(msg)
-    ##      s.close()
-    ##      return 1
-    ##
-    ##  return 0
 
     def grade(self, submission_id, update=False):
 
