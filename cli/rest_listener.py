@@ -850,7 +850,6 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 # the query is built, since version_id is tracked, not
                 # assignment-id
                 aid = data.pop('assignment-id', None)[0]
-
                 cur.execute("""
                     SELECT MAX(versions.version_id) AS max_version
                     FROM versions
@@ -858,6 +857,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     HAVING assignment_id=%s
                     """, (aid,)
                     )
+                #aid = data.pop('assignment-id', None)[0]
                 data['version']= []
                 data['version'].append(cur.fetchone()['max_version'])
 
@@ -3390,9 +3390,9 @@ if __name__ == '__main__':
                         help='Specify alternate bind address '
                              '[default: all interfaces]')
     parser.add_argument('port', action='store',
-                        default=443, type=int,
+                        default=8000, type=int,
                         nargs='?',
-                        help='Specify alternate port [default: 443]')
+                        help='Specify alternate port [default: 8000]')
     args = parser.parse_args()
 
     if args.verbosity:
@@ -3406,7 +3406,8 @@ if __name__ == '__main__':
             logLevel = logging.INFO
 
 
-
+    # http.server.test is an internal http.server function
+    # https://hg.python.org/cpython/file/3.4/Lib/http/server.py
     test(
         HandlerClass=handler,
         ServerClass=ThreadingHTTPServer,

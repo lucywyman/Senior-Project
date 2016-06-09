@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>{{ assignment.name }}</h2>
+<h4>Due on: {{ assignment.end_date }}</h4>
+{% if user.teacher %}
+<a class='btn' href='/assignment/create'>
+	<i class='material-icons'>add</i></a>
+<a class='btn' href='/assignment/edit/{{ assignment.assignment_id }}' alt='Edit assignment'>
+	<i class='material-icons'>create</i></a>
+<a class='btn' href='/assignment/delete/{{ assignment.assignment_id }}' alt='Delete assignment'>
+	<i class='material-icons'>delete</i></a>
+{% endif %}
+<p>Assigned on: {{ assignment.begin_date }}</p>
+<p>Submission limit: {{ assignment.submission_limit }}</p>
+{% if user.teacher %}
+<ul>
+	{% for test in tests %}
+	<li><h5><a href="/test/{{ test.test_id }}">{{ test.test_name }}</a></h5>
+		<a class='btn' href='/test/edit/{{ test.test_id }}'>
+			<i class='material-icons'>edit</i> test</a>
+		<a class='btn' href='/test/delete/{{ test.test_id }}'>
+			<i class='material-icons'>delete</i> test</a></li>
+	{% endfor %}
+</ul>
+{% endif %}
+{% if user.student %}
+<h4>Your Submissions:</h4>
+<ul>
+	{{ subs }}
+	{% for s in subs %}
+	<li><a href='submission/{{ s.submission_id }}'></a></li>
+	{% endfor %}
+</ul>
+<form action="/assignment/submit/{{ assignment.assignment_id }}" method="post" enctype="multipart/form-data">
+	{% csrf_token %}
+	<input class="multiFileInput" type="file" name="files" onchange="newInput();">			
+	<input class='btn' type="submit" value="Submit" />
+</form>
+{% endif %}
+
+{% endblock %}

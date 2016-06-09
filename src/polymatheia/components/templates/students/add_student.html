@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Add students to course</h2>
+<h4 class='error'>{{ error }}</h4>
+<form action="/student/add" method="post">
+	{% csrf_token %}
+	<label for='student'>Student(s):</label>
+	<select id='student' name="student">
+		<option value=""></option>
+		{% for s in students %}
+		<option value="{{ s.student }}">{{ s.student }}</option>
+		{% endfor %}
+	</select>
+	<button id='btn' class='btn' type='button' onclick="addFields(0)">
+		Add 5 students</button><br>
+	{% for i in range %}
+	<select id='student-{{i}}' class='hidden' name="student-{{i}}">
+		<option value=""></option>
+		{% for s in students %}
+		<option value="{{ s.student }}">{{ s.student }}</option>
+		{% endfor %}
+	</select>
+	{% if i|divisibleby:5 %}
+	<button id='btn-{{i}}' class='hidden' type="button" onclick="addFields({{ i }})">
+		Add 5 students
+	</button>
+	{% endif %}
+	{% endfor %}
+	<label for='course-id'>Course name:</label>
+	<select id='course-id' name="course-id">
+		{% for course in courses %}
+		<option value="{{ course.course_id }}">{{ course.dept}} {{ course.num }}{{ course.name }} ({{ course.term }} {{ course.year }})</option>
+		{% endfor %}
+	</select>
+	<input class='btn' type="submit" value="Add" />
+</form>
+{% endblock %}

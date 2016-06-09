@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Delete {{ assignment.name }}</h2>
+	<h4>(Due {{ assignment.end_date }} in {{ assignment.dept_name }} {{ assignment.course_num }})</h4>
+
+<h5>Deleting this assignment will delete all versions of it and all student submissions for it.</h5>
+{# I know this is gross don't judge me #}
+<form action="/assignment/{{ assignment.assignment_id }}" method="post" style='display:inline-block'>
+	{% csrf_token %}
+	    <button class='btn' name="cancel" value="cancel">Cancel</button>
+</form>
+<form action="/assignment/delete/{{ assignment.assignment_id }}" method="post" style='display:inline-block'>
+	{% csrf_token %}
+	    <button class='btn' name="delete" value="delete">Delete</button>
+</form>
+{% endblock %}

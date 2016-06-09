@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Delete {{ student.first }} {{student.last}} ({{student.student}})</h2>
+<form action="/student/{{ student.student }}" method="post" style='display:inline-block'>
+	{% csrf_token %}
+	    <button class='btn' name="cancel" value="cancel">Cancel</button>
+</form>
+<form action="/student/delete/{{ student.student }}" method="post" style='display:inline-block'>
+	{% csrf_token %}
+	    <button class='btn' name="delete" value="delete">Delete</button>
+</form>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>{{ student.first }} {{student.last}} ({{ student.student }})</h2>
+{% if user.teacher %}
+<a class='btn' href='/student/add'>
+	<i class='material-icons'>add</i> to course</a>
+<a class='btn' href='/student/delete'>
+	<i class='material-icons'>delete</i> student</a>
+{% endif %}
+<h4>Courses</h4>
+<ul>
+	{% for c in courses %}
+	<li><a href='/course/{{ c.course_id }}'>{{ course.dept_name }} {{ c.coures_num }} {{ c.course_name }}
+	{% endfor %}
+</ul>
+{% endblock %}

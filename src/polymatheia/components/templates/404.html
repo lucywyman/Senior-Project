@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>404 Error: Page not found</h2>
+
+<img src='{% static "img/404.jpeg" %}'>
+
+<h4>Oops! This page doesn't exist. Try one of these instead:</h4>
+
+<a href='/'>Home</a>
+<a href='/courses'>My Courses</a><br>
+{% if user.teacher %}
+<a href='/course/create' class='btn'>
+	<i class='material-icons'>add</i> course</a>
+<a class='btn' href='/assignment/create/'>
+	<i class='material-icons'>add</i> assignment</a>
+<a class='btn' href='/test/create/'>
+	<i class='material-icons'>add</i> test</a>
+<a class='btn' href='/ta/create/'>
+	<i class='material-icons'>add</i> ta</a>
+<a class='btn' href='/student/add/'>
+	<i class='material-icons'>add</i> students</a>
+{% endif %}
+
+{% endblock %}
