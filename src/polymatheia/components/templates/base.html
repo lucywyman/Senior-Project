@@ -7,14 +7,20 @@
 		{% include "includes/menu.html" %}
 		<main>
 		{% block content %}
-			<p>Welcome, {{ user.username }}.</p>
+		<p>Welcome, {{ user.username }}.</p>
 		{% endblock %}
 		</main>
 	</body>
 	<script>
-		$( document ).ready(function() {
-			$(".dropdown-button").dropdown();
-		});
+$( document ).ready(function() {
+	$(".dropdown-button").dropdown({
+		induration: 300,
+		outduration: 225,
+		constrain_width: false, 
+		hover: true, 
+		belowOrigin: true,
+	});
+});
 	</script>
 </html>
 

@@ -14,7 +14,7 @@
 		{{ assign.name }} due {{ assign.end_date }} ({{ assign.dept_name }} {{ assign.course_num }})
 		</option>
 		{% endfor %}
-		<input class="multiFileInput" type="file" name="files" onchange="newInput();">			
+		<input class="multiFileInput" type="file" name="files" multiple />
 	</select>
 	<input class='btn' type="submit" value="Create" />
 </form>

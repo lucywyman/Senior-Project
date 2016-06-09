@@ -12,9 +12,9 @@ DEPTS = (
         ('ece', 'Electrical Computer Engineering')
         )
 FEEDBACK = (
-        ('1', 0),
-        ('2', 1),
-        ('3', 2)
+        ('0', 0),
+        ('1', 1),
+        ('2', 2)
         )
 
 class User(forms.Form):

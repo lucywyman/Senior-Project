@@ -2,8 +2,6 @@ from django.http import *
 from django.shortcuts import *
 from django.conf import settings
 from django.template import RequestContext
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth import authenticate, login, logout
 from django.core.context_processors import csrf
 from polymatheia.components.forms import *
 from polymatheia.components.views import get_courses
@@ -23,12 +21,12 @@ def login_user(request):
             l_obj = login.json()
             request.session['type'] = l_obj['auth_level']
             request.session['courses'] = get_courses(request)
+            request.session['uinfo'] = request.session['courses'][0]
             return HttpResponseRedirect('/')
         else:
             render_to_response('auth/login.html', 
-                    {'error':"Invalid username or password"},
-                    RequestContext(request))
-    return render_to_response('auth/login.html', RequestContext(request))
+                    {'error':"Invalid username or password"})
+    return render_to_response('auth/login.html', csrf(request))
 
 def logout_user(request):
     request.session.flush()
