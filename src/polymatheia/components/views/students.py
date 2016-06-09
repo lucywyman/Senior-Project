@@ -14,7 +14,7 @@ api_ip = settings.API_IP
 def student_add(request):
     if not check_auth(request):
         return HttpResponseRedirect('/login')
-    udata = (request.session.get('user'), request.session.get('pw'))
+    udata = (request.session['user'], request.session['pw'])
     pattern = re.compile("^student-([0-9])+$")
     if request.method == 'POST':
         obj = {'student':[], 'course-id':[request.POST['course-id']]}
@@ -25,32 +25,33 @@ def student_add(request):
                 auth=udata, verify=False)
         if a_obj.status_code == 200:
             return render_to_response('edited.html', {'name':'Students', 
-                'action':'added', 'user':request.session['courses']})
+                'action':'added', 'user':request.session['uinfo'], 
+                'courses':request.session['courses']})
         else:
             error = str(a_obj.status_code) + " error. Please try again."
     r = [i for i in range(50)]
     students = requests.get(api_ip+'student/view', auth=udata, verify=False,
             json={})
     students = students.json()
-    courses = get_courses(request)
     return render_to_response('students/add_student.html', {'range':r, 
-        'students':students, 'courses':courses},RequestContext(request))
+        'students':students, 'courses':request.session['courses']},
+        RequestContext(request))
 
 def student(request):
     if not check_auth(request):
         return HttpResponseRedirect('/login')
-    udata = (request.session.get('user'), request.session.get('pw'))
+    udata = (request.session['user'], request.session['pw'])
     student_id = request.path[8:]
     student_data = {'student':[student_id]}
-    user = get_courses(request)
+    courses = request.session['courses']
     student_obj = requests.get(api_ip+'student/view', json=student_data, 
             auth=udata, verify=False)
     student = (student_obj.json() if student_obj.status_code == 200 else []) 
-    return render_to_response('students/student.html', {'courses':student, 
-        'user':user[0], 'student':student[0]})
+    return render_to_response('students/student.html', {'courses':courses,
+        'user': request.session['uinfo'], 'student':student[0]})
 
 def delete_student(request):
-    udata = (request.session.get('user'), request.session.get('pw'))
+    udata = (request.session['user'], request.session['pw'])
     student_id = request.path[16:]
     student_data = {'student':[student_id]}
     if request.method == 'POST':
@@ -58,13 +59,14 @@ def delete_student(request):
                 auth=udata, verify=False)
         if s_obj.status_code == 200:
             return render_to_response('edited.html', {'name':'Student', 
-                'action':'deleted', 'user':request.session['courses']})
+                'action':'deleted', 'user':request.session['uinfo'],
+                'courses':request.session['courses']})
         else:
             error = str(s_obj.status_code) + " error. Please try again"
     s_obj = requests.get(api_ip+'student/view', json=student_data, auth=udata,
             verify=False)
     s = (s_obj.json() if s_obj.status_code == 200 else [])
-    u = get_courses(request)
     return render_to_response('students/delete_student.html',
-            {'student':s[0], 'user':u[0]},
+            {'student':s[0], 'user':request.session['uinfo'], 
+                'courses':request.session['courses']},
             context_instance=RequestContext(request))

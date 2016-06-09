@@ -37,22 +37,24 @@
 			{% endif %}
 		</td>
 		<td>
-			{% for assign in upcoming|slice:":3" %}
+			<ul>
+			{% for assign in course.upcoming|slice:":3" %}
+			<li>
 			<a href='assignment/{{ assign.assignment_id}}'>{{ assign.name }}</a>
 			<strong>Due on: {{ assign.end_date }}</strong>
 			<br>
-			{% if user.type == 'student' %}
-			<a class='btn' href='/assignment/submit/{{ assign.assignment_id }}'>
-				<i class='material-icons'>submit</i> assignment</a>
-			<a class='btn' href='/assignment/test/{{ assign.assignment_id }}'>
-				Test Assignment</a>
+			{% if user.student %}
+			<a class='btn' href='/assignment/{{ assign.assignment_id }}'>
+				Submit Assignment</a>
 			{% else %}
-			<a class='btn' href='/assignment/edit/{{ assign.assignment_id }}/'>
+			<a class='btn' href='/assignment/edit/{{ assign.assignment_id }}'>
 				<i class='material-icons'>edit</i> assignment</a>
-			<a class='btn' href='/assignment/delete/{{ assign.assignment_id }}/'>
+			<a class='btn' href='/assignment/delete/{{ assign.assignment_id }}'>
 				<i class='material-icons'>delete</i> assignment</a>
 			{% endif %}
+			</li>
 			{% endfor %}
+			</ul>
 		</td>
 	</tr>
 	{% endfor %}

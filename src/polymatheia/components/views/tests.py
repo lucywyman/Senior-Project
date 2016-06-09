@@ -30,7 +30,7 @@ def create_test(request):
                 'action':'created', 'user':request.session['courses']})
         else:
             error = t_obj.status_code + " error. Please try again."
-    courses = get_courses(request)
+    courses = request.session['courses']
     assignments = []
     for c in courses:
         course_data = {'course-id':[c['course_id']]}
@@ -41,7 +41,8 @@ def create_test(request):
             assignments.extend(a)
     form = Test()
     return render_to_response('test/create_test.html', 
-            {'form':form, 'error':error, 'assignments':assignments}, 
+            {'form':form, 'error':error, 'assignments':assignments,
+                'courses':courses, 'user':courses[0]}, 
             RequestContext(request))
 
 def test(request):

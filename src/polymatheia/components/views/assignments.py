@@ -11,7 +11,7 @@ from datetime import datetime
 api_ip = settings.API_IP
 
 def create_assignment(request):
-    udata = (request.session.get('user'), request.session.get('pw'))
+    udata = (request.session['user'], request.session['pw'])
     error = ''
     if request.method == 'POST':
         obj = {}
@@ -22,18 +22,18 @@ def create_assignment(request):
                 auth=udata, verify=False)
         if a_obj.status_code == 200:
             return render_to_response('edited.html', {'name':'Assignment', 
-                'action':'created', 'user':request.session['courses']})
+                'action':'created', 'user':request.session['uinfo'], 
+                'courses':request.session['courses']})
         else:
             error = str(a_obj.status_code) + " error. Please try again."
-    courses = get_courses(request) 
     form = Assignment()
     return render_to_response('assignment/create_assignment.html', 
-            {'form':form, 'error':error, 'courses':courses}, 
-            RequestContext(request))
+            {'form':form, 'error':error, 'courses':request.session['courses'],
+                'user':request.session['uinfo']}, RequestContext(request))
 
 def assignment(request):
     udata = (request.session.get('user'), request.session.get('pw'))
-    user = get_courses(request)
+    courses = request.session['courses']
     assign_id = request.path[12:]
     assignment_data = {'assignment-id':[assign_id]}
     a_obj = requests.get(api_ip+'assignment/view', json=assignment_data,
@@ -43,20 +43,29 @@ def assignment(request):
             auth=udata, verify=False)
     t = (t_obj.json() if t_obj.status_code == 200 else [[]])
     if request.session.get('type') == 'student':
-        assignment_data['student'] = [request.session.get('user')]
+        assignment_data['student'] = [request.session['user']]
         s_obj = requests.get(api_ip+'submission/view', json=assignment_data,
                 auth=udata, verify=False)
         s = (s_obj.json() if s_obj.status_code == 200 else [])
-    else:
-        s = []
-    return render_to_response('assignment/assignment.html', 
-            {'assignment':assign[0], 'user':user[0], 'tests':t, 'subs':s}, 
+        if s != []:
+            if s[0]['results']:
+                results = json.loads(s[0]['results'])
+                e = results['Errors']
+                tap = results['TAP']
+                g = results['Grade']
+            return render_to_response('assignment/assignment.html', 
+                    {'assignment':assign[0], 'user':courses[0], 'tests':t,
+                        'sub':s[0], 'result':results, 'errors':e, 'tap':tap,
+                        'courses':courses, 'grade':g},
+                    RequestContext(request))
+    return render_to_response('assignment/assignment.html',
+            {'assignment':assign[0], 'user':courses[0], 'courses':courses}, 
             RequestContext(request))
 
 def edit_assignment(request):
     if not check_auth:
         return HttpResponseRedirect('/login')
-    udata = (request.session.get('user'), request.session.get('pw'))
+    udata = (request.session['user'], request.session['pw'])
     error = ''
     assign_id = request.path[17:] 
     assignment_data = {'assignment-id':[assign_id]}
@@ -72,7 +81,6 @@ def edit_assignment(request):
             return render_to_response('assignment/updated.html')
         else:
             error = str(a_obj.status_code) + " error. Please try again."
-    courses = get_courses(request)
     a_obj = requests.get(api_ip+'assignment/view', json=assignment_data, 
             auth=udata, verify=False)
     a = a_obj.json()
@@ -87,11 +95,12 @@ def edit_assignment(request):
             'submission_limit':a['submission_limit'],
             'feedback_level':level})
     return render_to_response('assignment/edit_assignment.html', 
-            {'assignment':a,'form':form,'error':error,'courses':courses}, 
-            RequestContext(request))
+            {'assignment':a,'form':form,'error':error,
+                'courses':request.session['courses'],
+                'user':request.session['uinfo']}, RequestContext(request))
 
 def delete_assignment(request):
-    udata = (request.session.get('user'), request.session.get('pw'))
+    udata = (request.session['user'], request.session['pw'])
     assignment_id = request.path[19:]
     assignment_data = {'assignment-id':[assignment_id]}
     if request.method == 'POST':
@@ -99,19 +108,20 @@ def delete_assignment(request):
                 auth=udata, verify=False)
         if c_obj.status_code == 200:
             return render_to_response('edited.html', {'name':'Assignment', 
-                'action':'deleted', 'user':request.session['courses']})
+                'action':'deleted', 'user':request.session['uinfo'],
+                'courses':request.session['courses']})
         else:
             error = str(r_obj.status_code) + " error. Please try again"
     c_obj = requests.get(api_ip+'assignment/view', json=assignment_data, auth=udata,
             verify=False)
     c = (c_obj.json() if c_obj.status_code == 200 else [])
-    u = get_courses(request)
+    courses = request.session['courses']
     return render_to_response('assignment/delete_assignment.html',
-            {'assignment':c[0], 'user':u[0]},
+            {'assignment':c[0], 'user':courses[0], 'courses':courses},
             context_instance=RequestContext(request))
 
 def submit_assignment(request):
-    udata = (request.session.get('user'), request.session.get('pw'))
+    udata = (request.session['user'], request.session['pw'])
     assignment_id = request.path[19:]
     assignment_data = {'assignment-id':[assignment_id]}
     if request.method == 'POST':
@@ -127,11 +137,10 @@ def submit_assignment(request):
             return render_to_response('edited.html', {'name':'Assignment', 
                 'action':'submitted', 'user':request.session['courses']})
         else:
-            error = str(r_obj.status_code) + " error. Please try again"
-    assignment_data['student'] = request.session.get('user')
+            error = str(c_obj.status_code) + " error. Please try again"
+    assignment_data['student'] = request.session['user']
     c_obj = requests.get(api_ip+'submission/view', json=assignment_data, 
             auth=udata, verify=False)
     s = (c_obj.json() if c_obj.status_code == 200 else [])
-    u = get_courses(request)
     return render_to_response('submission/submission.html', {'sub':s,
-        'user':u[0]})
+        'user':request.session['uinfo'], 'courses':request.session['courses']})

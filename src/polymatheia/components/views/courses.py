@@ -16,7 +16,7 @@ def create_course(request):
     if not check_auth(request):
         return HttpResponseRedirect('/login')
     if request.method == 'POST':
-        udata = (request.session.get('user'), request.session.get('pw'))
+        udata = (request.session['user'], request.session['pw'])
         obj = {}
         for i in request.POST:
             if i != 'csrfmiddlewaretoken':
@@ -25,11 +25,13 @@ def create_course(request):
                 auth=udata, verify=False)
         if c_obj.status_code == 200:
             return render_to_response('edited.html', {'name':'Course', 'action':
-                'created', 'user':request.session['courses']})
+                'created', 'user':request.session['uinfo'], 
+                'courses':request.session['courses']})
         else:
             error = str(c_obj.status_code) + " error. Please try again."
     form = Course()
-    return render(request, 'course/create_course.html', {'form':form})
+    return render(request, 'course/create_course.html', {'form':form, 
+        'courses':request.session['courses']})
 
 def course_list(request):
     if not check_auth(request):
