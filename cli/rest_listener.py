@@ -520,6 +520,9 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
         # Process results
         if command == 'submission' and subcommand == 'view':
             data, result = self.feedback_limit_process(data, result, auth_level)
+            for sub in result:
+                if sub.get("submission_id"):
+                    sub["max"] = self.grade(sub["submission_id"])
 
 
         self.logger.debug("Processed Results: {}".format(result))
@@ -1068,6 +1071,12 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     return
                 else:
                     self.logger.debug("Submission timedout!")
+                    self.logger.info("END")
+                    self.send_error(
+                        HTTPStatus.REQUEST_TIMEOUT,
+                        "Process was terminated. It took too long to complete"
+                        )
+                    return
 
 
             elif command == 'test':
@@ -1483,6 +1492,21 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             self.logger.info(query)
             self.logger.debug(data)
             cur.execute(query, data)
+
+            # cleanup tas_assigned_students table when student or ta is
+            # removed from course. This must be done manually since the
+            # db_grapher can't handle a multicolumn foreign key properly
+            if command == 'student':
+                cur.execute("""
+                    DELETE FROM tas_assigned_students
+                    WHERE student_id=%(student)s and course_id=%(course-id)s
+                    """, data)
+            elif command == 'ta':
+                if 'course-id' in data:
+                    cur.execute("""
+                        DELETE FROM tas_assigned_students
+                        WHERE ta_id=%(ta)s and course_id=%(course-id)s
+                        """, data)
 
         self.send_response(HTTPStatus.OK)
         self.send_header('Content-type', 'application/json')
@@ -1916,14 +1940,44 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             WHERE submission_id=%s
             """
 
+        # Get time limit
+        global config
+        default_limit   = float(config['Tester']['run_time_limit'])
+        max_time_limit  = int(default_limit*60*len(test_set))
+        test_time_limit = 0
+
+        cur.execute("""
+            SELECT test_id, time_limit
+            FROM tests
+            WHERE test_id IN (%s)
+            """, (tuple(test_set),)
+            )
+
+        test_times      = cur.fetchall():
+        test_times_set  = set([row['test_id'] for row in test_times])
+
+        try:
+            for row in test_times:
+                test_time_limit += float(row.get("time_limit", 0))*60
+            for row in test_set - test_times_set:
+                test_time_limit += default_limit
+        except:
+            test_time_limit = 0
+
+
+        if test_time_limit is not None and test_time_limit > 0:
+            max_time_limit = int(test_time_limit)
+
+
         time_interval = 0.2 # seconds
-        max_time = 2.0 * 60.0 # minutes * seconds per minute
-        timeout = max_time/time_interval
+        # each test currently sleps for 5 seconds during execution
+        timeout = ((max_time_limit/time_interval)
+            + (5.0/time_interval*len(test_set)))
         time_count = 0
 
         self.logger.debug(
             "Entering polling loop. Timeout set to {} seconds."
-            .format(max_time)
+            .format(max_time_limit)
             )
         # poll to see if results for all tests are available
         while True:
@@ -1931,7 +1985,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             time_count += 1
 
             if time_count > timeout:
-                return 1
+                return "TimeOutError"
 
             cur.execute(
                 test_check_query,
@@ -1944,7 +1998,11 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             if submission_test_set == test_set:
                 break
 
-        # create data and result lists, then process
+        # Grade submission results and update database
+        total_points = self.grade(id, update=True)
+
+
+        # create data and result lists, then filter
         data = {'submission_id': [str(id)]}
 
 
@@ -1956,8 +2014,11 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
         self.logger.debug("Original Results: {}".format(result))
 
-        # Process results
+        # Filter results
         data, result = self.feedback_limit_process(data, result, 'student')
+
+        if result:
+            result[0]["max"] = total_points
 
         self.logger.debug("Processed Results: {}".format(result))
 
@@ -1999,22 +2060,121 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
 
         return 0
 
-    ##  s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-    ##  try:
-    ##      s.connect(('127.0.0.1', 9000))     #'\0recvPort')):
-    ##  except:
-    ##      # TODO - handle errors instead
-    ##      raise
-    ##  else:
-    ##      msg = '{"sub_ID":' + str(id) + '}'
-    ##      self.logger.debug(msg)
-    ##      msg = msg.encode()
-    ##      self.logger.debug(msg)
-    ##      s.send(msg)
-    ##      s.close()
-    ##      return 1
-    ##
-    ##  return 0
+
+    def grade(self, submission_id, update=False):
+
+        cur = conn.cursor()
+
+        results_query = """
+            SELECT submission_id, test_id, results
+            FROM submissions_have_results
+            WHERE submission_id = %s
+            """
+
+        points_query = """
+            SELECT points
+            FROM tests
+            WHERE test_id = %s
+            """
+
+        grade_update_query = """
+            UPDATE submissions
+            SET grade = %(grade)s
+            WHERE submission_id = %(submission_id)s
+            """
+
+        self.logger.debug(
+            "Begin Grading for Submission: {}"
+            .format(submission_id)
+            )
+
+        total_points = 0
+        received_points = 0
+
+        cur.execute(results_query, (submission_id,))
+
+        # An assignment can have any number of tests
+        for test in cur.fetchall():
+            try:
+                test["results"] = json.loads(test["results"], strict=False)
+            except ValueError:
+                if update:
+                    cur.execute(
+                        grade_update_query,
+                        {"grade": -1, "submission_id": submission_id}
+                        )
+                self.logger.debug(
+                "End Grading - Error: TestID {} had invalid JSON results: {}"
+                .format(test["test_id"], test["results"])
+                )
+                return -1
+
+            if (test["results"].get("Grade", None) is None
+                or float(test["results"]["Grade"]) < 0):
+
+                self.logger.debug(
+                    "Error - Grade was '{}'"
+                    .format(test["results"].get("Grade", None))
+                    )
+                if update:
+                    cur.execute(
+                        grade_update_query,
+                        {"grade": -1, "submission_id": submission_id}
+                        )
+                self.logger.debug(
+                    "End Grading - Error: TestID {} failed to run properly."
+                    .format(test["test_id"])
+                    )
+                return -1
+            temp_max = 0
+            temp_points = 0
+
+            self.logger.debug("Grading TestID: {}".format(test["test_id"]))
+
+            # each test is composed of subtests
+            for subtest in test["results"]["Tests"]:
+                temp_max += float(subtest["weight"])
+                if subtest["state"] == "ok":
+                    temp_points += float(subtest["weight"])
+
+            # If a test has a point value set, we scale the summation
+            # of that test's subtests to match, otherwise we take the
+            # summation as is.
+            cur.execute(points_query, (test["test_id"],))
+            point_value = cur.fetchone().get("points", None)
+            if point_value is not None and point_value != 0:
+                received_points += temp_points/temp_max * point_value
+                total_points    += point_value
+                self.logger.debug(
+                    "Score: {}/{}"
+                    .format(
+                        temp_points/temp_max * point_value,
+                        point_value
+                        )
+                    )
+            else:
+                received_points += temp_points
+                total_points    += temp_max
+                self.logger.debug(
+                    "Score: {}/{}"
+                    .format(
+                        temp_points,
+                        temp_max
+                        )
+                    )
+        if update:
+            cur.execute(
+                grade_update_query,
+                {"grade": received_points, "submission_id": submission_id}
+                )
+        self.logger.debug(
+                    "Grading Complete, Total Score: {}/{}"
+                    .format(
+                        received_points,
+                        total_points
+                        )
+                    )
+        return total_points
 
 
     def create_user(self):
@@ -3148,9 +3308,9 @@ def test(
 
     """
     server_address = (bind, port)
-    # conf option later!
-    cvars = "dbname=postgres user=pguser password=pguser"
-    testerCount = 4
+    global db_conn
+    global config
+    testerCount = int(config['Tester']['num_testers'])
     #herald_init returns a q
     q = rest_extend.herald_init(testerCount)
     HandlerClass.protocol_version = protocol
@@ -3158,7 +3318,7 @@ def test(
 
     tthread = []
     for i in range(testerCount):
-        tthread.append(rest_extend.testerThread(i,q,cvars))
+        tthread.append(rest_extend.testerThread(i, q, db_conn))
         tthread[i].daemon = True
         tthread[i].start()
     # add ssl

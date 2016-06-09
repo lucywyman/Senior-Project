@@ -34,14 +34,14 @@ def _append_slash_if_dir(p):
 # Enabling debugging at http.client level (requests->urllib3->http.client)
 # you will see the REQUEST, including HEADERS and DATA, and RESPONSE with HEADERS but without DATA.
 # the only thing missing will be the response.body which is not logged.
-try: # for Python 3
-    from http.client import HTTPConnection
-except ImportError:
-    from httplib import HTTPConnection
-HTTPConnection.debuglevel = 1
-requests_log = logging.getLogger("requests.packages.urllib3")
-requests_log.setLevel(logging.DEBUG)
-requests_log.propagate = True
+# try: # for Python 3
+    # from http.client import HTTPConnection
+# except ImportError:
+    # from httplib import HTTPConnection
+# HTTPConnection.debuglevel = 1
+# requests_log = logging.getLogger("requests.packages.urllib3")
+# requests_log.setLevel(logging.DEBUG)
+# requests_log.propagate = True
 #----------------------------------------------------------------------
 
 
@@ -265,6 +265,7 @@ class AutoShell(cmd.Cmd):
                     args=(url, files, data)
                     )
                 sys.stdout.write("Waiting for test results. Press any key to cancel... ")
+                sys.stdout.flush()
                 while True:
                     if kbhit():
                         print("Wait aborted. Check back later for test results using:")
@@ -637,8 +638,10 @@ class AutoShell(cmd.Cmd):
         if command_dict.commands.get(help_target):
 
             access_granted = False
+
             syn_wrapper = textwrap.TextWrapper(initial_indent='\t', width=80, subsequent_indent='\t\t')
             wrapper = textwrap.TextWrapper(initial_indent='\t\t', width=80, subsequent_indent='\t\t')
+            desc_wrapper = textwrap.TextWrapper(initial_indent='\t', width=80, subsequent_indent='\t')
 
             for key in command_dict.commands[help_target]:
                 if self.auth_check_helper(help_target, key):
@@ -653,6 +656,7 @@ class AutoShell(cmd.Cmd):
                 print()
                 print('SYNOPSIS')
                 print()
+
 
                 # print subcommands
                 for key in command_dict.commands[help_target]:
@@ -690,6 +694,8 @@ class AutoShell(cmd.Cmd):
 
                 print()
                 print('DESCRIPTION')
+                print()
+                print(desc_wrapper.fill(command_dict.command_desc[help_target]))
                 print()
 
                 for key in command_dict.commands[help_target]:
@@ -748,7 +754,6 @@ class AutoShell(cmd.Cmd):
             [('Assignment', 'assignment_name'), ('ID', 'assignment_id'),
                 ('Version', 'version_id')],
             [('Course', 'dept_name', 'course_num', 'course_name')],
-            [('Grade', 'grade')],
             ]
 
         status_string = ""
@@ -767,14 +772,13 @@ class AutoShell(cmd.Cmd):
                         tup[0] + ': ' +
                         " ".join([str(data[0][x]) for x in tup[1:]])
                         ) + ' '
-
             status_string += '\n'
-
-
+        status_string += "\tGrade: {}/{}".format(data[0]["grade"], data[0]["max"])
 
 
         print()
         print(status_string)
+        print()
         print()
 
         for row in data:
@@ -807,9 +811,6 @@ class AutoShell(cmd.Cmd):
                         print(error['ce_name'])
                         print(error['ce_text'])
                         print()
-
-        print()
-
 
 
 
@@ -902,7 +903,7 @@ try:
     from msvcrt import kbhit, getch
 except:
     import termios, fcntl, sys, os
-    def kbhit(t):
+    def kbhit():
         fd = sys.stdin.fileno()
 
         oldterm = termios.tcgetattr(fd)

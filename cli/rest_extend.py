@@ -15,6 +15,8 @@ import psycopg2
 import psycopg2.extras
 import configparser
 from pwd import getpwnam
+import resource
+
 
 # class for tester threads
 class testerThread (threading.Thread):
@@ -67,24 +69,8 @@ class testerThread (threading.Thread):
                 )
             test['testPath'] = testpath;
             test['subPath'] = subpath;
-            # I've commented out these 13 lines because we now support
-            # multiple files. It's been moved to the copy section of
-            # runProtected
-            ## why was this 'with os.listdir(testpath)[0] as file:'?
-            ## with is for opening files
-            ## here we are working with a list of files from a directory
-            #for file in os.listdir(testpath):
-            #    test['testFile'] = os.path.normpath(os.path.join(testpath, file))
-            #    # right now we only support one file per test or submission,
-            #    # so we break after the first iteration of the loop
-            #    # written in loop form because eventually we would like tobytes
-            #    # support multiple files
-            #    break;
-            #for file in os.listdir(subpath):
-            #    test['subFile'] = os.path.normpath(os.path.join(subpath, file))
-            #    break;
 
-        print(tests)
+        #print(tests)
 
         return tests
 
@@ -131,59 +117,106 @@ class testerThread (threading.Thread):
 
         if not os.path.exists(resultpath):
             os.makedirs(resultpath)
-            os.chown(resultpath, uid, gid)
+        os.chown(resultpath, uid, gid)
 
         if not os.path.exists(userpath):
             os.makedirs(userpath)
-            os.chown(userpath, uid, gid)
+        os.chown(userpath, uid, gid)
 
         print('subdir: {0}, {1}'.format(files['subPath'],userpath))
         # Generate interface files path
         interfaceDir = os.path.normpath(os.path.join(config['Directories']['srcdir'],'interfaces'))
         # File moves and permissions
-        self.copyPerm(files['testPath'],userpath)
         self.copyPerm(files['subPath'],userpath)
+        self.copyPerm(files['testPath'],userpath)
         self.copyPerm(interfaceDir,userpath)
 
+        # Get time limit
+        time_limit = int(float(config['Tester']['run_time_limit'])*60)
 
+        cur = self.conn.cursor()
+        cur.execute("""
+            SELECT time_limit
+            FROM tests
+            WHERE test_id=%s
+            """, (files['test_id'],)
+            )
 
-        # TODO change from submission id to test-id. Output already in specific submission folder
-        # test id more useful
-        # [
-                    # os.path.normpath(os.path.join(userpath, 'test.py')),
-                    # self.cvars,
-                    # str(files['submission_id']),
-                    # str(files['test_id'])
-                # ],
-        #
-        #exec_string = "{0} {1} {2} {3}".format(
-        #    os.path.normpath(os.path.join(userpath, 'test.py')),
-        #    self.cvars,
-        #    str(files['submission_id']),
-        #    str(files['test_id'])
-        #    )
+        try:
+            test_time_limit = int(float(cur.fetchone().get("time_limit", 0))*60)
+        except:
+            test_time_limit = 0
+        cur.close()
+
+        if test_time_limit is not None and test_time_limit > 0:
+            time_limit = int(test_time_limit)
+
+        print("Time LIMIT: '{}'".format(time_limit))
+        print(type(time_limit))
+        print(time_limit)
 
         # another new exec_string! for make files
-        exec_string = "make -C {0} runtest SUBID={1!s} TESTID={2!s} RESULTDIR={3!s}".format(
+        exec_string = "make -C {0} runtest SUBID={1!s} TESTID={2!s} RESULTDIR={3!s} CPATH={4!s}".format(
             os.path.normpath(userpath),
             files['submission_id'],
             files['test_id'],
-            resultpath
+            resultpath,
+            os.path.normpath(userpath)
             )
+        #exec_string = "su " + self.username + " -c \"" + exec_string + "\""
         print("Exec_string: '{}'".format(exec_string))
+
+        # NOTE: calling setuid before setgid will result in an error if the new
+        # uid lacks authority to change the gid
+        # See Python docs for resource module for list of additional resources
+        # that can be limited
+        nproc = int(config['Limits']['nproc'])
+        nofile = int(config['Limits']['nofile'])
+
+        def change_user():
+            os.setgid(gid)
+            os.setgroups([gid])
+            os.setuid(uid)
+            resource.setrlimit(resource.RLIMIT_NPROC, (nproc, nproc))
+            resource.setrlimit(resource.RLIMIT_NOFILE, (nofile, nofile))
+
+        result = ""
+        tempres = open(os.path.normpath(os.path.join(resultpath,"output")),'w+')
         try:
             print("running process")
-            result = subprocess.check_output(
+            #stderr and stdout redirect.
+
+            proc = subprocess.Popen(
                 exec_string,
-                preexec_fn = lambda: os.setuid(uid),
-                timeout=5,
-                shell=True
+                preexec_fn = change_user,
+                shell = True,
+                stderr = subprocess.STDOUT,
+                stdout = tempres
                 )
+            print("RIGHT BEFORE RETCODE")
             retcode = 0
         except subprocess.CalledProcessError as e:
-            result = e.output
             retcode = e.returncode
+        #timeout watch
+        try:
+            retcode = proc.wait(time_limit)
+            print("Retcode: "+ str(retcode))
+        except subprocess.TimeoutExpired as e:
+            retcode = 255
+            print("Timeout Expired")
 
+        result = tempres.read()
+        tempres.close()
+        print("RETCODE: {}".format(retcode))
+        print("RIGHT BEFORE KILL")
+        # clean up any remaining processes
+        print("USER NAME IS: {}".format(self.username))
+        subprocess.call(["killall", "-STOP", "-u", self.username])
+        time.sleep(5)
+        subprocess.call(["killall", "-KILL", "-u", self.username])
+        print("KILL COMPLETE")
+
+        # clean up temporary files
         for file in os.listdir(userpath):
             pfile = os.path.normpath(os.path.join(userpath,file))
             try:
@@ -192,6 +225,7 @@ class testerThread (threading.Thread):
                 elif os.path.isdir(pfile): shutil.rmtree(pfile)
             except Exception as e:
                 print(e)
+
 
         print("returning from runProtected")
         return result, retcode, resultpath
@@ -208,7 +242,7 @@ class testerThread (threading.Thread):
                     cur.execute("""
                         INSERT INTO submissions_have_results (submission_id, test_id, results)
                         VALUES (%s, %s, %s)
-                        """, (row['submission_id'], row['test_id'], '{{"TAP":"","Tests":[],"Errors":[{0},"{1}"],"Grade":"-1"}}'.format(retcode, result.decode('utf-8')))
+                        """, (row['submission_id'], row['test_id'], '{{"TAP":"","Tests":[],"Errors":[{0},"{1}"],"Grade":"-1"}}'.format(retcode, result))
                         )
                     cur.close()
 
@@ -224,6 +258,7 @@ class testerThread (threading.Thread):
                       except Exception as e:
                         print(e)
                         jres = json.loads('{{"TAP":"","Tests":[],"Errors":[{0},{1},"Output JSON Corrupt"],"Grade":"-1"}}'.format(retcode, result))
+                      resfile.close()
                     # if opening fails, record it
                     except Exception as e:
                       print(e)
@@ -240,30 +275,9 @@ class testerThread (threading.Thread):
             print("task done")
             self.q.task_done()
 
+
 # functions for herald
 # Init returns the FIFO queue; the python Queue object is threadsafe!
-
-def change_user(username):
-
-    from pwd import getpwnam
-
-    print("Username is: {}".format(username))
-    uid = getpwnam(username)[2]
-    gid = getpwnam(username)[3]
-    print(uid,gid)
-
-    def set_ids():
-
-        uid = getpwnam(username)[2]
-        gid = getpwnam(username)[3]
-
-        os.setuid(uid)
-        os.setgid(gid)
-
-    print("returning preexec_fn")
-    return set_ids
-
-
 def herald_init(testers):
 
     global config
@@ -271,9 +285,11 @@ def herald_init(testers):
     config.read('general.cfg')
 
     q = queue.Queue()
+
+    subprocess.call(["groupadd","testers"])
     for i in range(testers):
         subprocess.call(["userdel","-rf","tester"+str(i)+"user"])
-        subprocess.check_call(["useradd","-p","pass"+str(i),"tester"+str(i)+"user"])
+        subprocess.check_call(["useradd","-p","pass"+str(i),"tester"+str(i)+"user","-g","testers"])
     return q
 
 def herald(q,sub_ID):
