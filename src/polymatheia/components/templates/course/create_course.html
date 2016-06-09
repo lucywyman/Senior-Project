@@ -2,9 +2,9 @@
 
 {% block content %}
 <h2>Create a course</h2>
-<form action="/create-course/" method="post">
+<form action="/course/create" method="post">
 	{% csrf_token %}
-	{{form.as_table}}   
-	<input type="submit" value="Create" />
+	{{ form.as_table }}   
+	<input class='btn' type="submit" value="Create" />
 </form>
 {% endblock %}

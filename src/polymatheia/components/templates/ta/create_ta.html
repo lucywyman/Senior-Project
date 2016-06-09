@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Add TA</h2>
+<h4 class='error'>{{ error }}</h4>
+<form action="/ta/create" method="post">
+	{% csrf_token %}
+	<label for='ta'>TA:</label>
+	<select id='ta' name="ta">
+		{% for ta in tas %}
+		<option value="{{ ta.ta }}">{{ ta.ta }}</option>
+		{% endfor %}
+	</select>
+	<label for='course-id'>Course name:</label>
+	<select id='course-id' name="course-id">
+		{% for course in courses %}
+		<option value="{{ course.course_id }}">{{ course.dept}} {{ course.num }}{{ course.name }} ({{ course.term }} {{ course.year }})</option>
+		{% endfor %}
+	</select>
+	<input class='btn' type="submit" value="Add" />
+</form>
+{% endblock %}

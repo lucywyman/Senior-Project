@@ -1,16 +1,24 @@
+{% if courses %}
+<ul id='courses' class='dropdown-content'>
+	{% for c in courses %}
+	<li><a href='/course/{{ c.course_id }}'>{{ c.name }}</a></li>
+	<li class='divider'></li>
+	{% endfor %}
+</ul>
+{% endif %}
+
 <nav class='row orange darken-4'>
-<a class='col s1' href='/'>Home</a>
-<a class='col s1' href='/about'>About</a>
-{# if user.is_authenticated #}
-<!-- TODO List courses in subnav like canvas -->
-<a class='col s1' href='/courses'>Courses &#x25bc;</a>
-{# endif #}
-{# if user.is_authenticated and user.is_student#}
-<a class='col s1' href='/logout'>Logout</a>
-{# else if user.is_authenticated and user.is_teacher or ta#}
-<a class='col s1' href='/courses/create'>Add course</a>
-{# else #}
-<a class='col s1' href='/login'>Login</a>
-<a class='col s1' href="/register">Sign up</a>
-{# endif #}
+<ul>
+<li><a href='/'>Home</a></li>
+<li><a href='/about'>About</a></li>
+{% if user %}
+<li>
+	<a class='dropdown-button' href='/courses' data-activates='courses'>Courses<i class="material-icons">arrow_drop_down</i></a>
+</li>
+<li><a href='/logout'>Logout</a></li>
+{% else %}
+<li><a href='/login'>Login</a></li>
+<li><a href="/register">Sign up</a></li>
+{% endif %}
+</ul>
 </nav>

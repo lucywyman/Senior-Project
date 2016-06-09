@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>{{ name }}</h2>
+{% if user.teacher %}
+<a class='btn' href='/ta/create' alt='Create ta'>
+	<i class='material-icons'>add</i></a>
+<a class='btn' href='/ta/delete/{{ ta.ta_id }}'>
+	<i class='material-icons'>delete</i></a>
+{% endif %}
+<h4>Courses</h4>
+<ul>
+{% for c in ta %}
+<li>{{ c.dept_name }} {{ c.course_num }} {{ c.course_name }}
+</li>
+{% endfor %}
+</ul>
+{% endblock %}

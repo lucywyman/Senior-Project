@@ -1,14 +1,66 @@
 {% extends "base.html" %}
 
 {% block content %}
-<ul class='courses'>
-{% for course in user.courses %}
-<li>
-<a href='{{ course.id }}/'>{{ course.title }}</a>
-{# if user.has_permission #}
-<a class='update' href='{{ course.id }}/update'>Update</a>
-{# endif #}
-<a class='update' href='{{ course.id }}/assignments'>Assignments</a>
+<h2>{{ course.dept }} {{ course.num }} {{ course.name }}</h2>
+<h4>{{ course.term }} {{ course.year }}</h4>
+{% if user.teacher %}
+<a class='btn' href='/course/edit/{{ course.course_id }}'>
+	<i class='material-icons'>edit</i> course</a>
+<a class='btn' href='/assignment/create'>
+	<i class='material-icons'>add</i> assignment</a>
+<a class='btn' href='/ta/create'>
+	<i class='material-icons'>add</i> ta</a>
+<a class='btn' href='/test/create'>
+	<i class='material-icons'>add</i> test</a>
+<a class='btn' href='/student/add'>
+	<i class='material-icons'>add</i> students</a>
+{% endif %}
+<table class='course-table border highlight responsive'>
+	<tr class='course-header'>
+		<th>Upcoming Assignments</th>
+	</tr>
+	{% for assign in upcoming %}
+	<tr>
+		<td>
+			<a href='/assignment/{{ assign.assignment_id }}'>{{ assign.name }}</a>
+			<br><strong>Due on: {{ assign.end_date }}</strong><br>
+			{% if user.student %}
+			<a class='btn' href='/assignment/{{ assign.assignment_id }}'>
+				Submit Assignment</a>
+			{% elif user.teacher %}
+			<a class='btn' href='/assignment/edit/{{ assign.assignment_id }}'>
+				<i class='material-icons'>edit</i> assignment</a>
+			{% endif %}
+		</td>
+	</tr>
+	{% endfor %}
+</table>
+<table class='course-table border highlight responsive'>
+	<tr class='course-header'>
+		<th>Past Assignments</th>
+	</tr>
+	{% for assign in past %}
+	<tr>
+		<td>
+			<a href='/assignment/{{ assign.assignment_id }}'>{{ assign.name }}</a>
+			<br><strong>Due on: {{ assign.end_date }}</strong><br>
+			{% if user.student and assign.late %}
+			<a class='btn' href='/assignment/submit/{{ assign.assignment_id }}'>
+				Submit Assignment</a>
+			{% elif user.teacher %}
+			<a class='btn' href='/assignment/edit/{{ assign.assignment_id }}'>
+				<i class='material-icons'>edit</i> assignment</a>
+			{% endif %}
+		</td>
+	</tr>
+	{% endfor %}
+</table>
+{% if user.teacher %}
+<h4>Current students:</h4>
+<ul>
+	{% for s in students %}
+	<li><a href='/student/{{s.student }}'>{{ s.student }}</a></li>
 	{% endfor %}
 </ul>
+{% endif %}
 {% endblock %}

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Delete {{ course.dept_name }} {{ course.course_num }} {{ course.course_name }} ({{ course.term }} {{ course.year }})</h2>
+{# I know this is gross don't judge me #}
+<h5>Deleting this course will permanenty remove all assignments, assignment versions, and submissions associated with this course.</h5>
+<form action="/course/{{ course.course_id }}" method="post" style='display:inline-block'>
+	{% csrf_token %}
+	    <button class='btn' name="cancel" value="cancel">Cancel</button>
+</form>
+<form action="/course/delete/{{ course.course_id }}" method="post" style='display:inline-block'>
+	{% csrf_token %}
+	    <button class='btn' name="delete" value="delete">Delete</button>
+</form>
+{% endblock %}

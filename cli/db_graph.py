@@ -19,7 +19,6 @@ import configparser
 config = configparser.ConfigParser()
 config.read('general.cfg')
 
-
 db_conn = (
     "dbname={dbname} "
     "user={user} "
@@ -130,5 +129,4 @@ def generate_joins(graph, start, tables):
         for row in nodes[table]:
             if row[0] in ps:
                 js.append([table, row[0], row[1], row[2]])
-
     return js
