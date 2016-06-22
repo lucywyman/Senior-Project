@@ -1953,7 +1953,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
             """, (tuple(test_set),)
             )
 
-        test_times      = cur.fetchall():
+        test_times      = cur.fetchall()
         test_times_set  = set([row['test_id'] for row in test_times])
 
         try:
