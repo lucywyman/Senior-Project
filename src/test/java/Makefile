@@ -1,4 +1,4 @@
-JAVALIB = /usr/java/jdk-1.8.0
+JAVALIB = /usr/java/
 MYPATH = $(CPATH):$(JAVALIB)
 
 java_test_osu:
