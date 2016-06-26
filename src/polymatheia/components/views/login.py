@@ -21,7 +21,10 @@ def login_user(request):
             l_obj = login.json()
             request.session['type'] = l_obj['auth_level']
             request.session['courses'] = get_courses(request)
-            request.session['uinfo'] = request.session['courses'][0]
+            if len(request.session['courses']) > 0:
+                request.session['uinfo'] = request.session['courses'][0]
+            else:
+                request.session['uinfo'] = {'student': request.POST['username']}
             return HttpResponseRedirect('/')
         else:
             render_to_response('auth/login.html', 

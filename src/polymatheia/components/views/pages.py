@@ -11,7 +11,7 @@ import json, requests
 from datetime import datetime
 
 def index(request):
-    if request.session['user']:
+    if request.session.get('user', None):
         api_ip = settings.API_IP
         udata = (request.session['user'], request.session['pw'])
         user = request.session['uinfo']

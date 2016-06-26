@@ -57,8 +57,12 @@ def course_list(request):
                 upcoming.append(a)
             else:
                 upcoming.append(a)
+    if not user_courses:
+        uc_value = request.session['user']
+    else:
+        uc_value = user_courses[0]
     return render_to_response('course/course-list.html', 
-            {'user':user_courses[0], 'courses':courses, 'upcoming':upcoming})
+            {'user':uc_value, 'courses':courses, 'upcoming':upcoming})
 
 def course(request):
     if not check_auth(request):

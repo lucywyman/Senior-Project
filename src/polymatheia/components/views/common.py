@@ -22,7 +22,10 @@ def get_courses(request):
         user_info = {'student':[request.session['user']]}
         user_obj = requests.get(api_ip+'student/view', 
                 json=user_info, auth=udata, verify=False)
-        courses = user_obj.json()
+        if user_obj.status_code != 204:
+            courses = user_obj.json()
+        else:
+            courses = []
     elif request.session['type'] == 'ta':
         user_info = {'ta-id':[request.session['user']]}
         user_obj = requests.get(api_ip+'ta/view',
