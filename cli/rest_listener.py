@@ -731,12 +731,17 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                 table = 'assignments'
                 #TODO implement tags
 
+                begin_error = False
                 # default begin date for assigments is today
                 if 'begin' in data:
-                    data['begin'][0] = datetime.strptime(
-                        data['begin'][0], '%x %X'
+                    try:
+                        data['begin'][0] = datetime.strptime(
+                            data['begin'][0], '%x %X'
                         )
-                else:
+                    except ValueError:
+                        begin_error = True
+
+                if 'begin' not in data or begin_error:
                     data['begin'] = []
                     data['begin'] = [
                         datetime.now()
@@ -748,12 +753,17 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                             )
                         ]
 
+                end_error = False
                 # default end is 11:59:59 pm 14 days after begin date
                 if 'end' in data:
-                    data['end'][0] = datetime.strptime(
-                        data['end'][0], '%x %X'
+                    try:
+                        data['end'][0] = datetime.strptime(
+                            data['end'][0], '%x %X'
                         )
-                else:
+                    except ValueError:
+                        end_error = True
+
+                if 'end' not in data or end_error:
                     data['end'] = []
                     data['end'] = [
                         (datetime.now() + timedelta(days=14))
