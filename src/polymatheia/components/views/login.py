@@ -8,6 +8,7 @@ from polymatheia.components.views import get_courses
 import requests, json
 
 api_ip = settings.API_IP
+CA_BUNDLE = settings.CA_BUNDLE
 
 def login_user(request):
     if request.method == 'POST':
@@ -15,7 +16,7 @@ def login_user(request):
         request.session['pw'] = request.POST['password']
         udata = (request.POST['username'], request.POST['password'])
         headers = {'content-type':'application/json'}
-        login = requests.post(api_ip+'login/as/', auth=udata, verify=False,
+        login = requests.post(api_ip+'login/as/', auth=udata, verify=CA_BUNDLE,
                 headers=headers, json={})
         if login.status_code == 200:
             l_obj = login.json()
