@@ -8,13 +8,14 @@ from base64 import *
 import requests
 
 api_ip = settings.API_IP
+CA_BUNDLE = settings.CA_BUNDLE
 
 def register(request):
     if request.method == 'POST':
         if request.POST['password'] != request.POST['password2']:
             render_to_response('register/registration_form.html', 
                     {'form':form, 'error':'Your passwords did not match'})
-        user_obj = requests.post(api_ip + 'student/add', json=request.POST)
+        user_obj = requests.post(api_ip + 'student/add', json=request.POST, verify=CA_BUNDLE)
         return HttpResponseRedirect('/register/complete')
     form = User()
     return render_to_response('register/registration_form.html', {'form':form},

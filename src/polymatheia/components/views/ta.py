@@ -9,6 +9,7 @@ import json, requests, urlparse
 from datetime import datetime
 
 api_ip = settings.API_IP
+CA_BUNDLE = settings.CA_BUNDLE
 
 def create_ta(request):
     if not check_auth(request):
@@ -21,7 +22,7 @@ def create_ta(request):
             if i != 'csrfmiddlewaretoken':
                 obj[i] = [request.POST[i]]
         t_obj = requests.post(api_ip+'ta/add', json=obj, auth=udata, 
-                verify=False)
+                verify=CA_BUNDLE)
         if t_obj.status_code == 200:
             return render_to_response('edited.html', {'name':'TA', 'action':
                 'added', 'user':request.session['uinfo'],
@@ -29,7 +30,7 @@ def create_ta(request):
         else:
             error = t_obj.status_code + " error. Please try again."
     courses = get_courses(request)
-    ta_obj = requests.get(api_ip+'ta/view', json={}, auth=udata, verify=False)
+    ta_obj = requests.get(api_ip+'ta/view', json={}, auth=udata, verify=CA_BUNDLE)
     tas = ta_obj.json()
     uniq = []
     for ta in tas:
@@ -48,7 +49,7 @@ def ta(request):
     ta_id = request.path[4:]
     ta_data = {'ta':[ta_id]}
     ta_obj = requests.get(api_ip+'ta/view', json=ta_data, auth=udata,
-            verify=False)
+            verify=CA_BUNDLE)
     ta = (ta_obj.json() if ta_obj.status_code == 200 else []) 
     courses = request.session['courses']
     return render_to_response('ta/ta.html', {'ta':ta, 'user':courses[0], 

@@ -10,8 +10,10 @@ from polymatheia.components.views.common import *
 import json, requests
 from datetime import datetime
 
+CA_BUNDLE = settings.CA_BUNDLE
+
 def index(request):
-    if request.session['user']:
+    if request.session.get('user', None):
         api_ip = settings.API_IP
         udata = (request.session['user'], request.session['pw'])
         user = request.session['uinfo']
@@ -20,10 +22,10 @@ def index(request):
         for course in ucourses:
             course_data = {'course-id':[course['course_id']]}
             cobj = requests.get(api_ip+'course/view', 
-                    json=course_data, auth=udata, verify=False)
+                    json=course_data, auth=udata, verify=CA_BUNDLE)
             c = (cobj.json() if cobj.status_code == 200 else [])
             a_obj = requests.get(api_ip+'assignment/view', 
-                    json=course_data, auth=udata, verify=False)
+                    json=course_data, auth=udata, verify=CA_BUNDLE)
             assign = (a_obj.json() if a_obj.status_code == 200 else [])
             upcoming = []
             for a in assign:

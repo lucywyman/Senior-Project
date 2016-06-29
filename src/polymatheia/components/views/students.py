@@ -10,6 +10,7 @@ import json, requests, urlparse, re
 from datetime import datetime
 
 api_ip = settings.API_IP
+CA_BUNDLE = settings.CA_BUNDLE
 
 def student_add(request):
     if not check_auth(request):
@@ -22,7 +23,7 @@ def student_add(request):
             if (pattern.match(i) or i == 'student') and request.POST[i] != '':
                 obj['student'].append(request.POST[i])
         a_obj = requests.post(api_ip+'student/add', json=obj,
-                auth=udata, verify=False)
+                auth=udata, verify=CA_BUNDLE)
         if a_obj.status_code == 200:
             return render_to_response('edited.html', {'name':'Students', 
                 'action':'added', 'user':request.session['uinfo'], 
@@ -30,7 +31,7 @@ def student_add(request):
         else:
             error = str(a_obj.status_code) + " error. Please try again."
     r = [i for i in range(50)]
-    students = requests.get(api_ip+'student/view', auth=udata, verify=False,
+    students = requests.get(api_ip+'student/view', auth=udata, verify=CA_BUNDLE,
             json={})
     students = students.json()
     return render_to_response('students/add_student.html', {'range':r, 
@@ -45,7 +46,7 @@ def student(request):
     student_data = {'student':[student_id]}
     courses = request.session['courses']
     student_obj = requests.get(api_ip+'student/view', json=student_data, 
-            auth=udata, verify=False)
+            auth=udata, verify=CA_BUNDLE)
     student = (student_obj.json() if student_obj.status_code == 200 else []) 
     return render_to_response('students/student.html', {'courses':courses,
         'user': request.session['uinfo'], 'student':student[0]})
@@ -56,7 +57,7 @@ def delete_student(request):
     student_data = {'student':[student_id]}
     if request.method == 'POST':
         s_obj = requests.delete(api_ip+'student/delete', json=student_data, 
-                auth=udata, verify=False)
+                auth=udata, verify=CA_BUNDLE)
         if s_obj.status_code == 200:
             return render_to_response('edited.html', {'name':'Student', 
                 'action':'deleted', 'user':request.session['uinfo'],
@@ -64,7 +65,7 @@ def delete_student(request):
         else:
             error = str(s_obj.status_code) + " error. Please try again"
     s_obj = requests.get(api_ip+'student/view', json=student_data, auth=udata,
-            verify=False)
+            verify=CA_BUNDLE)
     s = (s_obj.json() if s_obj.status_code == 200 else [])
     return render_to_response('students/delete_student.html',
             {'student':s[0], 'user':request.session['uinfo'], 

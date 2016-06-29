@@ -9,6 +9,7 @@ import json, requests, urlparse
 from datetime import datetime
 
 api_ip = settings.API_IP
+CA_BUNDLE = settings.CA_BUNDLE
 
 def create_test(request):
     udata = (request.session.get('user'), request.session.get('pw'))
@@ -24,7 +25,7 @@ def create_test(request):
             files['file'+str(i)] = f
             i = i+1
         t_obj = requests.post(api_ip+'test/add', data=obj, auth=udata, 
-                files=files, verify=False)
+                files=files, verify=CA_BUNDLE)
         if t_obj.status_code == 200:
             return render_to_response('edited.html', {'name':'Test', 
                 'action':'created', 'user':request.session['courses']})
@@ -35,7 +36,7 @@ def create_test(request):
     for c in courses:
         course_data = {'course-id':[c['course_id']]}
         aobj = requests.get(api_ip+'assignment/view', 
-                json=course_data, auth=udata, verify=False)
+                json=course_data, auth=udata, verify=CA_BUNDLE)
         if aobj.status_code == 200:
             a = aobj.json()
             assignments.extend(a)
@@ -50,7 +51,7 @@ def test(request):
     test_id = request.path[6:]
     test_data = {'test-id':[test_id]}
     t_obj = requests.get(api_ip+'test/view', json=test_data,
-            auth=udata, verify=False)
+            auth=udata, verify=CA_BUNDLE)
     test = (t_obj.json() if t_obj.status_code == 200 else [])
     u = get_courses(request)
     return render_to_response('test/test.html', {'test':test[0], 'user':u[0]})
@@ -66,7 +67,7 @@ def edit_test(request):
         files = {"file": request.FILES['filepath'].read()}
         obj['test-id'] = test_id
         t_obj = requests.post(api_ip+'test/update', data=obj, auth=udata, 
-                files=files, verify=False)
+                files=files, verify=CA_BUNDLE)
         if t_obj.status_code == 200:
             return render_to_response('edited.html', {'name':'Test', 
                 'action':'created', 'user':request.session['courses']})
@@ -74,7 +75,7 @@ def edit_test(request):
             error = t_obj.status_code + " error. Please try again."
     test_data = {'test-id':[test_id]}
     t_obj = requests.get(api_ip+'test/view', json=test_data, auth=udata,
-            verify=False)
+            verify=CA_BUNDLE)
     t = t_obj.json()
     t = t[0]
     form = Test(initial={
@@ -91,14 +92,14 @@ def delete_test(request):
     test_data = {'test-id':[test_id]}
     if request.method == 'POST':
         c_obj = requests.delete(api_ip+'test/delete', json=test_data, 
-                auth=udata, verify=False)
+                auth=udata, verify=CA_BUNDLE)
         if c_obj.status_code == 200:
             return render_to_response('edited.html', {'name':'Test', 
                 'action':'deleted', 'user':request.session['courses']})
         else:
             error = str(r_obj.status_code) + " error. Please try again"
     c_obj = requests.get(api_ip+'test/view', json=test_data, auth=udata,
-            verify=False)
+            verify=CA_BUNDLE)
     c = (c_obj.json() if c_obj.status_code == 200 else [])
     u = get_courses(request)
     return render_to_response('test/delete_test.html',
