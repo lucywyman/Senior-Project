@@ -1529,6 +1529,7 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
     def parse_path(self):
         # split path into components
         path = self.path
+        self.logger.debug("PATH: {}".format(path))
         if path.startswith('/') and path.endswith('/'):
             path = path.split('/')
             path = path[1:-1]
