@@ -388,7 +388,18 @@ class RESTfulHandler(http.server.BaseHTTPRequestHandler):
                     WHERE users.username=%s
                     """, (data['student_id'][0],)
                     )
-                data['student_id'][0] = cur.fetchone()['user_id']
+                try:
+                    data['student_id'][0] = cur.fetchone()['user_id']
+                except TypeError:
+                    self.send_error(
+                        HTTPStatus.NOT_FOUND,
+                        'Student {0} not found'
+                        .format(data['student_id'][0])
+                        )
+                    self.end_headers()
+                    self.logger.info("END")
+                    return
+
             if 'ta_id' in data:
                 cur.execute("""
                     SELECT users.user_id FROM users

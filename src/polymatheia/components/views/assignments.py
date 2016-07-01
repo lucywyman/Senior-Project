@@ -139,7 +139,7 @@ def submit_assignment(request):
                 'action':'submitted', 'user':request.session['courses']})
         else:
             error = str(c_obj.status_code) + " error. Please try again"
-    assignment_data['student'] = request.session['user']
+    assignment_data['student'] = [request.session['user']]
     c_obj = requests.get(api_ip+'submission/view', json=assignment_data, 
             auth=udata, verify=CA_BUNDLE)
     s = (c_obj.json() if c_obj.status_code == 200 else [])
