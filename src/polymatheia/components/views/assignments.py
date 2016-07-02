@@ -19,7 +19,12 @@ def create_assignment(request):
         for i in request.POST:
             if i != 'csrfmiddlewaretoken':
                 obj[i] = [request.POST[i]]
-        a_obj = requests.post(api_ip+'assignment/add', json=obj,
+        files = {}
+        i = 0
+        for f in request.FILES.getlist('files'):
+            files['file'+str(i)] = f
+            i = i+1
+        a_obj = requests.post(api_ip+'assignment/add', files=files, data=obj,
                 auth=udata, verify=False)
         if a_obj.status_code == 200:
             return render_to_response('edited.html', {'name':'Assignment', 
