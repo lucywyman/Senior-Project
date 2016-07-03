@@ -3,7 +3,7 @@
 {% block content %}
 <h2>Create an Assignment</h2>
 <h4 class='error'>{{ error }}</h4>
-<form action="/assignment/create" method="post" enctype="multipart/form-data">
+<form action="/assignment/create" method="post">
 	{% csrf_token %}
 	{{ form.as_table }}   
 	<label for='course-id'>Course name:</label>
@@ -11,7 +11,6 @@
 		{% for course in courses %}
 		<option value="{{ course.course_id }}">{{ course.dept}} {{ course.num }}{{ course.name }} ({{ course.term }} {{ course.year }})</option>
 		{% endfor %}
-	<input class="multiFileInput" type="file" name="files" multiple />	
 	</select>
 	<input class='btn' type="submit" value="Create" />
 </form>
